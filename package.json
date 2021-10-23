@@ -1,0 +1,9 @@
+{
+    "name": "wotjs-core",
+    "version": "19.6.53",
+    "description": "JavaScript runtime for Web of Things",
+    "scripts": {},
+    "author": "wot.js",
+    "devDependencies": {},
+    "dependencies": {}
+}

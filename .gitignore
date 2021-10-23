@@ -1,0 +1,15 @@
+.vscode
+.vs
+.idea
+.DS_Store
+
+CMakeFiles
+CMakeCache.txt
+cmake_install.cmake
+package-lock.json
+src/version.h
+/build/
+/core/build/
+/node_modules/
+/output/
+/sdk/
