@@ -33,13 +33,13 @@ typedef struct tjs_dns_getaddrinfo_req_s {
     TJSPromise result;
 } TJSGetAddrInfoReq;
 
-static JSValue tjs_addrinfo2obj(JSContext* ctx, struct addrinfo* ai)
+static JSValue tjs_new_socket_address(JSContext* ctx, struct addrinfo* hints)
 {
     JSValue obj = JS_NewArray(ctx);
 
     struct addrinfo* ptr;
     int i = 0;
-    for (ptr = ai; ptr; ptr = ptr->ai_next) {
+    for (ptr = hints; ptr; ptr = ptr->ai_next) {
         if (!ptr->ai_addrlen) {
             continue;
         }
@@ -58,29 +58,29 @@ static JSValue tjs_addrinfo2obj(JSContext* ctx, struct addrinfo* ai)
     return obj;
 }
 
-static void tjs_obj2addrinfo(JSContext* ctx, JSValue obj, struct addrinfo* ai)
+static void tjs_obj2addrinfo(JSContext* ctx, JSValue obj, struct addrinfo* hints)
 {
     JSValue family = JS_GetPropertyStr(ctx, obj, "family");
     if (!JS_IsUndefined(family)) {
-        JS_ToInt32(ctx, &ai->ai_family, family);
+        JS_ToInt32(ctx, &hints->ai_family, family);
     }
     JS_FreeValue(ctx, family);
 
     JSValue socktype = JS_GetPropertyStr(ctx, obj, "socktype");
     if (!JS_IsUndefined(socktype)) {
-        JS_ToInt32(ctx, &ai->ai_socktype, socktype);
+        JS_ToInt32(ctx, &hints->ai_socktype, socktype);
     }
     JS_FreeValue(ctx, socktype);
 
     JSValue protocol = JS_GetPropertyStr(ctx, obj, "protocol");
     if (!JS_IsUndefined(protocol)) {
-        JS_ToInt32(ctx, &ai->ai_protocol, protocol);
+        JS_ToInt32(ctx, &hints->ai_protocol, protocol);
     }
     JS_FreeValue(ctx, protocol);
 
     JSValue flags = JS_GetPropertyStr(ctx, obj, "flags");
     if (!JS_IsUndefined(flags)) {
-        JS_ToInt32(ctx, &ai->ai_flags, flags);
+        JS_ToInt32(ctx, &hints->ai_flags, flags);
     }
     JS_FreeValue(ctx, flags);
 }
@@ -97,7 +97,7 @@ static void uv__getaddrinfo_cb(uv_getaddrinfo_t* req, int status, struct addrinf
     if (status != 0) {
         arg = tjs_new_error(ctx, status);
     } else {
-        arg = tjs_addrinfo2obj(ctx, res);
+        arg = tjs_new_socket_address(ctx, res);
     }
 
     TJS_SettlePromise(ctx, &request->result, is_reject, 1, (JSValueConst*)&arg);
@@ -120,29 +120,32 @@ static JSValue tjs_dns_getaddrinfo(JSContext* ctx, JSValueConst this_val, int ar
         return JS_EXCEPTION;
     }
 
+    memset(request, 0, sizeof(*request));
     request->ctx = ctx;
     request->req.data = request;
 
     struct addrinfo hints;
     memset(&hints, 0, sizeof(hints));
 
+    // options
     if (argc > 1) {
-        JSValue opts = argv[1];
-        if (JS_IsObject(opts)) {
-            tjs_obj2addrinfo(ctx, opts, &hints);
-            JSValue js_service = JS_GetPropertyStr(ctx, opts, "service");
+        JSValue options = argv[1];
+        if (JS_IsObject(options)) {
+            tjs_obj2addrinfo(ctx, options, &hints);
+            JSValue js_service = JS_GetPropertyStr(ctx, options, "service");
             if (!JS_IsUndefined(js_service)) {
                 service = JS_ToCString(ctx, js_service);
             }
+
             JS_FreeValue(ctx, js_service);
         }
     }
 
-    int r = uv_getaddrinfo(tjs_get_loop(ctx), &request->req, uv__getaddrinfo_cb, node, service, &hints);
+    int ret = uv_getaddrinfo(tjs_get_loop(ctx), &request->req, uv__getaddrinfo_cb, node, service, &hints);
     JS_FreeCString(ctx, node);
-    if (r != 0) {
+    if (ret != 0) {
         js_free(ctx, request);
-        return tjs_throw_errno(ctx, r);
+        return tjs_throw_errno(ctx, ret);
     }
 
     return TJS_InitPromise(ctx, &request->result);

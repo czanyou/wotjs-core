@@ -1,24 +1,20 @@
 // @ts-check
+/// <reference path ="../../types/index.d.ts" />
 import * as assert from '@tjs/assert';
 import * as native from '@tjs/native';
 
 const test = assert.test;
 
-
 test('native.tcp', async () => {
 
     const result = {};
     const output = [];
+    const $context = {};
 
     async function createEchoServer() {
         async function onServerConnection(server) {
             const connection = server.accept();
             output.push('connection');
-
-            // console.log('server accept', connection);
-            connection.onend = function () {
-                output.push('pong-end');
-            };
 
             connection.onerror = function () {
                 output.push('pong-error');
@@ -34,6 +30,8 @@ test('native.tcp', async () => {
                     output.push('pong-end');
                 }
             };
+
+            $context.connection = connection;
         }
 
         const server = new native.TCP();
@@ -41,7 +39,7 @@ test('native.tcp', async () => {
             onServerConnection(server);
         };
 
-        server.bind({ ip: '127.0.0.1', port: 38090 });
+        server.bind({ address: '127.0.0.1', port: 38090 });
         server.listen();
 
         return server;
@@ -51,11 +49,6 @@ test('native.tcp', async () => {
         const textDecoder = new TextDecoder();
 
         const client = new native.TCP();
-        client.onend = function () {
-            // console.log('client end');
-            result.isEnd = true;
-            output.push('ping-end');
-        };
 
         client.onerror = function (err) {
             console.log('client error', err);
@@ -72,19 +65,19 @@ test('native.tcp', async () => {
 
             result.hasData = true;
 
-            if (!client.message) {
+            if (!result.message) {
                 output.push('ping2');
                 const text = textDecoder.decode(data);
                 assert.equal(text, 'PONG', 'sending strings works');
 
-                client.message = true;
+                result.message = true;
 
                 await client.write(data);
                 // console.log('send data', data);
 
             } else {
                 // console.log('client data', data);
-                output.push('ping-exit');
+                output.push('exit');
                 const text = textDecoder.decode(data);
                 assert.equal(text, 'PONG', 'sending buffer works');
 
@@ -119,6 +112,6 @@ test('native.tcp', async () => {
     }
 
     await assert.waitTimeout();
-    console.log(output.join('->'));
 
+    assert.equal(output.join('->'), 'connect->connection->connected->ping1->pong->ping2->pong->exit');
 });

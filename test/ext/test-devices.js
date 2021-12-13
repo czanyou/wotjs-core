@@ -1,4 +1,5 @@
 // @ts-check
+/// <reference path ="../../types/index.d.ts" />
 import * as assert from '@tjs/assert';
 import * as devices from '@tjs/devices';
 
@@ -9,5 +10,5 @@ test('devices', async () => {
     
     const device = await devices.requestDevice(0);
     assert.ok(device);
-    console.log(device);
+    // console.log(device);
 });

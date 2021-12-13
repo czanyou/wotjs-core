@@ -1,4 +1,5 @@
 // @ts-check
+/// <reference path ="../../types/index.d.ts" />
 import * as native from '@tjs/native';
 import * as dns from '@tjs/dns';
 
@@ -10,21 +11,17 @@ import { defineEventAttribute, EventTarget } from '@tjs/event-target';
 // TCPSocket
 
 export class TCPSocket extends EventTarget {
+
     /** @param {any} options */
     constructor(options) {
         super();
-
-        this.CONNECTING = 0;
-        this.OPEN = 1;
-        this.CLOSING = 2;
-        this.CLOSED = 3;
 
         this._options = Object.assign({}, options);
         this._handle = options?.handle;
 
         this.bytesRead = 0;
         this.bytesWritten = 0;
-        this.readyState = this.CLOSED;
+        this.readyState = TCPSocket.CLOSED;
         this.timeout = undefined;
 
         if (this._handle) {
@@ -37,7 +34,7 @@ export class TCPSocket extends EventTarget {
     }
 
     get connecting() {
-        return this.readyState == this.CONNECTING;
+        return this.readyState == TCPSocket.CONNECTING;
     }
 
     get bufferedAmount() {
@@ -50,15 +47,17 @@ export class TCPSocket extends EventTarget {
      * @param {string} host 
      */
     async connect(port, host) {
-        if (this.readyState != this.CLOSED) {
+        if (this.readyState != TCPSocket.CLOSED) {
             return;
 
         } else if (port == null) {
-            return;
+            return Promise.reject(new Error('Invalid port'));
         }
 
+        // console.trace('connect');
+
         try {
-            this.readyState = this.CONNECTING;
+            this.readyState = TCPSocket.CONNECTING;
 
             let address = null;
             let options = null;
@@ -74,7 +73,7 @@ export class TCPSocket extends EventTarget {
                 options = { path: port };
 
             } else {
-                return;
+                return Promise.reject(new Error('Invalid options'));
             }
 
             if (options.path) {
@@ -86,7 +85,7 @@ export class TCPSocket extends EventTarget {
             } else {
                 address = await dns.lookup(options.host, { family: 4 });
                 if (Array.isArray(address)) {
-                    return;
+                    return Promise.reject(new Error('lookup failed'));
                 }
 
                 address.port = options.port || 80;
@@ -113,7 +112,7 @@ export class TCPSocket extends EventTarget {
             // console.log('address', address);
             await client.connect(address);
 
-            this.readyState = this.OPEN;
+            this.readyState = TCPSocket.OPEN;
 
             if (this._connectTimeoutTimer) {
                 clearTimeout(this._connectTimeoutTimer);
@@ -124,15 +123,12 @@ export class TCPSocket extends EventTarget {
             this.dispatchEvent(new Event('open'));
 
         } catch (error) {
-            this.readyState = this.CLOSED;
-
             if (this._connectTimeoutTimer) {
                 clearTimeout(this._connectTimeoutTimer);
                 this._connectTimeoutTimer = null;
             }
 
-            this.dispatchEvent(new ErrorEvent(error));
-            await this.close();
+            await this.close(error);
         }
 
         return this;
@@ -148,19 +144,26 @@ export class TCPSocket extends EventTarget {
         return handle?.remoteAddress();
     }
 
-    async close(code, reason) {
+    /**
+     * @param {Error} [error] 
+     */
+    async close(error) {
         const handle = this._handle;
         this._handle = null;
 
-        if (this.readyState != this.CLOSED) {
-            this.readyState = this.CLOSED;
+        if (error) {
+            this.dispatchEvent(new ErrorEvent('error', { error }));
+        }
 
+        if (this.readyState != TCPSocket.CLOSED) {
+            // console.trace('close');
+            
+            this.readyState = TCPSocket.CLOSED;
             this.dispatchEvent(new Event('close'));
         }
 
         if (handle) {
             handle.onclose = null;
-            handle.onend = null;
             handle.onerror = null;
             handle.onmessage = null;
             await handle.close();
@@ -169,6 +172,11 @@ export class TCPSocket extends EventTarget {
         return this;
     }
 
+    /**
+     * @param {*} data 
+     * @param {string} encoding 
+     * @returns 
+     */
     async end(data, encoding = 'utf-8') {
         if (data) {
             await this.write(data, encoding);
@@ -183,7 +191,7 @@ export class TCPSocket extends EventTarget {
             await handle.shutdown();
 
         } catch (error) {
-            this.dispatchEvent(new ErrorEvent(error));
+            this.dispatchEvent(new ErrorEvent('error', { error }));
             await this.close(error);
         }
 
@@ -224,7 +232,7 @@ export class TCPSocket extends EventTarget {
             return result;
 
         } catch (error) {
-            self.dispatchEvent(new ErrorEvent(error));
+            self.dispatchEvent(new ErrorEvent('error', { error }));
             await this.close(error);
         }
     }
@@ -237,17 +245,12 @@ export class TCPSocket extends EventTarget {
 
         const self = this;
 
-        handle.onclose = function (error) {
-            self.close(error);
-        };
-
-        handle.onend = function () {
-            self.dispatchEvent(new Event('end'));
+        handle.onclose = function () {
+            self.close();
         };
 
         handle.onerror = function (error) {
-            self.dispatchEvent(new ErrorEvent(error));
-            self.close(error);
+            self.dispatchEvent(new ErrorEvent('error', { error }));
         };
 
         handle.onmessage = function (message) {
@@ -260,9 +263,20 @@ export class TCPSocket extends EventTarget {
     }
 }
 
+/** 正在连接中 */
+TCPSocket.CONNECTING = 0;
+
+/** 已连接 */
+TCPSocket.OPEN = 1;
+
+/** 正在关闭连接 */
+TCPSocket.CLOSING = 2;
+
+/** 连接已关闭 */
+TCPSocket.CLOSED = 3;
+
 defineEventAttribute(TCPSocket.prototype, 'close');
 defineEventAttribute(TCPSocket.prototype, 'connect');
-defineEventAttribute(TCPSocket.prototype, 'end');
 defineEventAttribute(TCPSocket.prototype, 'error');
 defineEventAttribute(TCPSocket.prototype, 'lookup');
 defineEventAttribute(TCPSocket.prototype, 'message');
@@ -285,17 +299,11 @@ export class TCPServer extends EventTarget {
         return 'TCPServer';
     }
 
-    async accept() {
-        const handle = this._handle;
-        const result = handle && await handle.accept();
-        return result;
-    }
-
     address() {
-        return this._handle && this._handle.address();
+        return this._handle?.address();
     }
 
-    bind(options) {
+    listen(options, backlog) {
         if (!options) {
             return;
         }
@@ -315,7 +323,7 @@ export class TCPServer extends EventTarget {
             }
 
         } catch (error) {
-            this.dispatchEvent(new ErrorEvent(error));
+            this.dispatchEvent(new ErrorEvent('error', { error }));
             this.close();
             return;
         }
@@ -324,20 +332,19 @@ export class TCPServer extends EventTarget {
         const server = this._handle;
         server.onconnection = async function () {
             // console.log('connection');
-            const connection = await server.accept();
+            const connection = server.accept();
             const event = new Event('connection');
             // @ts-ignore
             event.connection = new TCPSocket({ handle: connection });
             self.dispatchEvent(event);
         };
 
-        server.onend = function () {
-            self.dispatchEvent(new Event('end'));
+        server.onerror = function (error) {
+            self.dispatchEvent(new ErrorEvent('error', { error }));
         };
 
-        server.onerror = function (error) {
-            self.dispatchEvent(new ErrorEvent(error));
-        };
+        server.listen(backlog);
+        this.dispatchEvent(new Event('listening'));
     }
 
     async close(code, reason) {
@@ -347,14 +354,6 @@ export class TCPServer extends EventTarget {
 
             await handle.close();
             this.dispatchEvent(new Event('close'));
-        }
-    }
-
-    listen(backlog) {
-        const handle = this._handle;
-        if (handle) {
-            handle.listen(backlog);
-            this.dispatchEvent(new Event('listening'));
         }
     }
 }
@@ -368,26 +367,13 @@ defineEventAttribute(TCPServer.prototype, 'listening');
 // UDPSocket
 
 export class UDPSocket extends EventTarget {
-    constructor(handle) {
+    constructor(options) {
         super();
 
-        if (!handle) {
-            handle = new native.UDP();
-        }
+        this.readyState = 0;
 
-        this._handle = handle;
-
-        handle.onmessage = (data, address) => {
-            const event = new MessageEvent('message', { data });
-            // @ts-ignore
-            event.address = address;
-            this.dispatchEvent(event);
-        }
-
-        handle.onclose = () => {
-            const event = new Event('close');
-            this.dispatchEvent(event);
-        }
+        /** @type native.UDP */
+        this._handle = new native.UDP();
     }
 
     get [Symbol.toStringTag]() {
@@ -409,27 +395,73 @@ export class UDPSocket extends EventTarget {
         handle?.connect(address);
     }
 
-    bind(address) {
+    disconnect() {
         const handle = this._handle;
-        handle?.bind(address);
+        handle?.disconnect();
+    }
+
+    /**
+     * 
+     * @param {{ port?: number, address?: string }} address 
+     * @param {number} flags 
+     */
+    bind(address, flags) {
+        let options = address;
+        if (typeof address == 'number') {
+            options = { port: address };
+            if (typeof flags == 'string') {
+                options.address = flags;
+            }
+
+            flags = null;
+        }
+
+        const handle = this._handle;
+        handle?.bind(options, flags);
+
+        this._init();
     }
 
     close() {
         const handle = this._handle;
         if (handle) {
             this._handle = null;
+
+            handle.onmessage = null;
+            handle.onclose = null;
+
             return handle.close();
         }
     }
 
-    send(message, address) {
+    async send(message, address) {
         const handle = this._handle;
-        return handle?.send(message, address);
+        const result = await handle?.send(message, address);
+        
+        this._init();
+
+        return result;
     }
 
-    recv() {
+    _init() {
+        if (this.readyState > 0) {
+            return;
+        }
+
+        this.readyState = 1;
+        
         const handle = this._handle;
-        return handle?.recv();
+        handle.onmessage = (message) => {
+            const event = new MessageEvent('message', { data: message.data });
+            // @ts-ignore
+            event.address = message.address;
+            this.dispatchEvent(event);
+        };
+
+        handle.onclose = () => {
+            const event = new Event('close');
+            this.dispatchEvent(event);
+        };
     }
 }
 
@@ -449,7 +481,15 @@ defineEventAttribute(UDPSocket.prototype, 'error');
 export function connect(port, host) {
     const socket = new TCPSocket();
     setTimeout(async () => {
-        await socket.connect(port, host);
+        try {
+            await socket.connect(port, host);
+
+        } catch (error) {
+            socket.dispatchEvent(new Event('close'));
+
+            await socket.close();
+        }
+
     }, 0);
 
     return socket;
@@ -480,7 +520,5 @@ export function createSocket(options) {
         options = { type };
     }
 
-    const socket = new native.UDP();
-
-    return new UDPSocket(socket);
+    return new UDPSocket(options);
 }

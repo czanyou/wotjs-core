@@ -50,8 +50,9 @@ static void tjs__signal_close_cb(uv_handle_t* handle)
 
 static void tjs__signal_maybe_close(TJSSignalHandler* handler)
 {
-    if (!uv_is_closing((uv_handle_t*)&handler->handle))
+    if (!uv_is_closing((uv_handle_t*)&handler->handle)) {
         uv_close((uv_handle_t*)&handler->handle, tjs__signal_close_cb);
+    }
 }
 
 static void tjs_signal_handler_finalizer(JSRuntime* rt, JSValue val)
@@ -62,6 +63,7 @@ static void tjs_signal_handler_finalizer(JSRuntime* rt, JSValue val)
         handler->finalized = 1;
         if (handler->closed) {
             free(handler);
+            
         } else {
             tjs__signal_maybe_close(handler);
         }
@@ -169,7 +171,7 @@ static const JSCFunctionListEntry tjs_signal_handler_proto_funcs[] = {
     JS_PROP_STRING_DEF("[Symbol.toStringTag]", "SignalHandler", JS_PROP_CONFIGURABLE),
 };
 
-static const JSCFunctionListEntry tjs_signal_funcs[] = {
+static const JSCFunctionListEntry tjs_signal_signals[] = {
 #ifdef SIGHUP
     TJS_CONST(SIGHUP),
 #endif
@@ -279,10 +281,13 @@ static const JSCFunctionListEntry tjs_signal_funcs[] = {
 #ifdef SIGUNUSED
     TJS_CONST(SIGUNUSED),
 #endif
+};
+
+static const JSCFunctionListEntry tjs_signal_funcs[] = {
     TJS_CFUNC_DEF("signal", 2, tjs_signal),
 };
 
-void tjs_mod_signals_init(JSContext* ctx, JSModuleDef* m)
+void tjs_mod_signals_init(JSContext* ctx, JSModuleDef* module)
 {
     // Handler class
     JS_NewClassID(&tjs_signal_handler_class_id);
@@ -292,10 +297,15 @@ void tjs_mod_signals_init(JSContext* ctx, JSModuleDef* m)
     JS_SetClassProto(ctx, tjs_signal_handler_class_id, proto);
 
     // functions
-    JS_SetModuleExportList(ctx, m, tjs_signal_funcs, countof(tjs_signal_funcs));
+    JS_SetModuleExportList(ctx, module, tjs_signal_funcs, countof(tjs_signal_funcs));
+
+    JSValue signals = JS_NewObject(ctx);
+    JS_SetPropertyFunctionList(ctx, signals, tjs_signal_signals, countof(tjs_signal_signals));
+    JS_SetModuleExport(ctx, module, "signals", signals);
 }
 
-void tjs_mod_signals_export(JSContext* ctx, JSModuleDef* m)
+void tjs_mod_signals_export(JSContext* ctx, JSModuleDef* module)
 {
-    JS_AddModuleExportList(ctx, m, tjs_signal_funcs, countof(tjs_signal_funcs));
+    JS_AddModuleExportList(ctx, module, tjs_signal_funcs, countof(tjs_signal_funcs));
+    JS_AddModuleExport(ctx, module, "signals");
 }

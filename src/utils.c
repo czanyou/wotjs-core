@@ -57,13 +57,13 @@ int tjs_obj2addr(JSContext* ctx, JSValueConst obj, struct sockaddr_storage* ss)
     JSValue js_port;
     const char* ip;
     uint32_t port;
-    int r;
+    int ret;
 
     // port
     js_port = JS_GetPropertyStr(ctx, obj, "port");
-    r = JS_ToUint32(ctx, &port, js_port);
+    ret = JS_ToUint32(ctx, &port, js_port);
     JS_FreeValue(ctx, js_port);
-    if (r != 0) {
+    if (ret != 0) {
         return -1;
     }
 

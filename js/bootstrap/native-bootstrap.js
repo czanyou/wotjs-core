@@ -1,47 +1,43 @@
+// @ts-check
 // tjs internal bootstrap.
+/// <reference path ="../../types/index.d.ts" />
 //
 
 import * as native from '@tjs/native';
 const util = native.util;
 
+// @ts-ignore
 globalThis.setTimeout = native.setTimeout;
-globalThis.clearTimeout = native.clearTimeout;
+// @ts-ignore
 globalThis.setInterval = native.setInterval;
-globalThis.clearInterval = native.clearInterval;
 globalThis.alert = native.alert;
-globalThis.prompt = native.prompt;
+globalThis.clearInterval = native.clearInterval;
+globalThis.clearTimeout = native.clearTimeout;
 globalThis.confirm = native.confirm;
+globalThis.prompt = native.prompt;
 
 /**
  * @param {string} data 
  * @returns string
  */
 globalThis.btoa = function (data) {
-    if (typeof data == 'string') {
-        data = util.textEncode(data);
-    }
-    
-    return util.encode(data, util.CODE_BASE64);
+    const buffer = util.textEncode(data);
+    return util.encode(buffer, util.CODE_BASE64);
 };
 
 /**
  * @param {string} encodedData 
- * @param {*} blocksSize 
  * @returns string
  */
-globalThis.atob = function (encodedData, blocksSize) {
+globalThis.atob = function (encodedData) {
     const decodedData = util.decode(encodedData, util.CODE_BASE64);
-    if (blocksSize == null) {
-        return util.textDecode(decodedData);
-    }
-
-    return decodedData;
+    return util.textDecode(decodedData);
 };
 
-Object.defineProperty(globalThis, 'global', {
-    enumerable: true,
-    get() { return globalThis; },
-    set() { }
+Object.defineProperty(globalThis, 'global', { 
+    enumerable: true, 
+    get() { return globalThis; }, 
+    set() { } 
 });
 
 Object.defineProperty(globalThis, 'window', {
@@ -55,17 +51,3 @@ Object.defineProperty(globalThis, 'self', {
     get() { return globalThis; },
     set() { }
 });
-
-const tjs = Object.create(null);
-
-tjs.signal = native.signal;
-
-for (const [key, value] of Object.entries(native)) {
-    // tjs.signal.SIGINT etc.
-    if (key.startsWith('SIG')) {
-        tjs.signal[key] = value;
-        continue;
-    }
-
-    tjs[key] = value;
-}

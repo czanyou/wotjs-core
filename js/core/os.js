@@ -1,4 +1,5 @@
 // @ts-check
+/// <reference path ="../../types/index.d.ts" />
 import * as native from '@tjs/native';
 
 const os = native.os;
@@ -7,12 +8,15 @@ const textDecode = native.util.textDecode;
 // const
 export const arch = native.arch;
 export const platform = native.platform;
-export const signal = native.signal;
+export const signals = native.signals;
+export const EOL = '\r\n';
 
 // methods
 export const cpus = os.cpuinfo;
 export const cwd = native.cwd;
+export const dumpObjects = os.dumpObjects;
 export const freemem = os.freemem;
+export const gettimeofday = native.gettimeofday;
 export const homedir = native.homedir;
 export const hostname = os.hostname;
 export const hrtime = native.hrtime;
@@ -20,28 +24,26 @@ export const isatty = native.isatty;
 export const kill = os.kill;
 export const loadavg = os.loadavg;
 export const networkInterfaces = os.interfaces;
-export const printActiveHandles = os.printActiveHandles;
-export const printAllHandles = os.printAllHandles;
+export const openlog = native.openlog;
+export const printHandles = os.printHandles;
 export const printMemoryUsage = os.printMemoryUsage;
 export const reboot = os.reboot;
 export const rss = os.rssmem;
+export const signal = native.signal;
 export const sleep = os.sleep;
 export const spawn = native.spawn;
+export const syslog = native.syslog;
 export const tmpdir = native.tmpdir;
 export const totalmem = os.totalmem;
 export const uname = native.uname;
 export const uptime = os.uptime;
-export const openlog = native.openlog;
-export const syslog = native.syslog;
-
-export const EOL = '\r\n';
 
 /**
  * 执行一个命令并获取执行结果
  * @param {string} file 要执行的命令
  * @param {string[]} [args] 要执行的命令
- * @param {native.ProcessOptions} [options]
- * @returns {Promise<native.ProcessResult>} 返回这个命令输出的内容
+ * @param {native.SpawnOptions} [options]
+ * @returns {Promise<native.ChildProcess>} 返回这个命令输出的内容
  */
 export async function execFile(file, args, options) {
     const command = [file];
@@ -109,7 +111,7 @@ export async function execFile(file, args, options) {
 /**
  * 执行一个命令并获取执行结果
  * @param {string|string[]} command 要执行的命令
- * @param {native.ProcessOptions} [options]
+ * @param {native.SpawnOptions} [options]
  * @returns {Promise<native.ProcessResult>} 返回这个命令输出的内容
  */
 export async function exec(command, options) {

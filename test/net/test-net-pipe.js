@@ -1,19 +1,23 @@
 // @ts-check
+/// <reference path ="../../types/index.d.ts" />
 import * as fs from '@tjs/fs';
 import * as net from '@tjs/net';
 
 import * as assert from '@tjs/assert';
 const test = assert.test;
 
-test('net.pipe', async () => {
+const filename = '/tmp/test-pipe';
+
+test('net.pipe - server:client', async () => {
     try {
-        await fs.unlink('/tmp/test-pipe');
+        await fs.unlink(filename);
     } catch (e) {
 
     }
 
     const textDecoder = new TextDecoder();
     const result = {};
+    const $context = {};
 
     async function handleConnection(connection) {
         connection.onmessage = function (event) {
@@ -25,13 +29,14 @@ test('net.pipe', async () => {
     
             connection.write(data);
         };
+
+        $context.connection = connection;
     }
 
     function createEchoServer() {
         const server = net.createServer();
-        server.bind('/tmp/test-pipe');
-        server.listen();
-    
+        server.listen(filename);
+
         server.onconnection = function (event) {
             handleConnection(event.connection);
         };
@@ -70,7 +75,9 @@ test('net.pipe', async () => {
         client.onopen = async function (event) {
             result.conntected = true;
             await client.write('PING');
-        };    
+        };
+
+        return client;
     }
     
     const server = createEchoServer();

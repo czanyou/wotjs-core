@@ -1,9 +1,10 @@
 // @ts-check
+/// <reference path ="../../types/index.d.ts" />
 import { Event } from '@tjs/event-target';
 
 export class StorageEvent extends Event {
-    constructor(options) {
-        super('storage');
+    constructor(init) {
+        super('storage', init);
 
         this.key = null;
         this.newValue = null;

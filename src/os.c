@@ -5,10 +5,10 @@
 #include <unistd.h>
 
 #if defined(__linux__) || defined(__linux)
+#include <net/if.h>
+#include <sys/ioctl.h>
 #include <sys/reboot.h>
 #include <sys/socket.h>
-#include <sys/ioctl.h>
-#include <net/if.h>
 #endif
 
 static JSValue tjs_cpu_info(JSContext* ctx, JSValueConst this_val, int argc, JSValueConst* argv)
@@ -97,22 +97,78 @@ static JSValue tjs_pid(JSContext* ctx, JSValueConst this_val, int argc, JSValueC
 
 static JSValue tjs_print_all_handles(JSContext* ctx, JSValueConst this_val, int argc, JSValueConst* argv)
 {
-    uv_print_all_handles(tjs_get_loop(ctx), stdout);
+    FILE* file = fopen("/tmp/tjs-handles.txt", "w");
+    if (file) {
+        uv_print_all_handles(tjs_get_loop(ctx), file);
+        fclose(file);
+    }
+
     return JS_UNDEFINED;
 }
 
 static JSValue tjs_print_active_handles(JSContext* ctx, JSValueConst this_val, int argc, JSValueConst* argv)
 {
-    uv_print_active_handles(tjs_get_loop(ctx), stdout);
+    FILE* file = stdout;
+    uv_print_active_handles(tjs_get_loop(ctx), file);
+    return JS_UNDEFINED;
+}
+
+static JSValue tjs_dump_objects(JSContext* ctx, JSValueConst this_val, int argc, JSValueConst* argv)
+{
+    JSRuntime* runtime = JS_GetRuntime(ctx);
+    JS_DumpObjects(runtime);
     return JS_UNDEFINED;
 }
 
 static JSValue tjs_print_memory_usage(JSContext* ctx, JSValueConst this_val, int argc, JSValueConst* argv)
 {
-    JSMemoryUsage stats;
-    JSRuntime* rt = JS_GetRuntime(ctx);
-    JS_ComputeMemoryUsage(rt, &stats);
-    JS_DumpMemoryUsage(stdout, &stats, rt);
+    FILE* file = fopen("/tmp/tjs-memory.txt", "w");
+    if (!file) {
+        return JS_UNDEFINED;
+    }
+
+    JSMemoryUsage stats = { 0 };
+    JSRuntime* runtime = JS_GetRuntime(ctx);
+    JS_ComputeMemoryUsage(runtime, &stats);
+
+    fprintf(file, "memory allocated:   %8ld, size: %ld\r\n", stats.malloc_count, stats.malloc_size);
+    fprintf(file, "memory used:        %8ld, size: %ld\r\n", stats.memory_used_count, stats.memory_used_size);
+    fprintf(file, "atoms:              %8ld, size: %ld\r\n", stats.atom_count, stats.atom_size);
+    fprintf(file, "strings:            %8ld, size: %ld\r\n", stats.str_count, stats.str_size);
+    fprintf(file, "objects:            %8ld, size: %ld\r\n", stats.obj_count, stats.obj_size);
+    fprintf(file, "properties:         %8ld, size: %ld\r\n", stats.prop_count, stats.prop_size);
+    fprintf(file, "shapes:             %8ld, size: %ld\r\n", stats.shape_count, stats.shape_size);
+    fprintf(file, "bytecode functions: %8ld, size: %ld, bytecode: %ld\r\n", stats.js_func_count, stats.js_func_size, stats.js_func_code_size);
+    fprintf(file, "pc2line:            %8ld, size: %ld\r\n", stats.js_func_pc2line_count, stats.js_func_pc2line_size);
+    fprintf(file, "C functions:        %8ld\r\n", stats.c_func_count);
+    fprintf(file, "arrays:             %8ld, fast arrays: %ld, elements: %ld\r\n", stats.array_count, stats.fast_array_count, stats.fast_array_elements);
+    fprintf(file, "binary objects:     %8ld, size: %ld\r\n", stats.binary_object_count, stats.binary_object_size);
+
+    {
+#if 1
+        int* object_classes = &stats.object_classes[0];
+        fprintf(file, "\n""JSObject classes (%d)\n", stats.class_count);
+        if (object_classes[0]) {
+            fprintf(file, "  %5d  %2.0d %s\n", object_classes[0], 0, "none");
+        }
+
+        int class_id = 0;
+        int JS_CLASS_INIT_COUNT = stats.class_count;
+        for (class_id = 1; class_id < JS_CLASS_INIT_COUNT; class_id++) {
+            if (object_classes[class_id]) {
+                char buf[64];
+                fprintf(file, "  %5d  %d\n", object_classes[class_id], class_id);
+            }
+        }
+
+        if (object_classes[JS_CLASS_INIT_COUNT]) {
+            fprintf(file, "  %5d  %d\n", object_classes[JS_CLASS_INIT_COUNT], 0);
+        }
+#endif
+    }
+
+    fclose(file);
+    
     return JS_UNDEFINED;
 }
 
@@ -238,7 +294,6 @@ static int tjs_interface_flags(const char* facename)
     return flags;
 }
 
-
 static JSValue tjs_interfaces(JSContext* ctx, JSValueConst this_val, int argc, JSValueConst* argv)
 {
     uv_interface_address_t* interfaces;
@@ -298,9 +353,9 @@ static const JSCFunctionListEntry tjs_os_funcs[] = {
     TJS_CFUNC_DEF("loadavg", 0, tjs_loadavg),
     TJS_CFUNC_DEF("pid", 0, tjs_pid),
     TJS_CFUNC_DEF("ppid", 0, tjs_ppid),
-    TJS_CFUNC_DEF("printActiveHandles", 0, tjs_print_active_handles),
-    TJS_CFUNC_DEF("printAllHandles", 0, tjs_print_all_handles),
+    TJS_CFUNC_DEF("printHandles", 0, tjs_print_all_handles),
     TJS_CFUNC_DEF("printMemoryUsage", 0, tjs_print_memory_usage),
+    TJS_CFUNC_DEF("dumpObjects", 0, tjs_dump_objects),
     TJS_CFUNC_DEF("processTitle", 1, tjs_process_title),
     TJS_CFUNC_DEF("reboot", 0, tjs_reboot),
     TJS_CFUNC_DEF("rssmem", 0, tjs_resident_set_memory),

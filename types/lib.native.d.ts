@@ -1,7 +1,12 @@
 
 declare namespace native {
     export interface FileHandle {
+        path: string;
+        fd: number;
         write(data: string | ArrayBuffer, encoding?: string): Promise<void>;
+        read(): Promise<ArrayBuffer>;
+        stat(): Promise<any>;
+        sync(): Promise<void>;
         close(): Promise<void>;
     }
 
@@ -13,13 +18,10 @@ declare namespace native {
      * 表示一个子进程
      */
     export interface ChildProcess {
-        /** 等待进程结束 */
-        wait(): Promise<any>;
-
-        /**
-         * 断开连接
-         */
-        disconnect(): void;
+        readonly pid: number;
+        readonly stderr: TTY;
+        readonly stdin: TTY;
+        readonly stdout: TTY;
 
         /**
          * 发送一个信号
@@ -27,39 +29,21 @@ declare namespace native {
          */
         kill(signal?: number): void;
 
-        /**
-         * 发送一个消息
-         * @param message 
-         */
-        send(message: object): Promise<boolean>;
+        /** 等待进程结束 */
+        wait(): Promise<any>;
 
-        /**
-         * 当收到消息
-         * @param message 
-         */
-        onmessage(message: MessageEvent): void;
-
-        /**
-         * 当断开连接
-         */
-        ondisconnect(message: Event): void;
-
-        /** 是否忆连接 */
         connected: boolean;
-        stdout: TTY;
-        stdin: TTY;
-        stderr: TTY;
-        util: any;
-    }
-
-    export interface ProcessOptions {
-        stdout: any;
-        stderr: any;
-        stdin: any;
+        disconnect(): void;
+        send(message: object): Promise<boolean>;
+        wait(): Promise<ProcessResult>;
+        ondisconnect(message: Event): void;
+        onmessage(message: MessageEvent): void;
     }
 
     export interface ProcessResult {
-
+        stdout?: string;
+        stderr?: string;
+        code?: number;
     }
 
     export const AF_INET: number;
@@ -91,59 +75,77 @@ declare namespace native {
         stdout?: string; // inherit, pipe, ignore
     }
 
+    export interface Timer {
+
+    }
+
     export function alert(...data: any[]): void;
+    export function clearInterval(timer: Timer): void;
+    export function clearTimeout(timer: Timer): void;
+    export function confirm(message: string): boolean;
     export function cwd(): string;
     export function environ(): void;
     export function exepath(): string;
     export function exit(code: number): void;
     export function exitCode(code?: number): number;
     export function getenv(name: string): string;
+    export function gettimeofday(): number;
     export function homedir(): string;
     export function hrtime(): number;
     export function isatty(object: any): boolean;
     export function openlog(name: string): void;
     export function print(...data: any[]): void;
+    export function prompt(message: string): string;
     export function random(buffer: ArrayBuffer, byteOffset?: number, byteLength?: number): void;
     export function setenv(key: string, value: string): void;
+    export function setInterfal(func: Function, interval: number): Timer;
+    export function setInterval(handler: Function, timeout: number, ...arguments: any[]): Timer;
+    export function setTimeout(handler: Function, timeout: number, ...arguments: any[]): Timer;
     export function signal(signal?: number, handler?: (signal: number) => any): void;
-    export function spawn(command: string | string[], options: SpawnOptions): ChildProcess;
+    export function spawn(command: string | string[], options?: SpawnOptions): ChildProcess;
+    export function strerror(errno: number): string;
     export function syslog(level: number, data: any): void;
     export function tmpdir(): string;
     export function uname(): void;
     export function unsetenv(name: string): void;
     export function write(...data: any[]): void;
 
-    export namespace signal {
+    export namespace signals {
         const SIGTERM: number;
         const SIGKILL: number;
         const SIGUSR1: number;
     }
 
+    export namespace errors {
+        const UV_ENOENT: number;
+    }
+
     export namespace fs {
-        function access(filename: string): Promise<void>;
-        function chmod(): Promise<void>;
-        function chown(): Promise<void>;
-        function copyFile(): Promise<void>;
-        function hashFile(): Promise<void>;
-        function lstat(): Promise<void>;
-        function mkdir(): Promise<void>;
-        function mkdtemp(): Promise<void>;
-        function mkstemp(): Promise<void>;
-        function open(filename: string, flag: string, mode: number): Promise<FileHandle>;
-        function opendir(filename: string, options: any): Promise<Dir[]>;
-        function readFile(filename: string, encoding?: string): Promise<ArrayBuffer>;
-        function readlink(): Promise<void>;
-        function realpath(): Promise<void>;
-        function rename(): Promise<void>;
-        function rm(): Promise<void>;
-        function rmdir(): Promise<void>;
-        function stat(): Promise<void>;
-        function statfs(): Promise<void>;
-        function symlink(): Promise<void>;
-        function truncate(): Promise<void>;
-        function unlink(): Promise<void>;
-        function utimes(): Promise<void>;
-        function watch(): Promise<void>;
+        function access(path: string): Promise<void>;
+        function chmod(path: string, mode: number): Promise<void>;
+        function chown(path: string, uid: number, gid: number): Promise<void>;
+        function copyFile(path: string, newPath: string): Promise<void>;
+        function md5sum(path: string): Promise<ArrayBuffer>;
+        function sha1sum(path: string): Promise<ArrayBuffer>;
+        function lstat(path: string): Promise<void>;
+        function mkdir(path: string): Promise<void>;
+        function mkdtemp(): Promise<string>;
+        function mkstemp(): Promise<FileHandle>;
+        function open(path: string, flag: string, mode: number): Promise<FileHandle>;
+        function opendir(path: string, options: any): Promise<Dir[]>;
+        function readFile(path: string, encoding?: string): Promise<ArrayBuffer>;
+        function readlink(path: string): Promise<string>;
+        function realpath(path: string): Promise<string>;
+        function rename(path: string, newPath: string): Promise<void>;
+        function rm(path: string): Promise<void>;
+        function rmdir(path: string): Promise<void>;
+        function stat(path: string): Promise<void>;
+        function statfs(path: string): Promise<void>;
+        function symlink(target: string, newPath: string): Promise<void>;
+        function truncate(path: string, lenght?: number): Promise<void>;
+        function unlink(path: string): Promise<void>;
+        function utimes(path: string): Promise<void>;
+        function watch(path: string): Promise<void>;
     }
 
     export namespace os {
@@ -155,9 +157,9 @@ declare namespace native {
         function kill(pid: number, signal?: number): Promise<void>;
         function loadavg(): number[];
         function interfaces(): any[];
-        function printActiveHandles(): void;
-        function printAllHandles(): void;
+        function printHandles(): void;
         function printMemoryUsage(): void;
+        function dumpObjects(): void;
         function processTitle(title?: string): string;
         function reboot(): void;
         function rssmem(): number;
@@ -186,7 +188,36 @@ declare namespace native {
         const AI_ADDRCONFIG: number;
         const AI_V4MAPPED: number;
 
-        function getaddrinfo(hostname: string, params: any): Promise<any[]>;
+        interface GetaddrinfoOptions {
+            /** PF_INET:2, PF_INET6: 10 */
+            family?: number;
+
+            flags?: number;
+
+            /** IPPROTO_TCP:6, IPPROTO_UDP:17 */
+            protocol?: number;
+
+            service?: string;
+
+            /** SOCK_STREAM:1, SOCK_DGRAM:2, SOCK_RAW:3 */
+            socktype?: number;
+        }
+
+        interface AddressInfo {
+            address: {
+                family?: number;
+                ip?: number;
+                address?: number;
+                port?: number;
+            }
+        }
+
+        /**
+         * 
+         * @param node 
+         * @param params 
+         */
+        function getaddrinfo(node: string, options: GetaddrinfoOptions): Promise<AddressInfo[]>;
     }
 
     export namespace hal {
@@ -262,6 +293,10 @@ declare namespace native {
         const CONNACK: number;
         const PINGRESP: number;
 
+        interface MQTTMessage {
+            type: number;
+        }
+
         function encodePing(): ArrayBuffer;
         function encodeDisconnect(): ArrayBuffer;
         function encodeUnsubscribe(topic: string): ArrayBuffer;
@@ -271,7 +306,7 @@ declare namespace native {
         function encodePublish(topic: string, payload, dup, qos, retained, pid): ArrayBuffer;
 
         class Parser {
-            onMessage(message: ArrayBuffer): void;
+            onMessage(message: MQTTMessage): void;
             execute(message: ArrayBuffer): void;
             offset(): number;
             compact(): void;
@@ -280,22 +315,42 @@ declare namespace native {
         }
     }
 
+    export namespace uart {
+        class UART {
+            constructor(fd: number);
+
+            close(): Promise<void>;
+            read(): void;
+            write(data: any): void;
+
+            onmessage(data): void;
+            onclose(): void;
+            ondisconnect(): void;
+        }
+
+        const PARITY_NONE: number;
+        const PARITY_ODD: number;
+        const PARITY_EVEN: number;
+
+        function open(device, baudRate, parityType, dataBits, stopBits): number;
+        function setDTR(): void;
+        function setRTS(): void;
+    }
+
     export class Error {
         constructor(errno: number);
 
         errno: number;
+        code: string;
         message: string;
-
-        static strerror(errno: number): string;
     }
 
     export class Stream {
         close(): void;
         onclose(): void;
-        onend(): void;
         onerror(err: any): void;
         onmessage(message: ArrayBuffer): void;
-        write(data: string | ArrayBuffer | Uint8Array): Promise<void>
+        write(data: string | ArrayBuffer | ArrayBufferView): Promise<void>
     }
 
     export class TLS extends Stream {
@@ -306,7 +361,10 @@ declare namespace native {
         bind(address: any): void;
         connect(address: any): Promise<void>
         listen(backlog?: number): void;
+
         onconnection(connection: TLS): void;
+        onopen(connection: TLS): void;
+        onconnect(connection: TLS): void;
     }
 
     export class TCP extends Stream {
@@ -317,7 +375,13 @@ declare namespace native {
         bind(address: any): void;
         connect(address: any): Promise<void>
         listen(backlog?: number): void;
+        setNoDelay(noDelay: boolean): void;
+        setKeepAlive(keepAlive: boolean, timeout: number): void;
+        shutdown(): Promise<void>;
+
         onconnection(connection: TCP): void;
+        onopen(connection: TLS): void;
+        onconnect(connection: TLS): void;
     }
 
     export class Pipe extends Stream {
@@ -351,17 +415,27 @@ declare namespace native {
         port?: number;
     }
 
+    export interface UDPMessage {
+        data?: ArrayBuffer;
+        address?: SocketAddress;
+    }
+
     export class UDP {
         close(): void;
-        recv(): Promise<ArrayBuffer>;
-        send(data: ArrayBuffer, socket: SocketAddress): Promise<void>;
+
+        recv(): Promise<UDPMessage>;
+        send(data: string | ArrayBuffer | ArrayBufferView, socket: SocketAddress): Promise<void>;
+
         fileno(): number;
         address(): SocketAddress;
         remoteAddress(): SocketAddress;
         connect(address: SocketAddress): void;
-        bind(address: SocketAddress): void;
-        onmessage(data: ArrayBuffer): void;
-        onerror(): void;
+        disconnect(): void;
+        bind(address: SocketAddress, flags?: number): void;
+
+        onmessage(data: UDPMessage): void;
+        onerror(error?: Error): void;
+        onclose(): void;
     }
 
     export class Worker {
@@ -389,10 +463,11 @@ declare namespace native {
             constructor(fd: number);
 
             close(): void;
-            onend(): void;
-            onmessage(message: string): void;
             read(): Promise<ArrayBuffer>;
             write(data: ArrayBuffer): Promise<void>;
+
+            onclose(): void;
+            onmessage(message: string): void;
         }
     }
 

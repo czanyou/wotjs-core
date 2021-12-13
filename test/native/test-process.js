@@ -1,4 +1,5 @@
 // @ts-check
+/// <reference path ="../../types/index.d.ts" />
 import { assert, test } from '@tjs/assert';
 
 import * as native from '@tjs/native';
@@ -7,7 +8,7 @@ function logStatus(status) {
     // console.log(JSON.stringify(status));
 }
 
-const exepath = process.exepath();
+const exepath = native.exepath();
 const textDecodder = new TextDecoder();
 
 test('native.process: cat without pipe', async () => {
@@ -16,7 +17,7 @@ test('native.process: cat without pipe', async () => {
     // cat & kill
     const proc = native.spawn('cat');
     // console.log(`proc PID: ${proc.pid}`);
-    proc.kill(native.signal.SIGTERM);
+    proc.kill(native.signals.SIGTERM);
     status = await proc.wait();
     logStatus(status);
 
@@ -39,18 +40,18 @@ test('native.process: cat with pipe', async () => {
     buffer = await proc.stdout.read();
     assert.equal(textDecodder.decode(buffer), 'hello again!');
    
-    proc.kill(native.signal.SIGTERM);
+    proc.kill(native.signals.SIGTERM);
     const status = await proc.wait();
     logStatus(status);
 
     assert.equal(status.code, 0);
-    assert.equal(status.signal, native.signal.SIGTERM);
+    assert.equal(status.signal, native.signals.SIGTERM);
 });
 
 test('native.process: tjs -e log', async () => {
     // tjs -e
     const args = [exepath, '-e', 'console.log(1+1)'];
-    const proc = native.spawn(args);
+    const proc = native.spawn(args, { stdout: 'pipe' });
     // console.log(`proc PID: ${proc.pid}`);
     const status = await proc.wait();
     logStatus(status);
@@ -62,7 +63,7 @@ test('native.process: tjs -e log', async () => {
 test('native.process: tjs -e exit', async () => {
     // tjs -e
     const args = [exepath, '-e', 'process.exit(10)'];
-    const proc = native.spawn(args);
+    const proc = native.spawn(args, { stdout: 'pipe' });
     // console.log(`proc PID: ${proc.pid}`);
     const status = await proc.wait();
     assert.equal(status.code, 10);
@@ -73,7 +74,7 @@ test('native.process: tjs -e exit', async () => {
 test('native.process: tjs -e environ', async () => {
     // tjs -e
     const args = [exepath, '-e', 'console.log(JSON.stringify(process.environ()))'];
-    const proc = native.spawn(args, { env: { FOO: 'BAR', SPAM: 'EGGS' } });
+    const proc = native.spawn(args, { env: { FOO: 'BAR', SPAM: 'EGGS' }, stdout: 'pipe' });
     // console.log(`proc PID: ${proc.pid}`);
     const status = await proc.wait();
     logStatus(status);

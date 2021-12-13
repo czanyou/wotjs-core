@@ -1,4 +1,5 @@
 // @ts-check
+/// <reference path ="../../types/index.d.ts" />
 import * as dns from '@tjs/dns';
 import * as native from '@tjs/native';
 
@@ -212,7 +213,7 @@ const cacert =
     'CAUw7C29C79Fv1C5qfPrmAESrciIxpg0X40KPMbp1ZWVbd4=\r\n' +
     '-----END CERTIFICATE-----\r\n';
 
-test('tls.http.get', async () => {
+test('native.tls.http.get', async () => {
     // console.log(cacert);
 
     const options = {
@@ -230,19 +231,17 @@ test('tls.http.get', async () => {
     }
 
     const host = 'iot.wotcloud.cn'; // 'www.baidu.com';
-    const address = await dns.lookup(host, { family: 4 });
-    if (!Array.isArray(address)) {
+    const addressInfo = await dns.lookup(host, { family: 4 });
+
+    const address = {};
+    if (!Array.isArray(addressInfo)) {
+        address.address = addressInfo.address;
+        address.family = addressInfo.family;
         address.host = host;
         address.port = 443;
     }
 
     const result = {};
-
-    client.onend = function () {
-        // console.log('client-onend');
-        result.ended = true;
-        onClose();
-    };
 
     client.onclose = function () {
         // console.log('client-onclose');
@@ -255,12 +254,12 @@ test('tls.http.get', async () => {
         result.hasError = error;
     };
 
-    client.onconnect = function (status) {
+    client.onconnect = function () {
         // console.log('client-onconnect', status);
         result.connected = true;
     };
 
-    client.onopen = function (status) {
+    client.onopen = function () {
         // console.log('client-onopen', status);
         result.open = true;
     };
@@ -291,11 +290,10 @@ test('tls.http.get', async () => {
     assert.ok(result.open, 'open');
     assert.ok(result.hasData, 'hasData');
     assert.ok(result.endOfFile, 'endOfFile');
-    assert.ok(result.ended, 'ended');
     assert.ok(!result.hasError, 'hasError');
 });
 
-test('tls.http.post', async () => {
+test('native.tls.http.post', async () => {
     const options = {
         cacert: cacert
     };
@@ -311,18 +309,17 @@ test('tls.http.post', async () => {
     }
 
     const host = 'iot.wotcloud.cn'; // 'www.baidu.com';
-    const address = await dns.lookup(host, { family: 4 });
-    if (!Array.isArray(address)) {
+    const addressInfo = await dns.lookup(host, { family: 4 });
+
+    const address = {};
+    if (!Array.isArray(addressInfo)) {
+        address.address = addressInfo.address;
+        address.family = addressInfo.family;
         address.host = host;
         address.port = 443;
     }
     
     const result = {};
-
-    client.onend = function () {
-        onClose();
-        result.ended = true;
-    };
 
     client.onerror = function (err) {
         console.log('client-error', err);
@@ -357,6 +354,5 @@ test('tls.http.post', async () => {
     assert.ok(result.connected, 'connected');
     assert.ok(result.hasData, 'hasData');
     assert.ok(result.endOfFile, 'endOfFile');
-    assert.ok(result.ended, 'ended');
     assert.ok(!result.hasError, 'hasError');
 });

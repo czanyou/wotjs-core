@@ -62,6 +62,9 @@ build: config
 clean:
 	rm -rf build
 
+test:
+	
+
 ## ------------------------------------------------------------
 
 .PHONY: all build clean config docs help link test unlink

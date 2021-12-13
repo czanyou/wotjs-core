@@ -343,7 +343,10 @@ static JSValue tjs_gpio_constructor(JSContext* ctx, JSValueConst new_target, int
     return obj;
 }
 
-static JSValue tjs_hal_open(JSContext* ctx, JSValueConst this_val, int argc, JSValueConst* argv)
+// ////////////////////////////////////////////////////////////////////////////
+// watchdog
+
+static JSValue tjs_watchdog_open(JSContext* ctx, JSValueConst this_val, int argc, JSValueConst* argv)
 {
     int ret = 0;
 
@@ -353,8 +356,7 @@ static JSValue tjs_hal_open(JSContext* ctx, JSValueConst this_val, int argc, JSV
     }
 
     if (!path) {
-        JS_ThrowTypeError(ctx, "invalid argument: path must be string");
-        return JS_EXCEPTION;
+        return JS_ThrowTypeError(ctx, "path argument must be string");
     }
 
     int flags = O_RDWR | O_TRUNC;
@@ -372,16 +374,16 @@ static JSValue tjs_hal_open(JSContext* ctx, JSValueConst this_val, int argc, JSV
     return JS_NewInt32(ctx, fd);
 }
 
-static JSValue tjs_hal_close(JSContext* ctx, JSValueConst this_val, int argc, JSValueConst* argv)
+static JSValue tjs_watchdog_close(JSContext* ctx, JSValueConst this_val, int argc, JSValueConst* argv)
 {
     if (argc < 1) {
-        JS_ThrowTypeError(ctx, "not a file descriptor");
+        JS_ThrowTypeError(ctx, "fd argument must be a file descriptor");
         return JS_UNDEFINED;
     }
 
     int fd = tjs_to_int32(ctx, argv[0], -1);
     if (fd <= 0) {
-        JS_ThrowTypeError(ctx, "invalid argument: fd must be a file descriptor");
+        JS_ThrowTypeError(ctx, "fd argument must be a file descriptor");
         return JS_EXCEPTION;
     }
 
@@ -537,7 +539,7 @@ static JSValue tjs_watchdog_reset(JSContext* ctx, JSValueConst this_val, int arg
 
 int adc_fds[8] = { -1 };
 
-int hal_adc_init(uint8_t adc_id)
+int hal_adc_open(uint8_t adc_id)
 {
     int ret = 0;
 
@@ -629,7 +631,7 @@ int hal_adc_read(uint8_t adc_id)
     }
 
     if (adc_fds[adc_id] < 0) {
-        hal_adc_init(adc_id);
+        hal_adc_open(adc_id);
         hal_adc_enable(adc_id, 1);
     }
 
@@ -660,13 +662,13 @@ static const JSCFunctionListEntry tjs_gpio_proto_funcs[] = {
 };
 
 static const JSCFunctionListEntry tjs_hal_funcs[] = {
-    TJS_CFUNC_DEF("close", 1, tjs_hal_close),
-    TJS_CFUNC_DEF("open", 1, tjs_hal_open)
+    TJS_CFUNC_DEF("close", 1, tjs_watchdog_close),
+    TJS_CFUNC_DEF("open", 1, tjs_watchdog_open)
 };
 
 static const JSCFunctionListEntry tjs_watchdog_funcs[] = {
-    TJS_CFUNC_DEF("close", 1, tjs_hal_close),
-    TJS_CFUNC_DEF("open", 1, tjs_hal_open),
+    TJS_CFUNC_DEF("close", 1, tjs_watchdog_close),
+    TJS_CFUNC_DEF("open", 1, tjs_watchdog_open),
     TJS_CFUNC_DEF("enable", 2, tjs_watchdog_enable),
     TJS_CFUNC_DEF("keepalive", 1, tjs_watchdog_keepalive),
     TJS_CFUNC_DEF("reset", 1, tjs_watchdog_reset),

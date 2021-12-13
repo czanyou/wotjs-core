@@ -9,7 +9,6 @@ const kWasiLinked = Symbol('kWasiLinked');
 const kWasiStarted = Symbol('kWasiStarted');
 const kWasiOptions = Symbol('kWasiOptions');
 
-
 class CompileError extends Error {
     constructor(...args) {
         super(...args);

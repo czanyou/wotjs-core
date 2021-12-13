@@ -414,6 +414,7 @@ static JSValue tjs_worker_postmessage(JSContext* ctx, JSValueConst this_val, int
         return JS_EXCEPTION;
     }
 
+    memset(request, 0, sizeof(*request));
     size_t length;
     uint8_t* buffer = JS_WriteObject(ctx, &length, argv[0], 0);
     if (!buffer) {

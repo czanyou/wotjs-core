@@ -1,4 +1,5 @@
 // @ts-check
+/// <reference path ="../../types/index.d.ts" />
 import * as native from '@tjs/native';
 import * as dns from '@tjs/dns';
 
@@ -241,11 +242,6 @@ export class TLSSocket extends EventTarget {
     constructor(options) {
         super();
 
-        this.CONNECTING = 0;
-        this.OPEN = 1;
-        this.CLOSING = 2;
-        this.CLOSED = 3;
-
         this._options = options;
         this._handle = options && options.handle;
 
@@ -254,7 +250,7 @@ export class TLSSocket extends EventTarget {
         this.bytesRead = 0;
         this.bytesWritten = 0;
         this.encrypted = true;
-        this.readyState = this.CLOSED;
+        this.readyState = TLSSocket.CLOSED;
         this.timeout = undefined;
 
         if (this._handle) {
@@ -267,7 +263,7 @@ export class TLSSocket extends EventTarget {
     }
 
     get connecting() {
-        return this.readyState == this.CONNECTING;
+        return this.readyState == TLSSocket.CONNECTING;
     }
 
     get bufferedAmount() {
@@ -276,7 +272,7 @@ export class TLSSocket extends EventTarget {
     }
 
     async connect(port, host) {
-        if (this.readyState != this.CLOSED) {
+        if (this.readyState != TLSSocket.CLOSED) {
             return;
 
         } else if (!port) {
@@ -310,7 +306,7 @@ export class TLSSocket extends EventTarget {
         }
 
         try {
-            this.readyState = this.CONNECTING;
+            this.readyState = TLSSocket.CONNECTING;
 
             if (this.timeout && this.timeout > 0) {
                 this._connectTimeoutTimer = setTimeout(() => {
@@ -331,7 +327,7 @@ export class TLSSocket extends EventTarget {
             // console.log('address', address);
             await client.connect(address);
 
-            this.readyState = this.OPEN;
+            this.readyState = TLSSocket.OPEN;
 
             if (this._connectTimeoutTimer) {
                 clearTimeout(this._connectTimeoutTimer);
@@ -341,14 +337,14 @@ export class TLSSocket extends EventTarget {
             this.dispatchEvent(new Event('open'));
 
         } catch (error) {
-            this.readyState = this.CLOSED;
+            this.readyState = TLSSocket.CLOSED;
 
             if (this._connectTimeoutTimer) {
                 clearTimeout(this._connectTimeoutTimer);
                 this._connectTimeoutTimer = null;
             }
 
-            this.dispatchEvent(new ErrorEvent(error));
+            this.dispatchEvent(new ErrorEvent('error', { error }));
             await this.close();
         }
 
@@ -373,8 +369,8 @@ export class TLSSocket extends EventTarget {
             await handle.close();
         }
 
-        if (this.readyState != this.CLOSED) {
-            this.readyState = this.CLOSED;
+        if (this.readyState != TLSSocket.CLOSED) {
+            this.readyState = TLSSocket.CLOSED;
 
             this.dispatchEvent(new Event('close'));
         }
@@ -396,7 +392,7 @@ export class TLSSocket extends EventTarget {
             await handle.shutdown();
 
         } catch (error) {
-            this.dispatchEvent(new ErrorEvent(error));
+            this.dispatchEvent(new ErrorEvent('error', { error }));
             await this.close(error);
         }
 
@@ -437,7 +433,7 @@ export class TLSSocket extends EventTarget {
             return result;
 
         } catch (error) {
-            self.dispatchEvent(new ErrorEvent(error));
+            self.dispatchEvent(new ErrorEvent('error', { error }));
             await this.close(error);
         }
     }
@@ -449,17 +445,12 @@ export class TLSSocket extends EventTarget {
             self.dispatchEvent(new Event('connect'));
         };
 
-        handle.onclose = function (error) {
-            self.close(error);
-        };
-
-        handle.onend = function () {
-            self.dispatchEvent(new Event('end'));
+        handle.onclose = function () {
+            self.close();
         };
 
         handle.onerror = function (error) {
-            self.dispatchEvent(new ErrorEvent(error));
-            self.close(error);
+            self.dispatchEvent(new ErrorEvent('error', { error }));
         };
 
         handle.onmessage = function (message) {
@@ -483,9 +474,20 @@ export class TLSSocket extends EventTarget {
     }
 }
 
+/** 正在连接中 */
+TLSSocket.CONNECTING = 0;
+
+/** 已连接 */
+TLSSocket.OPEN = 1;
+
+/** 正在关闭连接 */
+TLSSocket.CLOSING = 2;
+
+/** 连接已关闭 */
+TLSSocket.CLOSED = 3;
+
 defineEventAttribute(TLSSocket.prototype, 'close');
 defineEventAttribute(TLSSocket.prototype, 'connect');
-defineEventAttribute(TLSSocket.prototype, 'end');
 defineEventAttribute(TLSSocket.prototype, 'error');
 defineEventAttribute(TLSSocket.prototype, 'lookup');
 defineEventAttribute(TLSSocket.prototype, 'message');
@@ -518,7 +520,7 @@ export class TLSServer extends EventTarget {
         return this._handle && this._handle.address();
     }
 
-    bind(options) {
+    listen(options, backlog) {
         if (!options) {
             return;
         }
@@ -538,7 +540,7 @@ export class TLSServer extends EventTarget {
             }
 
         } catch (error) {
-            this.dispatchEvent(new ErrorEvent(error));
+            this.dispatchEvent(new ErrorEvent('error', { error }));
             this.close();
             return;
         }
@@ -554,13 +556,12 @@ export class TLSServer extends EventTarget {
             self.dispatchEvent(event);
         };
 
-        server.onend = function () {
-            self.dispatchEvent(new Event('end'));
+        server.onerror = function (error) {
+            self.dispatchEvent(new ErrorEvent('error', { error }));
         };
 
-        server.onerror = function (error) {
-            self.dispatchEvent(new ErrorEvent(error));
-        };
+        server.listen(backlog);
+        this.dispatchEvent(new Event('listening'));
     }
 
     async close(code, reason) {
@@ -570,14 +571,6 @@ export class TLSServer extends EventTarget {
 
             await handle.close();
             this.dispatchEvent(new Event('close'));
-        }
-    }
-
-    listen(backlog) {
-        const handle = this._handle;
-        if (handle) {
-            handle.listen(backlog);
-            this.dispatchEvent(new Event('listening'));
         }
     }
 }

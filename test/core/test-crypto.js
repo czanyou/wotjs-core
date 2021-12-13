@@ -1,8 +1,9 @@
 // @ts-check
+/// <reference path ="../../types/index.d.ts" />
 import { assert, test } from '@tjs/assert';
 import * as util from '@tjs/util';
 
-const text = 'test';
+const text = 'abc';
 
 test('crypto.subtle.digest.MD5', async () => {
     const textEncoder = new TextEncoder();
@@ -13,7 +14,7 @@ test('crypto.subtle.digest.MD5', async () => {
     assert.equal(digest.byteLength, 16);
 
     const value = util.encode(digest, 'hex');
-    assert.equal(value, '098f6bcd4621d373cade4e832627b4f6');
+    assert.equal(value, '900150983cd24fb0d6963f7d28e17f72');
 });
 
 test('crypto.subtle.digest.SHA256', async () => {
@@ -25,7 +26,19 @@ test('crypto.subtle.digest.SHA256', async () => {
     assert.equal(digest.byteLength, 32);
 
     const value = util.encode(digest, 'hex');
-    assert.equal(value, '9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08');
+    assert.equal(value, 'ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad');
+});
+
+test('crypto.subtle.digest.SHA512', async () => {
+    const textEncoder = new TextEncoder();
+    const subtle = window.crypto.subtle;
+
+    const data = textEncoder.encode(text);
+    const digest = await subtle.digest('SHA512', data);
+    assert.equal(digest.byteLength, 64);
+
+    const value = util.encode(digest, 'hex');
+    assert.equal(value, 'ddaf35a193617abacc417349ae20413112e6fa4e89a97ea20a9eeee64b55d39a2192992a274fc1a836ba3c23a3feebbd454d4423643ce80e2a9ac94fa54ca49f');
 });
 
 test('crypto.getRandomValues', () => {

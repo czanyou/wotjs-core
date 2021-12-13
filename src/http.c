@@ -220,8 +220,9 @@ static int tjs_http_parser_on_headers_complete(http_parser* parser)
 
     if (parser->type == HTTP_REQUEST) {
         JS_DefinePropertyValueStr(ctx, message, "method", JS_NewInt32(ctx, parser->method), JS_PROP_C_W_E);
+        
     } else if (parser->type == HTTP_RESPONSE) {
-        JS_DefinePropertyValueStr(ctx, message, "statusCode", JS_NewInt32(ctx, parser->status_code), JS_PROP_C_W_E);
+        JS_DefinePropertyValueStr(ctx, message, "status", JS_NewInt32(ctx, parser->status_code), JS_PROP_C_W_E);
     }
 
     JS_DefinePropertyValueStr(ctx, message, "httpMajor", JS_NewInt32(ctx, parser->http_major), JS_PROP_C_W_E);

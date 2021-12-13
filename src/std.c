@@ -66,17 +66,17 @@ static JSValue js_std_exit_code(JSContext* ctx, JSValueConst this_val, int argc,
             status = -1;
         }
 
-        TJSRuntime* qrt = TJS_GetRuntime(ctx);
-        if (qrt) {
-            qrt->options.exit_code = status;
+        TJSRuntime* runtime = TJS_GetRuntime(ctx);
+        if (runtime) {
+            runtime->options.exit_code = status;
         }
 
         return JS_UNDEFINED;
 
     } else {
-        TJSRuntime* qrt = TJS_GetRuntime(ctx);
-        if (qrt) {
-            status = qrt->options.exit_code;
+        TJSRuntime* runtime = TJS_GetRuntime(ctx);
+        if (runtime) {
+            status = runtime->options.exit_code;
         }
         
         return JS_NewInt32(ctx, status);
@@ -91,16 +91,16 @@ static JSValue js_std_gc(JSContext* ctx, JSValueConst this_val, int argc, JSValu
 
 static JSValue js_std_eval_script(JSContext* ctx, JSValueConst this_val, int argc, JSValueConst* argv)
 {
-    const char* str;
+    const char* script;
     size_t len;
     JSValue ret;
-    str = JS_ToCStringLen(ctx, &len, argv[0]);
-    if (!str) {
+    script = JS_ToCStringLen(ctx, &len, argv[0]);
+    if (!script) {
         return JS_EXCEPTION;
     }
 
-    ret = JS_Eval(ctx, str, len, "<evalScript>", JS_EVAL_TYPE_GLOBAL | JS_EVAL_FLAG_BACKTRACE_BARRIER);
-    JS_FreeCString(ctx, str);
+    ret = JS_Eval(ctx, script, len, "<evalScript>", JS_EVAL_TYPE_GLOBAL | JS_EVAL_FLAG_BACKTRACE_BARRIER);
+    JS_FreeCString(ctx, script);
     return ret;
 }
 

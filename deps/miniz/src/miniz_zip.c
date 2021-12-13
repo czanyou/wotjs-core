@@ -39,7 +39,7 @@ extern "C" {
 #else
 #include <sys/stat.h>
 
-#if defined(_MSC_VER) || defined(__MINGW64__)
+#if defined(_MSC_VER)
 
 #define WIN32_LEAN_AND_MEAN
 #include <Windows.h>
@@ -158,7 +158,7 @@ static int mz_stat64(const char *path, struct __stat64 *buffer)
 #define MZ_DELETE_FILE remove
 
 #else
-#pragma message("Using fopen, ftello, fseeko, stat() etc. path for file I/O - this path may not support large files.")
+// #pragma message("Using fopen, ftello, fseeko, stat() etc. path for file I/O - this path may not support large files.")
 #ifndef MINIZ_NO_TIME
 #include <utime.h>
 #endif
@@ -180,6 +180,8 @@ static int mz_stat64(const char *path, struct __stat64 *buffer)
 #define MZ_DELETE_FILE remove
 #endif /* #ifdef _MSC_VER */
 #endif /* #ifdef MINIZ_NO_STDIO */
+
+#include <sys/time.h>
 
 #define MZ_TOLOWER(c) ((((c) >= 'A') && ((c) <= 'Z')) ? ((c) - 'A' + 'a') : (c))
 
@@ -440,6 +442,15 @@ static mz_bool mz_zip_get_file_modified_time(const char *pFilename, MZ_TIME_T *p
 
 static mz_bool mz_zip_set_file_times(const char *pFilename, MZ_TIME_T access_time, MZ_TIME_T modified_time)
 {
+    #if defined(__linux__) || defined(__linux)
+    struct timeval tv[2];
+    tv[0].tv_sec = access_time;
+    tv[0].tv_usec = 0;
+    tv[1].tv_sec = access_time;
+    tv[1].tv_usec = 0;
+
+    return !utimes(pFilename, tv);
+    #else 
     struct utimbuf t;
 
     memset(&t, 0, sizeof(t));
@@ -447,6 +458,7 @@ static mz_bool mz_zip_set_file_times(const char *pFilename, MZ_TIME_T access_tim
     t.modtime = modified_time;
 
     return !utime(pFilename, &t);
+    #endif
 }
 #endif /* #ifndef MINIZ_NO_STDIO */
 #endif /* #ifndef MINIZ_NO_TIME */

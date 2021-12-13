@@ -1,7 +1,5 @@
 # WoT.js
 
-基于 libuv 和 QuickJS 的嵌入式物联网开发框架
-
 ## Overview
 
 > **wot.js** (basque): small, tiny.

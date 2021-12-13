@@ -1,4 +1,5 @@
 // @ts-check
+/// <reference path ="../../types/index.d.ts" />
 import * as native from '@tjs/native';
 const dns = native.dns;
 
@@ -17,35 +18,45 @@ export const V4MAPPED = dns.AI_V4MAPPED;
 /**
  * @param {string} hostname 
  * @param {object} options
- * @param {number} options.hints  One or more supported getaddrinfo flags. 
+ * @param {number} options.flags  One or more supported getaddrinfo flags. 
  * @param {number} options.family The record family. Must be 4, 6, or 0. 
- * @param {object} options.all
+ * @param {boolean} options.all
  * 
  * @returns {Promise<any>}
  */
 export async function lookup(hostname, options) {
-    let hints = 0;
+    let flags = 0;
     let family = -1;
+
+    const PF_INET = 2;
+    const PF_INET6 = 10;
 
     // Parse arguments
     if (typeof hostname != 'string') {
-        throw TypeError('invalid argument: hostname must be a string');
+        throw TypeError('hostname argument must be a string');
     }
 
     if (typeof options == 'number') {
         family = ~~options; // to integer or 0
 
     } else {
-        hints = options?.hints >>> 0; // to uint32_t or 0
+        flags = options?.flags >>> 0; // to uint32_t or 0
         family = options?.family >>> 0;
 
-        if (hints < 0 || hints > (ADDRCONFIG | V4MAPPED)) {
-            throw new TypeError('invalid argument: invalid hints flags');
+        if (flags < 0 || flags > (ADDRCONFIG | V4MAPPED)) {
+            throw new TypeError('invalid argument: invalid flags options');
         }
     }
 
     if (family !== 0 && family !== 4 && family !== 6) {
-        throw new TypeError('invalid argument: family must be 4 or 6');
+        throw new TypeError('family options must be 4 or 6');
+    }
+
+    if (family == 4) {
+        family = PF_INET;
+        
+    } else if (family == 6) {
+        family = PF_INET6;
     }
 
     // console.log('hostname', hostname, family, hints);
@@ -53,30 +64,21 @@ export async function lookup(hostname, options) {
         return;
     }
 
-    /* @param {AddressInfo} result */
+    /** @param {native.dns.AddressInfo} result */
     function getAddress(result) {
-        result = result && result.address;
-        if (!result) {
+        const addressInfo = result && result.address;
+        if (!addressInfo) {
             return;
         }
 
-        const address = { ip: result.ip, address: result.ip };
-        address.family = result.family;
-
-        if (result.family == 2) {
-            address.family = 4;
-
-        } else if (result.family == 10) {
-            address.family = 6;
-        }
-
+        const address = { address: addressInfo.address };
+        address.family = addressInfo.family;
         return address;
     }
 
     try {
-        const params = { ai_family: family, hints };
+        const params = { family, flags };
         const result = await dns.getaddrinfo(hostname, params);
-
         if (!result) {
             return;
         }
@@ -95,6 +97,7 @@ export async function lookup(hostname, options) {
 
     } catch (err) {
         err.message = err.message + ': ' + hostname;
+        err.hostname = hostname;
         throw err;
     }
 };

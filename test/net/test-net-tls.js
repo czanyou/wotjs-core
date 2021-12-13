@@ -1,10 +1,11 @@
 // @ts-check
+/// <reference path ="../../types/index.d.ts" />
 import * as tls from '@tjs/tls';
 
 import * as assert from '@tjs/assert';
 const test = assert.test;
 
-test('tls.http.get', async () => {
+test('net.tls - http.get - baidu', async () => {
     const host = 'www.baidu.com';
     const port = 443;
     const client = new tls.TLSSocket();
@@ -31,11 +32,6 @@ test('tls.http.get', async () => {
 
     client.onlookup = function (event) {
         result.lookup = event.address;
-    };
-
-    client.onend = function () {
-        result.ended = true;
-        onClose();
     };
 
     client.onclose = function () {

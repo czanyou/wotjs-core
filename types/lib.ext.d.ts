@@ -554,12 +554,13 @@ declare module '@tjs/serial' {
     export interface SerialPortHandle {
         close(): Promise<void>;
         flush(): void;
-        onend(): void;
         fileno(): number;
-        onmessage(data: ArrayBuffer): void;
         read(): Promise<ArrayBuffer>;
         wait(): void;
         write(data: ArrayBuffer | string): Promise<number>;
+
+        onclose(): void;
+        onmessage(data: ArrayBuffer): void;
 
         device: string;
         options: SerialPortOptions;
@@ -607,6 +608,7 @@ declare module '@tjs/serial' {
         write(data: ArrayBuffer | Uint8Array | string): Promise<void>
 
         onconnect(): void
+        
         ondisconnect(): void
 
         onend(): void

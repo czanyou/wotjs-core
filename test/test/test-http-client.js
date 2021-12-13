@@ -3,7 +3,7 @@ async function request(url) {
     const response = await window.fetch(url);
     const body = await response.text();
     const headers = response.headers;
-    console.log('response', response.url, response.statusCode, response.statusText, headers.get('Content-Length'), body.length);
+    console.log('response', response.url, response.status, response.statusText, headers.get('Content-Length'), body.length);
 }
 
 (async () => {

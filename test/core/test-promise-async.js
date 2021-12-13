@@ -1,4 +1,5 @@
 // @ts-check
+/// <reference path ="../../types/index.d.ts" />
 /* eslint-disable no-return-assign */
 import { assert, test } from '@tjs/assert';
 

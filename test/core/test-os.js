@@ -1,4 +1,5 @@
 // @ts-check
+/// <reference path ="../../types/index.d.ts" />
 import * as os from '@tjs/os';
 import { assert, test } from '@tjs/assert';
 
@@ -20,7 +21,6 @@ test('os', () => {
     assert.ok(os.tmpdir());
     assert.ok(os.uname());
 
-    assert.ok(os.rss() > 0);
     assert.ok(os.uptime() > 0);
     assert.ok(os.freemem() > 0);
     assert.ok(os.totalmem() > os.freemem());

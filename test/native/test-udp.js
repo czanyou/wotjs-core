@@ -1,4 +1,5 @@
 // @ts-check
+/// <reference path ="../../types/index.d.ts" />
 import { assert, test } from '@tjs/assert';
 
 import * as native from '@tjs/native';
@@ -6,7 +7,7 @@ import * as native from '@tjs/native';
 test('native.udp', async () => {
     const textDecoder = new TextDecoder();
     const textEncoder = new TextEncoder();
-    const output = [];
+    const output = ['start'];
 
     async function createEchoServer() {
         const server = new native.UDP();
@@ -55,13 +56,13 @@ test('native.udp', async () => {
     rinfo = await client.recv();
     text = textDecoder.decode(rinfo.data);
     assert.equal(text, 'PONG', 'sending a Uint8Array works');
-    assert.throws(() => { client.send(1234, serverAddress); }, TypeError, 'sending anything else gives TypeError');
+    assert.throws(() => { client.send(null, serverAddress); }, TypeError, 'sending anything else gives TypeError');
 
-    output.push('ping-exit');
+    output.push('exit');
 
     // close
     client.close();
     server.close();
 
-    console.log(output.join('->'));
+    assert.equal(output.join('->'), 'start->ping1->pong->ping2->pong->exit');
 });

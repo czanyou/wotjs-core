@@ -1,4 +1,5 @@
 // @ts-check
+/// <reference path ="../../types/index.d.ts" />
 import * as native from '@tjs/native';
 
 /** @param {any} process */
@@ -34,7 +35,7 @@ export const process = {
     version: native.version,
     versions: native.versions,
     platform: native.platform,
-    SIGNAL: {},
+    SIGNAL: native.signals,
 
     // methods
     chdir: native.os.chdir,
@@ -45,6 +46,7 @@ export const process = {
     hrtime: native.hrtime,
     kill: native.os.kill,
     openlog: native.openlog,
+    rss: native.os.rssmem,
     setenv: native.setenv,
     signal: native.signal,
     syslog: native.syslog,
@@ -166,13 +168,5 @@ export const process = {
 };
 
 setProcessArgs(process);
-
-for (const [key, value] of Object.entries(native)) {
-    // process.SIGNAL.SIGINT etc.
-    if (key.startsWith('SIG')) {
-        process.SIGNAL[key] = value;
-        continue;
-    }
-}
 
 export default process;

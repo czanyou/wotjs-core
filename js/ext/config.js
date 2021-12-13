@@ -1,4 +1,5 @@
 // @ts-check
+/// <reference path ="../../types/index.d.ts" />
 import * as fs from '@tjs/fs';
 import { join } from '@tjs/path';
 
@@ -130,7 +131,7 @@ export class Config {
     }
 
     help() {
-        console.log('Manage the tpm configuration files\r\n');
+        console.print('Manage the tpm configuration files\r\n');
     }
 
     /**

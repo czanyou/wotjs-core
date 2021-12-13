@@ -13,7 +13,6 @@ function testOs() {
     assert.ok(os.totalmem() > os.freemem());
 
     console.log('hostname', os.hostname());
-    console.log('rss', os.rss());
     console.log('homedir', os.homedir());
     console.log('processTitle', os.processTitle());
     console.log('tmpdir', os.tmpdir());
@@ -33,11 +32,8 @@ function testOs() {
     // console.log('kill', os.kill());
     console.log('uptime', os.uptime());
 
-    console.print('printActiveHandles');
-    os.printActiveHandles();
-
-    console.print('printAllHandles');
-    os.printAllHandles();
+    console.print('printHandles');
+    os.printHandles();
 }
 
 test('test os', testOs);

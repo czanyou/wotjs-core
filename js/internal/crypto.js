@@ -1,4 +1,5 @@
 // @ts-check
+/// <reference path ="../../types/index.d.ts" />
 import * as native from '@tjs/native';
 
 const TypedArrayPrototype = Object.getPrototypeOf(Uint8Array.prototype);

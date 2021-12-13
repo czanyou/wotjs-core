@@ -15,8 +15,6 @@ async function createHttpServer() {
         await res.write('test');
         await res.write(String(nextId));
         await res.end();
-
-        console.log('end');
     });
 }
 
@@ -43,9 +41,8 @@ async function doEchoServer(server) {
 
 async function createEchoServer() {
     const server = new native.TCP();
-    const address = { ip: '0.0.0.0', port: 8080 };
-    server.bind(address);
-    server.listen();
+    const address = { address: '0.0.0.0', port: 8080 };
+    server.listen(address);
 
     server.onconnection = async function () {
         console.log('onconnection');

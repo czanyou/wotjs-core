@@ -1,3 +1,5 @@
+// @ts-check
+/// <reference path ="../../types/index.d.ts" />
 import { defineEventAttribute } from '@tjs/event-target';
 
 /* global MessageEvent self ErrorEvent */
@@ -20,7 +22,7 @@ worker.onmessageerror = msgerror => {
 };
 
 worker.onerror = error => {
-    self.dispatchEvent(new ErrorEvent(error));
+    self.dispatchEvent(new ErrorEvent('error', { error }));
 };
 
 self.postMessage = (...args) => {

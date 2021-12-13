@@ -1,7 +1,7 @@
 import * as net from '@tjs/net';
 
 const start = async () => {
-    const serverAddress = { ip: '127.0.0.1', port: 7080 };
+    const serverAddress = { address: '127.0.0.1', port: 7080 };
 
     const stat = { connection: 0 };
 
@@ -24,9 +24,8 @@ const start = async () => {
 
     function createEchoServer() {
         const server = net.createServer();
-        server.bind(serverAddress);
-        server.listen();
-    
+        server.listen(serverAddress);
+
         server.onconnection = function (event) {
             handleConnection(event.connection);
         };

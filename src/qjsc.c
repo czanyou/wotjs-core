@@ -605,8 +605,10 @@ int main(int argc, char** argv)
     ctx = JS_NewContext(rt);
 
     /* Enable BigFloat and BigDecimal */
+#ifdef CONFIG_BIGNUM
     JS_AddIntrinsicBigFloat(ctx);
     JS_AddIntrinsicBigDecimal(ctx);
+#endif
 
     /* loader for ES6 modules */
     JS_SetModuleLoaderFunc(rt, NULL, jsc_module_loader, NULL);

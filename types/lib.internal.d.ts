@@ -14,9 +14,21 @@ interface WatchdogDevice {
 }
 
 interface Navigator {
-    serial: any;
-    bluetooth: any;
+    serial: {
+        getPorts(): Promise<any[]>;
+        requestPort(options: any): Promise<any>;
+    };
+
+    bluetooth: {
+        requestDevice(options: any): Promise<any>;
+    };
+
     devices: {
+        requestDevice(name: string): Promise<WatchdogDevice>;
+        getDevices(): Promise<any[]>;
+    };
+
+    gpios: {
         requestDevice(name: string): Promise<WatchdogDevice>;
         getDevices(): Promise<any[]>;
     };
@@ -25,8 +37,6 @@ interface Navigator {
     board: string;
     native: any;
 }
-
-declare module 'WoT';
 
 interface Colors {
     colors(): any;

@@ -1,14 +1,14 @@
 cmake_minimum_required(VERSION 2.8)
 
+# WoT.js core native module cmake file
+
 set(CORE_DIR ${CMAKE_CURRENT_LIST_DIR})
 
 include_directories(${CORE_DIR}/include)
 
-# tjsc execute
+# tjsc compiler execute
 
-set(QJSC_SOURCES
-    ${CORE_DIR}/src/qjsc.c
-)
+set(QJSC_SOURCES ${CORE_DIR}/src/qjsc.c)
 
 add_executable(tjsc ${QJSC_SOURCES})
 
@@ -18,7 +18,7 @@ else ()
     target_link_libraries(tjsc quickjs dl m)
 endif ()
 
-target_compile_definitions(tjsc PRIVATE QJS_VERSION_STR="${QJS_VERSION_STR}")
+target_compile_definitions(tjsc PRIVATE CONFIG_BIGNUM QJS_VERSION_STR="${QJS_VERSION_STR}")
 
 # tjs core library
 
@@ -55,12 +55,13 @@ set(SOURCES
     ${CMAKE_CURRENT_BINARY_DIR}/core-js.c
 )
 
+# 将应用程序脚本字节码和原生模块打包成一个单独的可执行文件
 if (BUILD_APP_JS)
     set(SOURCES ${SOURCES} ${CMAKE_CURRENT_BINARY_DIR}/app-js.c)
 endif ()
 
 add_library(core STATIC ${SOURCES})
-set_property(TARGET core PROPERTY VERSION ${TJS_VERSION} SOVERSION ${TJS_VERSION_MAJOR})
+set_property(TARGET core PROPERTY CONFIG_BIGNUM VERSION ${TJS_VERSION} SOVERSION ${TJS_VERSION_MAJOR})
 
 target_include_directories(core PRIVATE ${CORE_DIR}/src )
 
@@ -81,7 +82,7 @@ target_compile_definitions(core PRIVATE
     TJS_BOARD="${TJS_BOARD}"
     TJS_VERSION_MAJOR=${TJS_VERSION_MAJOR}
     TJS_VERSION_MINOR=${TJS_VERSION_MINOR}
-    TJS_VERSION_PATCH=${TJS_VERSION_BUILD}
+    TJS_VERSION_PATCH=${TJS_VERSION_PATCH}
 )
 
 if (TJS_ROOT)
@@ -92,6 +93,10 @@ if (BUILD_REPL)
     target_compile_definitions(core PRIVATE CONFIG_TJS_REPL)
 endif ()
 
+if (BUILD_APP_JS)
+    target_compile_definitions(core PRIVATE CONFIG_TJS_APPJS)
+endif ()
+
 # tjs execute
 
 set(TJS_SOURCES ${CORE_DIR}/src/cli.c)
@@ -100,14 +105,11 @@ add_executable(tjs ${TJS_SOURCES})
 target_include_directories(tjs PRIVATE ${CORE_DIR}/src)
 
 if (BUILD_WITH_MINGW)
-    target_link_libraries(tjs core miniz mqtt http_parser uv quickjs)
+    target_link_libraries(tjs core mbedtls miniz mqtt http_parser uv quickjs)
 else ()
-    target_link_libraries(tjs core miniz mqtt http_parser uv quickjs dl rt pthread m)
+    target_link_libraries(tjs core mbedtls miniz mqtt http_parser uv quickjs dl rt pthread m)
 endif ()
 
-target_link_libraries(tjs mbedtls)
-
 if (BUILD_APP_JS)
-    target_compile_definitions(core PRIVATE CONFIG_TJS_APPJS)
     target_compile_definitions(tjs PRIVATE CONFIG_TJS_APPJS)
 endif ()

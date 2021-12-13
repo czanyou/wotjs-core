@@ -24,31 +24,69 @@
 static JSValue tjs_crypto_encrypt(JSContext* ctx, JSValueConst this_val, int argc, JSValueConst* argv)
 {
     const mbedtls_cipher_info_t* cipher_info;
-    const mbedtls_md_info_t* md_info;
     mbedtls_cipher_context_t cipher_ctx;
-    mbedtls_md_context_t md_ctx;
     int ret = 0;
 
     unsigned char IV[16];
-    unsigned char tmp[16];
-    unsigned char digest[64];
     unsigned char buffer[1024];
     unsigned char key[512];
 
     memset(IV, 0, sizeof(IV));
     memset(key, 0, sizeof(key));
-    memset(digest, 0, sizeof(digest));
     memset(buffer, 0, sizeof(buffer));
     mbedtls_cipher_init(&cipher_ctx);
 
+    // AES-128-CBC AES-192-CBC AES-256-CBC
+    // AES-128-CTR AES-192-CTR AES-256-CTR
+    // AES-128-GCM AES-192-GCM AES-256-GCM
     cipher_info = mbedtls_cipher_info_from_string("");
-    if (md_info == NULL) {
+    if (cipher_info == NULL) {
         return JS_EXCEPTION;
     }
 
-    if ((ret = mbedtls_cipher_setup(&cipher_ctx, cipher_info)) != 0) {
+    ret = mbedtls_cipher_setup(&cipher_ctx, cipher_info);
+    if (ret != 0) {
         return JS_EXCEPTION;
     }
+
+    ret = mbedtls_cipher_setkey(&cipher_ctx, key, cipher_info->key_bitlen, MBEDTLS_ENCRYPT);
+    if (ret != 0) {
+        return JS_EXCEPTION;
+    }
+
+    ret = mbedtls_cipher_set_iv(&cipher_ctx, IV, 16);
+    if (ret != 0) {
+        return JS_EXCEPTION;
+    }
+
+    ret = mbedtls_cipher_reset(&cipher_ctx);
+    if (ret != 0) {
+        return JS_EXCEPTION;
+    }
+
+    size_t ilen = 0;
+    size_t olen = 0;
+    size_t offset = 0;
+    size_t total = 0;
+
+    unsigned int block_size = mbedtls_cipher_get_block_size(&cipher_ctx);
+
+    unsigned char output[1024];
+
+    for (offset = 0; offset < total; offset += block_size) {
+        ret = mbedtls_cipher_update(&cipher_ctx, buffer, ilen, output, &olen);
+        if (ret != 0) {
+            return JS_EXCEPTION;
+        }
+    }
+
+    // The final block of data
+    ret = mbedtls_cipher_finish(&cipher_ctx, output, &olen);
+    if (ret != 0) {
+        return JS_EXCEPTION;
+    }
+
+    return JS_NULL;
 }
 
 static JSValue tjs_crypto_decrypt(JSContext* ctx, JSValueConst this_val, int argc, JSValueConst* argv)

@@ -1,4 +1,5 @@
 // @ts-check
+/// <reference path ="../../types/index.d.ts" />
 // 2nd bootstrap. Here all modules that need to pollute the global namespace are
 // already loaded.
 //
@@ -25,7 +26,9 @@ Object.defineProperty(window, 'console', {
 // EventTarget
 //
 
-const kErrorEventData = Symbol('kErrorEventData');
+const kCloseEventCode = Symbol('kCloseEventCode');
+const kCloseEventReason = Symbol('kCloseEventReason');
+const kCloseEventWasClean = Symbol('kCloseEventWasClean');
 
 class CloseEvent extends Event {
     /**
@@ -33,26 +36,41 @@ class CloseEvent extends Event {
      * @param {any} [init]
      */
     constructor(type, init) {
-        super(type);
+        super(type, init);
 
-        if (init) {
-            this.code = init.code;
-            this.reason = init.reason;
-            this.wasClean = init.wasClean;
-        }
+        this[kCloseEventCode] = init?.code;
+        this[kCloseEventReason] = init?.reason;
+        this[kCloseEventWasClean] = init?.wasClean;
     }
 
     get [Symbol.toStringTag]() {
         return 'CloseEvent';
     }
+
+    get code() {
+        return this[kCloseEventCode];
+    }
+
+    get reason() {
+        return this[kCloseEventReason];
+    }
+
+    get wasClean() {
+        return this[kCloseEventWasClean];
+    }
 }
 
-class ErrorEvent extends Event {
-    /** @param {any} [error] */
-    constructor(error) {
-        super('error');
+const kErrorEventData = Symbol('kErrorEventData');
 
-        this[kErrorEventData] = error;
+class ErrorEvent extends Event {
+    /** 
+     * @param {string} type
+     * @param {ErrorEventInit} [init]
+     */
+    constructor(type, init) {
+        super(type, init);
+
+        this[kErrorEventData] = init?.error;
     }
 
     get [Symbol.toStringTag]() {
@@ -88,7 +106,7 @@ class MessageEvent extends Event {
      * @param {{data?: any}} [init]
      */
     constructor(type, init) {
-        super(type);
+        super(type, init);
 
         if (init) {
             this[kMessageEventData] = init.data;
@@ -215,7 +233,7 @@ class Worker extends EventTarget {
         };
 
         worker.onerror = error => {
-            this.dispatchEvent(new ErrorEvent(error));
+            this.dispatchEvent(new ErrorEvent('error', { error }));
         };
 
         this[kWorker] = worker;

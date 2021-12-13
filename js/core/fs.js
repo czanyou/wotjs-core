@@ -1,4 +1,5 @@
 // @ts-check
+/// <reference path ="../../types/index.d.ts" />
 import * as native from '@tjs/native';
 
 const fs = native.fs;
@@ -7,7 +8,7 @@ export const access = fs.access;
 export const chmod = fs.chmod;
 export const chown = fs.chown;
 export const copyFile = fs.copyFile;
-export const hashFile = fs.hashFile;
+export const hashFile = fs.sha1sum;
 export const lstat = fs.lstat;
 export const mkdir = fs.mkdir;
 export const mkdtemp = fs.mkdtemp;
@@ -26,6 +27,34 @@ export const truncate = fs.truncate;
 export const unlink = fs.unlink;
 export const utimes = fs.utimes;
 export const watch = fs.watch;
+
+/**
+ * @param {string} path 
+ * @returns {Promise<string>}
+ */
+export async function md5sum(path) {
+    try {
+        const data = await fs.md5sum(path);
+        return data && native.util.encode(data, native.util.CODE_HEX);
+
+    } catch (error) {
+        return null;
+    }
+}
+
+/**
+ * @param {string} path 
+ * @returns {Promise<string>}
+ */
+export async function sha1sum(path) {
+    try {
+        const data = await fs.sha1sum(path);
+        return data && native.util.encode(data, native.util.CODE_HEX);
+
+    } catch (error) {
+        return null;
+    }
+}
 
 /**
  * @param {string} filename 

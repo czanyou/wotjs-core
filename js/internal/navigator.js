@@ -1,4 +1,5 @@
 // @ts-check
+/// <reference path ="../../types/index.d.ts" />
 import * as native from '@tjs/native';
 import { defineEventAttribute, EventTarget } from '@tjs/event-target';
 
@@ -43,6 +44,17 @@ export class Navigator {
             async requestDevice(options) {
                 const devices = await import('@tjs/devices');
                 return devices.requestDevice(options);
+            }
+        };
+
+        this.gpios = {
+            async getDevices() {
+                const gpio = await import('@tjs/gpio');
+                return gpio.getDevices();
+            },
+            async requestDevice(options) {
+                const gpio = await import('@tjs/gpio');
+                return gpio.requestDevice(options);
             }
         };
 

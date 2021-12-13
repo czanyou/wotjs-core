@@ -134,6 +134,12 @@ declare module '@tjs/fs' {
     /** 计算文件 Hash 值 */
     export function hashFile(path: string, type?: string): Promise<ArrayBuffer>;
 
+    /** 计算文件 Hash 值 */
+    export function md5sum(path: string, type?: string): Promise<string>;
+
+    /** 计算文件 Hash 值 */
+    export function sha1sum(path: string, type?: string): Promise<string>;
+
     /** lstat */
     export function lstat(path: string, options: any): Promise<void>;
 
@@ -219,7 +225,6 @@ declare module '@tjs/os' {
         /** Current working directory of the child process. Default: process.cwd(). */
         cwd?: string;
 
-
         detached?: boolean;
 
         /** Environment key-value pairs. Default: process.env. */
@@ -273,13 +278,32 @@ declare module '@tjs/os' {
         /** 标准错误类型: inherit, pipe, ignore */
         stderr?: any;
 
+        /** pid */
         pid: number;
+
+        /** 是已连接 */
+        connected: boolean;
+
+        /** 断开连接 */
+        disconnect(): void;
+
+        /** 向子进程发送信号 */
+        kill(signal: number): Promise<void>;
+
+        /**
+         * 发送一个消息
+         * @param message 
+         */
+        send(message: object): Promise<boolean>;
 
         /** 等待子进程结束 */
         wait(): Promise<ProcessResult>;
 
-        /** 向子进程发送信号 */
-        kill(signal: number): Promise<void>;
+        /** 当断开连接 */
+        ondisconnect(message: Event): void;
+
+        /** 当收到消息 */
+        onmessage(message: MessageEvent): void;
     }
 
     /**
@@ -339,6 +363,9 @@ declare module '@tjs/os' {
     /** 操作系统类型 */
     export const platform: string;
 
+    /** 操作系统类型 */
+    export const signals: { [key: string]: number };
+
     /** 信号 */
     export const signal: Map<string, number>;
 
@@ -350,6 +377,9 @@ declare module '@tjs/os' {
 
     /** 空闲内存数 */
     export function freemem(): number;
+
+    /** 当前系统时间 */
+    export function gettimeofday(): number;
 
     /** 用户主目录 */
     export function homedir(): string;
@@ -392,17 +422,12 @@ declare module '@tjs/os' {
     /** 系统启动时间, 单位为秒 */
     export function uptime(): number;
 
-    /** 当前进程占用的物理内存 */
-    export function rss(): number;
-
-    /** 打印所有活跃的 libuv handler */
-    export function printActiveHandles(): void;
-
     /** 打印所有的 libuv handler */
-    export function printAllHandles(): void;
+    export function printHandles(): void;
 
     /** 打印内存使用情况 */
     export function printMemoryUsage(): void;
+    export function dumpObjects(): void;
 
     export function openlog(name: string): void;
     export function syslog(level: number, data: any): void;
@@ -485,7 +510,7 @@ declare module '@tjs/process' {
     export function exit(code?: number): void
 
     /** 高精度时钟时间，单位为纳秒。 */
-    export function hrtime(): bigint
+    export function hrtime(): number
 
     /** 
      * 发送信号 
@@ -505,6 +530,9 @@ declare module '@tjs/process' {
 
     /** 设置环境变量 */
     export function setenv(name: string, value: string): void
+
+    /** 当前进程占用的物理内存 */
+    export function rss(): number;
 
     export const SIGNAL: {
         SIGABRT: 6,
@@ -579,7 +607,7 @@ declare module '@tjs/util' {
      * @param type 
      */
     export function hash(data: ArrayBuffer | Uint8Array | string, type?: string): string;
-    export function encode(data: Uint8Array | ArrayBuffer, format?: string): string;
+    export function encode(data: string | Uint8Array | ArrayBuffer, format?: string): string;
     export function decode(text: string, format?: string): Uint8Array;
 
     export function sleep(time: number): Promise<void>;

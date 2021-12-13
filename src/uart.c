@@ -19,23 +19,23 @@
  * MRAA return codes
  */
 typedef enum tjs_uart_result_codes {
-    MRAA_SUCCESS = 0, /**< Expected response */
-    MRAA_ERROR_FEATURE_NOT_IMPLEMENTED = 1, /**< Feature TODO */
-    MRAA_ERROR_FEATURE_NOT_SUPPORTED = 2, /**< Feature not supported by HW */
-    MRAA_ERROR_INVALID_VERBOSITY_LEVEL = 3, /**< Verbosity level wrong */
-    MRAA_ERROR_INVALID_PARAMETER = 4, /**< Parameter invalid */
-    MRAA_ERROR_INVALID_HANDLE = 5, /**< Handle invalid */
-    MRAA_ERROR_NO_RESOURCES = 6, /**< No resource of that type avail */
-    MRAA_ERROR_INVALID_RESOURCE = 7, /**< Resource invalid */
-    MRAA_ERROR_INVALID_QUEUE_TYPE = 8, /**< Queue type incorrect */
-    MRAA_ERROR_NO_DATA_AVAILABLE = 9, /**< No data available */
-    MRAA_ERROR_INVALID_PLATFORM = 10, /**< Platform not recognised */
-    MRAA_ERROR_PLATFORM_NOT_INITIALISED = 11, /**< Board information not initialised */
-    MRAA_ERROR_UART_OW_SHORTED = 12, /**< UART OW Short Circuit Detected*/
-    MRAA_ERROR_UART_OW_NO_DEVICES = 13, /**< UART OW No devices detected */
-    MRAA_ERROR_UART_OW_DATA_ERROR = 14, /**< UART OW Data/Bus error detected */
+    TJS_UART_SUCCESS = 0, /**< Expected response */
+    TJS_UART_FEATURE_NOT_IMPLEMENTED = 1, /**< Feature TODO */
+    TJS_UART_FEATURE_NOT_SUPPORTED = 2, /**< Feature not supported by HW */
+    TJS_UART_INVALID_VERBOSITY_LEVEL = 3, /**< Verbosity level wrong */
+    TJS_UART_INVALID_PARAMETER = 4, /**< Parameter invalid */
+    TJS_UART_INVALID_HANDLE = 5, /**< Handle invalid */
+    TJS_UART_NO_RESOURCES = 6, /**< No resource of that type avail */
+    TJS_UART_INVALID_RESOURCE = 7, /**< Resource invalid */
+    TJS_UART_INVALID_QUEUE_TYPE = 8, /**< Queue type incorrect */
+    TJS_UART_NO_DATA_AVAILABLE = 9, /**< No data available */
+    TJS_UART_INVALID_PLATFORM = 10, /**< Platform not recognised */
+    TJS_UART_PLATFORM_NOT_INITIALISED = 11, /**< Board information not initialised */
+    TJS_UART_UART_OW_SHORTED = 12, /**< UART OW Short Circuit Detected*/
+    TJS_UART_UART_OW_NO_DEVICES = 13, /**< UART OW No devices detected */
+    TJS_UART_UART_OW_DATA_ERROR = 14, /**< UART OW Data/Bus error detected */
 
-    MRAA_ERROR_UNSPECIFIED = 99 /**< Unknown Error */
+    TJS_UART_UNSPECIFIED = 99 /**< Unknown Error */
 } tjs_uart_result_t;
 
 /**
@@ -52,8 +52,8 @@ typedef enum tjs_uart_parity_e {
 /* Events */
 enum tjs_uart_events {
     TJS_UART_EVENT_CLOSE = 0,
-    TJS_UART_EVENT_CONNECTION,
-    TJS_UART_EVENT_END,
+    TJS_UART_EVENT_DISCONNECT,
+    TJS_UART_EVENT_OPEN,
     TJS_UART_EVENT_ERROR,
     TJS_UART_EVENT_MESSAGE,
     TJS_UART_EVENT_MAX,
@@ -72,7 +72,7 @@ typedef struct tjs_uart_t {
 } TJSUart;
 
 static JSClassID tjs_uart_class_id;
-static tjs_uart_result_t mraa_uart_set_baudrate(int fd, unsigned int baud);
+static tjs_uart_result_t tjs__uart_set_baudrate(int fd, unsigned int baud);
 
 #if defined(__linux__) || defined(__linux)
 
@@ -82,7 +82,7 @@ static tjs_uart_result_t mraa_uart_set_baudrate(int fd, unsigned int baud);
 
 // This function takes an unsigned int and converts it to a B* speed_t
 // that can be used with linux/posix termios
-static speed_t mraa_uart_uint_to_speed(unsigned int speed)
+static speed_t tjs__uart_uint_to_speed(unsigned int speed)
 {
     switch (speed) {
     case 0:
@@ -153,7 +153,7 @@ static speed_t mraa_uart_uint_to_speed(unsigned int speed)
     }
 }
 
-static unsigned int mraa_uart_speed_to_uint(speed_t speedt)
+static unsigned int tjs__uart_speed_to_uint(speed_t speedt)
 {
     struct baud_table {
         speed_t speedt;
@@ -204,9 +204,9 @@ static unsigned int mraa_uart_speed_to_uint(speed_t speedt)
     return 0;
 }
 
-tjs_uart_result_t mraa_uart_init(int fd)
+tjs_uart_result_t tjs__uart_init(int fd)
 {
-    tjs_uart_result_t status = MRAA_SUCCESS;
+    tjs_uart_result_t status = TJS_UART_SUCCESS;
 
     // now setup the tty and the selected baud rate
     struct termios termio;
@@ -214,7 +214,7 @@ tjs_uart_result_t mraa_uart_init(int fd)
     // get current modes
     if (tcgetattr(fd, &termio)) {
         syslog(LOG_ERR, "uart: tcgetattr(%d) failed: %s", fd, strerror(errno));
-        status = MRAA_ERROR_INVALID_RESOURCE;
+        status = TJS_UART_INVALID_RESOURCE;
         goto init_raw_cleanup;
     }
 
@@ -224,12 +224,12 @@ tjs_uart_result_t mraa_uart_init(int fd)
     cfmakeraw(&termio);
     if (tcsetattr(fd, TCSAFLUSH, &termio) < 0) {
         syslog(LOG_ERR, "uart: tcsetattr(%d) failed after cfmakeraw(): %s", fd, strerror(errno));
-        status = MRAA_ERROR_INVALID_RESOURCE;
+        status = TJS_UART_INVALID_RESOURCE;
         goto init_raw_cleanup;
     }
 
-    if (mraa_uart_set_baudrate(fd, 9600) != MRAA_SUCCESS) {
-        status = MRAA_ERROR_INVALID_RESOURCE;
+    if (tjs__uart_set_baudrate(fd, 9600) != TJS_UART_SUCCESS) {
+        status = TJS_UART_INVALID_RESOURCE;
         goto init_raw_cleanup;
     }
 
@@ -237,26 +237,26 @@ init_raw_cleanup:
     return 0;
 }
 
-static tjs_uart_result_t mraa_uart_flush(int fd)
+static tjs_uart_result_t tjs__uart_flush(int fd)
 {
     if (fd <= 0) {
         syslog(LOG_ERR, "uart: flush: context is NULL");
-        return MRAA_ERROR_INVALID_HANDLE;
+        return TJS_UART_INVALID_HANDLE;
     }
 
 #if !defined(PERIPHERALMAN)
     if (tcdrain(fd) == -1) {
-        return MRAA_ERROR_FEATURE_NOT_SUPPORTED;
+        return TJS_UART_FEATURE_NOT_SUPPORTED;
     }
 #endif
 
-    return MRAA_SUCCESS;
+    return TJS_UART_SUCCESS;
 }
 
-static tjs_uart_result_t mraa_uart_open(const char* device)
+static tjs_uart_result_t tjs__uart_open(const char* device)
 {
     int flags;
-    int debug = 1;
+    int debug = 0;
 
     /* The O_NOCTTY flag tells UNIX that this program doesn't want
        to be the "controlling terminal" for that port. If you
@@ -282,45 +282,45 @@ static tjs_uart_result_t mraa_uart_open(const char* device)
     return fd;
 }
 
-static int mraa_uart_read(int fd, char* buf, size_t len)
+static int tjs__uart_read(int fd, char* buf, size_t len)
 {
     if (fd < 0) {
         syslog(LOG_ERR, "uart%i: read: port is not open", fd);
-        return MRAA_ERROR_INVALID_RESOURCE;
+        return TJS_UART_INVALID_RESOURCE;
     }
 
     return read(fd, buf, len);
 }
 
-static tjs_uart_result_t mraa_uart_sendbreak(int fd, int duration)
+static tjs_uart_result_t tjs__uart_sendbreak(int fd, int duration)
 {
 #if !defined(PERIPHERALMAN)
     if (tcsendbreak(fd, duration) == -1) {
-        return MRAA_ERROR_INVALID_PARAMETER;
+        return TJS_UART_INVALID_PARAMETER;
     }
 #endif
 
-    return MRAA_SUCCESS;
+    return TJS_UART_SUCCESS;
 }
 
-static tjs_uart_result_t mraa_uart_set_baudrate(int fd, unsigned int baud)
+static tjs_uart_result_t tjs__uart_set_baudrate(int fd, unsigned int baud)
 {
     if (fd <= 0) {
         syslog(LOG_ERR, "uart: set_baudrate: context is NULL");
-        return MRAA_ERROR_INVALID_HANDLE;
+        return TJS_UART_INVALID_HANDLE;
     }
 
     struct termios termio;
     if (tcgetattr(fd, &termio)) {
         syslog(LOG_ERR, "uart%i: set_baudrate: tcgetattr() failed: %s", fd, strerror(errno));
-        return MRAA_ERROR_INVALID_RESOURCE;
+        return TJS_UART_INVALID_RESOURCE;
     }
 
     // set our baud rates
-    speed_t speed = mraa_uart_uint_to_speed(baud);
+    speed_t speed = tjs__uart_uint_to_speed(baud);
     if (speed == B0) {
         syslog(LOG_ERR, "uart%i: set_baudrate: invalid baudrate: %i", fd, baud);
-        return MRAA_ERROR_INVALID_PARAMETER;
+        return TJS_UART_INVALID_PARAMETER;
     }
     cfsetispeed(&termio, speed);
     cfsetospeed(&termio, speed);
@@ -328,16 +328,16 @@ static tjs_uart_result_t mraa_uart_set_baudrate(int fd, unsigned int baud)
     // make it so
     if (tcsetattr(fd, TCSAFLUSH, &termio) < 0) {
         syslog(LOG_ERR, "uart%i: set_baudrate: tcsetattr() failed: %s", fd, strerror(errno));
-        return MRAA_ERROR_FEATURE_NOT_SUPPORTED;
+        return TJS_UART_FEATURE_NOT_SUPPORTED;
     }
-    return MRAA_SUCCESS;
+    return TJS_UART_SUCCESS;
 }
 
-static tjs_uart_result_t mraa_uart_set_flowcontrol(int fd, int xonxoff, int rtscts)
+static tjs_uart_result_t tjs__uart_set_flowcontrol(int fd, int xonxoff, int rtscts)
 {
     if (fd <= 0) {
         syslog(LOG_ERR, "uart: set_flowcontrol: context is NULL");
-        return MRAA_ERROR_INVALID_HANDLE;
+        return TJS_UART_INVALID_HANDLE;
     }
 
     if (rtscts) {
@@ -349,7 +349,7 @@ static tjs_uart_result_t mraa_uart_set_flowcontrol(int fd, int xonxoff, int rtsc
         action = TCION;
     }
     if (tcflow(fd, action)) {
-        return MRAA_ERROR_FEATURE_NOT_SUPPORTED;
+        return TJS_UART_FEATURE_NOT_SUPPORTED;
     }
 
     // rtscts
@@ -358,7 +358,7 @@ static tjs_uart_result_t mraa_uart_set_flowcontrol(int fd, int xonxoff, int rtsc
     // get current modes
     if (tcgetattr(fd, &termio)) {
         syslog(LOG_ERR, "uart%i: set_flowcontrol: tcgetattr() failed: %s", fd, strerror(errno));
-        return MRAA_ERROR_INVALID_RESOURCE;
+        return TJS_UART_INVALID_RESOURCE;
     }
 
     if (rtscts) {
@@ -369,23 +369,23 @@ static tjs_uart_result_t mraa_uart_set_flowcontrol(int fd, int xonxoff, int rtsc
 
     if (tcsetattr(fd, TCSAFLUSH, &termio) < 0) {
         syslog(LOG_ERR, "uart%i: set_flowcontrol: tcsetattr() failed: %s", fd, strerror(errno));
-        return MRAA_ERROR_FEATURE_NOT_SUPPORTED;
+        return TJS_UART_FEATURE_NOT_SUPPORTED;
     }
 
-    return MRAA_SUCCESS;
+    return TJS_UART_SUCCESS;
 }
 
-static tjs_uart_result_t mraa_uart_set_mode(int fd, int bytesize, tjs_uart_parity_t parity, int stopbits)
+static tjs_uart_result_t tjs__uart_set_mode(int fd, int bytesize, tjs_uart_parity_t parity, int stopbits)
 {
     if (fd <= 0) {
         syslog(LOG_ERR, "uart: set_mode: context is NULL");
-        return MRAA_ERROR_INVALID_HANDLE;
+        return TJS_UART_INVALID_HANDLE;
     }
 
     struct termios termio;
     if (tcgetattr(fd, &termio)) {
         syslog(LOG_ERR, "uart%i: set_mode: tcgetattr() failed: %s", fd, strerror(errno));
-        return MRAA_ERROR_INVALID_RESOURCE;
+        return TJS_UART_INVALID_RESOURCE;
     }
 
     termio.c_cflag &= ~CSIZE;
@@ -440,13 +440,13 @@ static tjs_uart_result_t mraa_uart_set_mode(int fd, int bytesize, tjs_uart_parit
 
     if (tcsetattr(fd, TCSAFLUSH, &termio) < 0) {
         syslog(LOG_ERR, "uart%i: set_mode: tcsetattr() failed: %s", fd, strerror(errno));
-        return MRAA_ERROR_FEATURE_NOT_SUPPORTED;
+        return TJS_UART_FEATURE_NOT_SUPPORTED;
     }
 
-    return MRAA_SUCCESS;
+    return TJS_UART_SUCCESS;
 }
 
-static tjs_uart_result_t mraa_uart_set_non_blocking(int fd, int nonblock)
+static tjs_uart_result_t tjs__uart_set_non_blocking(int fd, int nonblock)
 {
     // get current flags
     int flags = fcntl(fd, F_GETFL);
@@ -461,24 +461,24 @@ static tjs_uart_result_t mraa_uart_set_non_blocking(int fd, int nonblock)
     // set new flags
     if (fcntl(fd, F_SETFL, flags) < 0) {
         syslog(LOG_ERR, "uart%i: non_blocking: failed changing fd blocking state: %s", fd, strerror(errno));
-        return MRAA_ERROR_UNSPECIFIED;
+        return TJS_UART_UNSPECIFIED;
     }
 
-    return MRAA_SUCCESS;
+    return TJS_UART_SUCCESS;
 }
 
-static tjs_uart_result_t mraa_uart_set_timeout(int fd, int read, int write, int interchar)
+static tjs_uart_result_t tjs__uart_set_timeout(int fd, int read, int write, int interchar)
 {
     if (fd <= 0) {
         syslog(LOG_ERR, "uart: set_timeout: context is NULL");
-        return MRAA_ERROR_INVALID_HANDLE;
+        return TJS_UART_INVALID_HANDLE;
     }
 
     struct termios termio;
     // get current modes
     if (tcgetattr(fd, &termio)) {
         syslog(LOG_ERR, "uart%i: set_timeout: tcgetattr() failed: %s", fd, strerror(errno));
-        return MRAA_ERROR_INVALID_RESOURCE;
+        return TJS_UART_INVALID_RESOURCE;
     }
     if (read > 0) {
         read = read / 100;
@@ -489,14 +489,14 @@ static tjs_uart_result_t mraa_uart_set_timeout(int fd, int read, int write, int 
     termio.c_cc[VTIME] = read; /* Set timeout in tenth seconds */
     if (tcsetattr(fd, TCSANOW, &termio) < 0) {
         syslog(LOG_ERR, "uart%i: set_timeout: tcsetattr() failed: %s", fd, strerror(errno));
-        return MRAA_ERROR_FEATURE_NOT_SUPPORTED;
+        return TJS_UART_FEATURE_NOT_SUPPORTED;
     }
 
-    return MRAA_SUCCESS;
+    return TJS_UART_SUCCESS;
 }
 
 /* Sets up a serial port for RTU communications */
-static tjs_uart_result_t mraa_uart_set_options(int fd, int baud, int parity, int data_bit, int stop_bit)
+static tjs_uart_result_t tjs__uart_set_options(int fd, int baud, int parity, int data_bit, int stop_bit)
 {
     struct termios tios;
     speed_t speed;
@@ -801,7 +801,7 @@ static tjs_uart_result_t mraa_uart_set_options(int fd, int baud, int parity, int
     return 0;
 }
 
-static int mraa_uart_wait(int fd, unsigned int millis)
+static int tjs__uart_wait(int fd, unsigned int millis)
 {
     if (fd < 0) {
         syslog(LOG_ERR, "uart%i: data_available: port is not open", fd);
@@ -833,11 +833,11 @@ static int mraa_uart_wait(int fd, unsigned int millis)
     }
 }
 
-static int mraa_uart_write(int fd, const char* buf, size_t len)
+static int tjs__uart_write(int fd, const char* buf, size_t len)
 {
     if (fd < 0) {
         syslog(LOG_ERR, "uart%i: write: port is not open", fd);
-        return MRAA_ERROR_INVALID_RESOURCE;
+        return TJS_UART_INVALID_RESOURCE;
     }
 
     return write(fd, buf, len);
@@ -946,7 +946,7 @@ static JSValue tjs_uart_flush(JSContext* ctx, JSValueConst this_val, int argc, J
         return JS_EXCEPTION;
     }
 
-    tjs_uart_result_t status = mraa_uart_flush(uartObject->fd);
+    tjs_uart_result_t status = tjs__uart_flush(uartObject->fd);
     return JS_NewInt32(ctx, status);
 }
 
@@ -960,7 +960,7 @@ static void tjs_uart_poll_callback(uv_poll_t* handle, int status, int events)
         size_t size = 64;
         char* buffer = js_malloc(ctx, size);
 
-        int ret = mraa_uart_read(uartObject->fd, buffer, size);
+        int ret = tjs__uart_read(uartObject->fd, buffer, size);
         if (ret <= 0) {
             js_free(ctx, buffer);
             return;
@@ -970,7 +970,7 @@ static void tjs_uart_poll_callback(uv_poll_t* handle, int status, int events)
         tjs_uart_emit_event(uartObject->ctx, uartObject, TJS_UART_EVENT_MESSAGE, data);
 
     } else if (events & UV_DISCONNECT) {
-        tjs_uart_emit_event(uartObject->ctx, uartObject, TJS_UART_EVENT_END, JS_UNDEFINED);
+        tjs_uart_emit_event(uartObject->ctx, uartObject, TJS_UART_EVENT_DISCONNECT, JS_UNDEFINED);
     }
 }
 
@@ -1000,7 +1000,7 @@ static JSValue tjs_uart_read(JSContext* ctx, JSValueConst this_val, int argc, JS
     size_t size = 128;
     char* buffer = js_malloc(ctx, size);
 
-    int ret = mraa_uart_read(uartObject->fd, buffer, size);
+    int ret = tjs__uart_read(uartObject->fd, buffer, size);
     if (ret <= 0) {
         js_free(ctx, buffer);
         return JS_UNDEFINED;
@@ -1024,7 +1024,7 @@ static JSValue tjs_uart_set_baudrate(JSContext* ctx, JSValueConst this_val, int 
         }
     }
 
-    tjs_uart_result_t status = mraa_uart_set_baudrate(uartObject->fd, baud);
+    tjs_uart_result_t status = tjs__uart_set_baudrate(uartObject->fd, baud);
     return JS_NewInt32(ctx, status);
 }
 
@@ -1050,7 +1050,7 @@ static JSValue tjs_uart_set_flow_control(JSContext* ctx, JSValueConst this_val, 
         return JS_UNDEFINED;
     }
 
-    tjs_uart_result_t status = mraa_uart_set_flowcontrol(uartObject->fd, xonxoff, rtscts);
+    tjs_uart_result_t status = tjs__uart_set_flowcontrol(uartObject->fd, xonxoff, rtscts);
     return JS_NewInt32(ctx, status);
 }
 
@@ -1086,7 +1086,7 @@ static JSValue tjs_uart_set_mode(JSContext* ctx, JSValueConst this_val, int argc
         }
     }
 
-    tjs_uart_result_t status = mraa_uart_set_mode(uartObject->fd, bytesize, partiy, stopbits);
+    tjs_uart_result_t status = tjs__uart_set_mode(uartObject->fd, bytesize, partiy, stopbits);
     return JS_NewInt32(ctx, status);
 }
 
@@ -1105,7 +1105,7 @@ static JSValue tjs_uart_set_non_blocking(JSContext* ctx, JSValueConst this_val, 
         }
     }
 
-    tjs_uart_result_t status = mraa_uart_set_non_blocking(uartObject->fd, nonNlocking);
+    tjs_uart_result_t status = tjs__uart_set_non_blocking(uartObject->fd, nonNlocking);
     return JS_NewInt32(ctx, status);
 }
 
@@ -1122,7 +1122,7 @@ static JSValue tjs_uart_set_timeout(JSContext* ctx, JSValueConst this_val, int a
         return JS_UNDEFINED;
     }
 
-    tjs_uart_result_t status = mraa_uart_set_timeout(uartObject->fd, timeout, 0, 0);
+    tjs_uart_result_t status = tjs__uart_set_timeout(uartObject->fd, timeout, 0, 0);
     return JS_NewInt32(ctx, status);
 }
 
@@ -1133,7 +1133,7 @@ static JSValue tjs_uart_wait(JSContext* ctx, JSValueConst this_val, int argc, JS
         return JS_EXCEPTION;
     }
 
-    int ret = mraa_uart_wait(uartObject->fd, 1000);
+    int ret = tjs__uart_wait(uartObject->fd, 1000);
     return JS_UNDEFINED;
 }
 
@@ -1176,7 +1176,7 @@ static JSValue tjs_uart_write(JSContext* ctx, JSValueConst this_val, int argc, J
         }
     }
 
-    int ret = mraa_uart_write(uartObject->fd, buf, size);
+    int ret = tjs__uart_write(uartObject->fd, buf, size);
     if (is_string) {
         JS_FreeCString(ctx, buf);
     }
@@ -1205,33 +1205,38 @@ static void tjs_uart_maybe_close(TJSUart* uartObject)
 static void tjs_uart_finalizer(JSRuntime* runtime, JSValue val)
 {
     TJSUart* uartObject = JS_GetOpaque(val, tjs_uart_class_id);
-    if (uartObject) {
-        for (int i = 0; i < TJS_UART_EVENT_MAX; i++) {
-            JS_FreeValueRT(runtime, uartObject->events[i]);
-        }
+    if (uartObject == NULL) {
+        return;
+    }
 
-        uv_poll_stop(&uartObject->pollHandle);
-        uv_close((uv_handle_t*)&uartObject->pollHandle, tjs_uart_close_callback);
+    for (int i = 0; i < TJS_UART_EVENT_MAX; i++) {
+        JS_FreeValueRT(runtime, uartObject->events[i]);
+    }
 
-        uartObject->finalized = 1;
+    uv_poll_stop(&uartObject->pollHandle);
+    uv_close((uv_handle_t*)&uartObject->pollHandle, tjs_uart_close_callback);
 
-        dbuf_free(&uartObject->readBuffer);
+    uartObject->finalized = 1;
 
-        if (uartObject->closed) {
-            free(uartObject);
-        } else {
-            tjs_uart_maybe_close(uartObject);
-        }
+    dbuf_free(&uartObject->readBuffer);
+
+    if (uartObject->closed) {
+        free(uartObject);
+
+    } else {
+        tjs_uart_maybe_close(uartObject);
     }
 }
 
 static void tjs_uart_mark(JSRuntime* runtime, JSValueConst val, JS_MarkFunc* mark_func)
 {
     TJSUart* uartObject = JS_GetOpaque(val, tjs_uart_class_id);
-    if (uartObject) {
-        for (int i = 0; i < TJS_UART_EVENT_MAX; i++) {
-            JS_MarkValue(runtime, uartObject->events[i], mark_func);
-        }
+    if (uartObject == NULL) {
+        return;
+    }
+
+    for (int i = 0; i < TJS_UART_EVENT_MAX; i++) {
+        JS_MarkValue(runtime, uartObject->events[i], mark_func);
     }
 }
 
@@ -1246,7 +1251,7 @@ static JSValue tjs_uart_constructor(JSContext* ctx, JSValueConst new_target, int
     if (argc < 1) {
         return JS_EXCEPTION;
     }
-    
+
     int fd = 0;
     if (!JS_IsUndefined(argv[0]) && JS_ToInt32(ctx, &fd, argv[0])) {
         return JS_EXCEPTION;
@@ -1330,14 +1335,14 @@ static JSValue tjs_uart_open(JSContext* ctx, JSValueConst this_val, int argc, JS
         return JS_UNDEFINED;
     }
 
-    int fd = mraa_uart_open(path);
+    int fd = tjs__uart_open(path);
     JS_FreeCString(ctx, path);
 
     if (fd <= 0) {
         return JS_UNDEFINED;
     }
 
-    mraa_uart_set_options(fd, baudrate, partiy, databits, stopbits);
+    tjs__uart_set_options(fd, baudrate, partiy, databits, stopbits);
     return JS_NewInt32(ctx, fd);
 }
 
@@ -1359,6 +1364,7 @@ static JSValue tjs_uart_set_rts(JSContext* ctx, JSValueConst this_val, int argc,
     ret = JS_ToInt32(ctx, &flag, argv[1]);
     if (flag <= 0) {
         flag = 0;
+
     } else {
         flag = 1;
     }
@@ -1367,6 +1373,7 @@ static JSValue tjs_uart_set_rts(JSContext* ctx, JSValueConst this_val, int argc,
     ioctl(fd, TIOCMGET, &ctrlbits);
     if (flag) {
         ctrlbits |= TIOCM_RTS;
+
     } else {
         ctrlbits &= ~TIOCM_RTS;
     }
@@ -1391,6 +1398,7 @@ static JSValue tjs_uart_set_dtr(JSContext* ctx, JSValueConst this_val, int argc,
     ret = JS_ToInt32(ctx, &flag, argv[1]);
     if (flag <= 0) {
         flag = 0;
+
     } else {
         flag = 1;
     }
@@ -1399,6 +1407,7 @@ static JSValue tjs_uart_set_dtr(JSContext* ctx, JSValueConst this_val, int argc,
     ioctl(fd, TIOCMGET, &ctrlbits);
     if (flag) {
         ctrlbits |= TIOCM_DTR;
+
     } else {
         ctrlbits &= ~TIOCM_DTR;
     }
@@ -1447,13 +1456,14 @@ static JSValue tjs_uart_set_options(JSContext* ctx, JSValueConst this_val, int a
         }
     }
 
-    mraa_uart_set_options(fd, baudrate, partiy, databits, stopbits);
+    tjs__uart_set_options(fd, baudrate, partiy, databits, stopbits);
     return JS_NewInt32(ctx, fd);
 }
 
 static const JSCFunctionListEntry tjs_uart_proto_funcs[] = {
-    TJS_CGETSET_MAGIC_DEF("onend", tjs_uart_event_get, tjs_uart_event_set, TJS_UART_EVENT_END),
+    TJS_CGETSET_MAGIC_DEF("onclose", tjs_uart_event_get, tjs_uart_event_set, TJS_UART_EVENT_CLOSE),
     TJS_CGETSET_MAGIC_DEF("onerror", tjs_uart_event_get, tjs_uart_event_set, TJS_UART_EVENT_ERROR),
+    TJS_CGETSET_MAGIC_DEF("ondisconnect", tjs_uart_event_get, tjs_uart_event_set, TJS_UART_EVENT_DISCONNECT),
     TJS_CGETSET_MAGIC_DEF("onmessage", tjs_uart_event_get, tjs_uart_event_set, TJS_UART_EVENT_MESSAGE),
     TJS_CFUNC_DEF("fileno", 0, tjs_uart_fileno),
     TJS_CFUNC_DEF("flush", 0, tjs_uart_flush),

@@ -1,4 +1,5 @@
 // @ts-check
+/// <reference path ="../../types/index.d.ts" />
 import * as dns from '@tjs/dns';
 
 import * as assert from '@tjs/assert';
@@ -6,8 +7,7 @@ import * as native from '@tjs/native';
 
 const test = assert.test;
 
-
-test('tcp.http.get', async () => {
+test('native.tcp.http.get', async () => {
     const client = new native.TCP();
 
     assert.startTimeout(10000, () => {
@@ -19,18 +19,15 @@ test('tcp.http.get', async () => {
     }
 
     const host = 'www.baidu.com'; // 'www.baidu.com';
-    const address = await dns.lookup(host, { family: 4 });
-    if (!Array.isArray(address)) {
+    const addressInfo = await dns.lookup(host, { family: 4 });
+    const address = { family: 4 };
+    if (!Array.isArray(addressInfo)) {
+        address.address = addressInfo.address;
         address.host = host;
         address.port = 80;
     }
 
     const result = {};
-
-    client.onend = function () {
-        result.isEnd = true;
-        onClose();
-    };
 
     client.onclose = function () {
         onClose();
@@ -67,6 +64,5 @@ test('tcp.http.get', async () => {
     assert.ok(result.connected, 'connected');
     assert.ok(result.hasData, 'hasData');
     assert.ok(result.isEndOfFile, 'isEndOfFile');
-    assert.ok(result.isEnd, 'isEnd');
     assert.ok(!result.hasError, 'hasError');
 });

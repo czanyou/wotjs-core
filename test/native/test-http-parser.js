@@ -1,4 +1,5 @@
 // @ts-check
+/// <reference path ="../../types/index.d.ts" />
 import { assert, test } from '@tjs/assert';
 
 import * as native from '@tjs/native';
@@ -85,7 +86,7 @@ test('native.http.parser', () => {
     parser.init(2);
     $context = {};
     parser.execute(response);
-    assert.equal($context.message.statusCode, 200, 'message.status');
+    assert.equal($context.message.status, 200, 'message.status');
     assert.equal($context.message.statusText, 'OK', 'message.statusText');
     assert.equal(textDecoder.decode($context.body), 'body');
 

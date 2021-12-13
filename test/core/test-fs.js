@@ -1,8 +1,10 @@
 // @ts-check
+/// <reference path ="../../types/index.d.ts" />
 import * as fs from '@tjs/fs';
 import * as util from '@tjs/util';
-import { dirname, join } from '@tjs/path';
+import process from '@tjs/process';
 
+import { dirname, join } from '@tjs/path';
 import { assert, test } from '@tjs/assert';
 
 // @ts-ignore
@@ -23,7 +25,7 @@ async function testAccess() {
         assert.fail(result);
 
     } catch (e) {
-        assert.equal(e.message, 'no such file or directory');
+        assert.equal(e.errno, -2);
     }
 
     // console.log('cwd', cwd);

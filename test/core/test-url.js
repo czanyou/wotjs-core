@@ -1,4 +1,5 @@
 // @ts-check
+/// <reference path ="../../types/index.d.ts" />
 import { assert, test } from '@tjs/assert';
 
 test('url.URL', async () => {

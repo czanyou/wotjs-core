@@ -1,15 +1,14 @@
 cmake_minimum_required(VERSION 2.8)
 
-project(WOTJS C)
+project(WOTJSCORE C)
 
 include(CheckCCompilerFlag)
 
 set(TJS_VERSION_MAJOR 19)
 set(TJS_VERSION_MINOR 6)
-set(TJS_VERSION_BUILD 53)
+set(TJS_VERSION_PATCH 53)
 
-set(TJS_VERSION "${TJS_VERSION_MAJOR}.${TJS_VERSION_MINOR}.${TJS_VERSION_BUILD}")
-set(PROJECT_ROOT_DIR ${CMAKE_CURRENT_LIST_DIR})
+set(TJS_VERSION "${TJS_VERSION_MAJOR}.${TJS_VERSION_MINOR}.${TJS_VERSION_PATCH}")
 set(CMAKE_VERBOSE_MAKEFILE OFF)
 
 ###############################################################################
@@ -51,7 +50,6 @@ include(deps/miniz/make.cmake)
 include(deps/mbedtls.cmake)
 include(js/make.cmake)
 include(core.cmake)
-
 
 ###############################################################################
 # echo settings

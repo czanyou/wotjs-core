@@ -1,4 +1,5 @@
 // @ts-check
+/// <reference path ="../../types/index.d.ts" />
 import * as native from '@tjs/native';
 import * as dns from '@tjs/dns';
 
@@ -18,6 +19,12 @@ const $context = { nextRequestId: 0 };
 // ////////////////////////////////////////////////////////////
 // Request
 
+/**
+ * 
+ * @param {*} request 
+ * @param {*} options 
+ * @returns 
+ */
 async function _createClient(request, options) {
     const method = request.method || 'GET';
     const body = await request.arrayBuffer() || '';
@@ -28,7 +35,7 @@ async function _createClient(request, options) {
 
     // connect
     const address = await dns.lookup(options.hostname, { family: 4 });
-    if (Array.isArray(address)) {
+    if (address == null || Array.isArray(address)) {
         return;
     }
 
@@ -77,19 +84,16 @@ async function _createClient(request, options) {
 
 /**
  * 
- * @param {*} request 
+ * @param {Request} request 
  * @param {*} options 
  * @returns Promise<Response>
  */
 async function _sendRequest(request, options) {
     let parser = null;
-    let client = null;
 
-    try {
-        client = await _createClient(request, options);
-        
-    } catch (err) {
-        return Promise.reject(err);
+    const client = await _createClient(request, options);
+    if (client == null) {
+        throw new Error('create socket failed.');
     }
 
     const clientId = ($context.nextRequestId || 0) + 1;
@@ -187,12 +191,8 @@ async function _sendRequest(request, options) {
             resolve(response);
         }
 
-        client.onend = function () {
-            onResponseEnd();
-        };
-
-        client.onerror = function () {
-            onResponseEnd();
+        client.onerror = function (error) {
+            client.error = error;
         };
 
         client.onmessage = function (data) {
@@ -208,6 +208,12 @@ async function _sendRequest(request, options) {
     return promise;
 }
 
+/**
+ * 
+ * @param {Request} request 
+ * @param {*} options 
+ * @returns 
+ */
 export async function sendRequest(request, options) {
     const uri = new URL(request.url);
 
@@ -304,7 +310,7 @@ export async function request(config) {
 
     const result = {};
     result.data = response.body;
-    result.status = response.statusCode;
+    result.status = response.status;
     result.statusText = response.statusText;
     result.headers = headers.map;
     result.request = httpRequest;
@@ -707,8 +713,10 @@ export class ServerResponse extends EventTarget {
         this.bodyUsed = false;
         this.headers = new Headers();
         this.isHeadersSent = false;
-        this.statusCode = 200;
+        this.status = 200;
         this.statusText = 'OK';
+
+        /** @type native.TCP */
         this.socket = null;
 
         const options = {};
@@ -733,6 +741,7 @@ export class ServerResponse extends EventTarget {
         return 'ServerResponse';
     }
 
+    /** @param {*} data */
     async end(data) {
         const socket = this.socket;
         if (!socket) {
@@ -776,6 +785,7 @@ export class ServerResponse extends EventTarget {
         }
     }
 
+    /** @param {string} field */
     get(field) {
         return this.headers.get(field);
     }
@@ -784,6 +794,7 @@ export class ServerResponse extends EventTarget {
 
     }
 
+    /** @param {*} data */
     async send(data) {
         if (data == null) {
             return;
@@ -798,12 +809,21 @@ export class ServerResponse extends EventTarget {
         await this.end();
     }
 
+    /**
+     * @param {string} field 
+     * @param {string} value 
+     */
     set(field, value) {
         return this.headers.set(field, value);
     }
 
+    /**
+     * @param {number} statusCode 
+     * @param {string} statusText 
+     * @returns this
+     */
     setStatus(statusCode, statusText) {
-        this.statusCode = statusCode;
+        this.status = statusCode;
         statusText = statusText || STATUS_CODES[statusCode];
 
         if (statusText) {
@@ -813,6 +833,7 @@ export class ServerResponse extends EventTarget {
         return this;
     }
 
+    /** @param {string} type */
     type(type) {
         if (type == 'json') {
             this.set('content-type', 'application/json');
@@ -821,6 +842,7 @@ export class ServerResponse extends EventTarget {
         }
     }
 
+    /** @param {ArrayBuffer|ArrayBufferView} data */
     async write(data) {
         const socket = this.socket;
         if (!socket) {
@@ -842,7 +864,7 @@ export class ServerResponse extends EventTarget {
 
         try {
             if (this.options.hasTransferEncoding) {
-                const length = data.length;
+                const length = data.byteLength;
                 const head = length.toString(16) + '\r\n';
                 await socket.write(head);
                 await socket.write(data);
@@ -867,7 +889,7 @@ export class ServerResponse extends EventTarget {
         }
 
         const statusText = this.statusText || 'OK';
-        const statusCode = this.statusCode || '200';
+        const statusCode = this.status || '200';
         const startLine = 'HTTP/1.1 ' + statusCode + ' ' + statusText;
 
         const options = this.options;
@@ -906,7 +928,7 @@ export class ServerResponse extends EventTarget {
                         headers.set('Connection', 'close');
                     }
 
-                } else if (this.statusCode >= 300) {
+                } else if (this.status >= 300) {
                     headers.set('Connection', 'close');
 
                 } else {
@@ -1027,7 +1049,6 @@ export class Server extends EventTarget {
             parser.onmessagecomplete = null;
 
             connection.onmessage = null;
-            connection.onend = null;
 
             delete self.connections[connection._id];
         }
@@ -1060,18 +1081,13 @@ export class Server extends EventTarget {
             readBuffer = null;
         }
 
-        connection.onclose = function (event) {
-            // console.log('onclose', event);
+        connection.onclose = function () {
+            // console.log('onclose');
             onSocketClose();
         };
 
-        connection.onend = function (event) {
-            // console.log('onend', event);
-            onSocketClose();
-        };
-
-        connection.onerror = function (event) {
-            // console.log('onerror', event);
+        connection.onerror = (error) => {
+            this.dispatchEvent(new ErrorEvent('error', { error }));
         };
 
         connection.onmessage = async function (data) {
@@ -1097,7 +1113,7 @@ export class Server extends EventTarget {
     async _startServer() {
         try {
             const options = this.options || {};
-            const address = { ip: '0.0.0.0' };
+            const address = { address: '0.0.0.0', port: 80, family: 4 };
             address.port = options.port || 80;
             const backlog = options.backlog || 100;
 
@@ -1108,12 +1124,11 @@ export class Server extends EventTarget {
             this.server = server;
 
             server.onclose = () => {
-                console.log('server.onclose');
+                
             };
 
             server.onerror = (error) => {
-                console.log('server.onerror', error);
-                this.dispatchEvent(new ErrorEvent(error.message));
+                this.dispatchEvent(new ErrorEvent('error', { error }));
             };
 
             server.onconnection = () => {
@@ -1126,7 +1141,7 @@ export class Server extends EventTarget {
             };
 
         } catch (error) {
-            this.dispatchEvent(new ErrorEvent(error));
+            this.dispatchEvent(new ErrorEvent('error', { error }));
             this.close();
         }
     }

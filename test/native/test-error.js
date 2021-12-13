@@ -1,4 +1,5 @@
 // @ts-check
+/// <reference path ="../../types/index.d.ts" />
 import { assert, test } from '@tjs/assert';
 
 import * as native from '@tjs/native';
@@ -11,7 +12,7 @@ test('native.error', () => {
     // console.log(error.message, error.errno, error);
 
     // strerror
-    const message = native.Error.strerror(-2);
+    const message = native.strerror(-2);
     assert.equal(message, 'no such file or directory');
     // console.log(message);
 });

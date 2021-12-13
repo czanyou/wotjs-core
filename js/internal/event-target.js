@@ -68,16 +68,17 @@ class Event {
             eventInit,
             eventPhase: 2,
             eventType: String(eventType),
-            currentTarget: null,
-            canceled: false,
-            stopped: false,
-            immediateStopped: false,
-            passiveListener: null,
+            // currentTarget: null,
+            // canceled: false,
+            // stopped: false,
+            // immediateStopped: false,
+            // passiveListener: null,
             timeStamp: Date.now()
         });
 
         // https://heycam.github.io/webidl/#Unforgeable
         Object.defineProperty(this, 'isTrusted', { value: false, enumerable: true });
+        Object.defineProperty(this, 'type', { value: String(eventType), enumerable: true });
     }
 
     get [Symbol.toStringTag]() {
@@ -156,7 +157,7 @@ class Event {
      * @type {number}
      */
     get eventPhase() {
-        return pd(this).eventPhase;
+        return pd(this).eventPhase ?? false;
     }
 
     /**
@@ -322,10 +323,9 @@ function isObject(x) {
 function getListeners(eventTarget) {
     const listeners = listenersMap.get(eventTarget);
     if (listeners == null) {
-        throw new TypeError(
-            "'this' is expected an EventTarget object, but got another value."
-        );
+        throw new TypeError("'this' is expected an EventTarget object, but got another value.");
     }
+
     return listeners;
 }
 
@@ -392,7 +392,7 @@ function defineEventAttributeDescriptor(eventName) {
 
                 if (prev === null) {
                     listeners.set(eventName, newNode);
-                    
+
                 } else {
                     prev.next = newNode;
                 }
@@ -410,11 +410,7 @@ function defineEventAttributeDescriptor(eventName) {
  * @returns {void}
  */
 function defineEventAttribute(eventTargetPrototype, eventName) {
-    Object.defineProperty(
-        eventTargetPrototype,
-        `on${eventName}`,
-        defineEventAttributeDescriptor(eventName)
-    );
+    Object.defineProperty(eventTargetPrototype, `on${eventName}`, defineEventAttributeDescriptor(eventName));
 }
 
 /**
@@ -444,6 +440,7 @@ class EventTarget {
         if (listener == null) {
             return;
         }
+
         if (typeof listener !== 'function' && !isObject(listener)) {
             throw new TypeError("'listener' should be a function or an object.");
         }
@@ -472,13 +469,11 @@ class EventTarget {
         // Traverse to the tail while checking duplication..
         let prev = null;
         while (node != null) {
-            if (
-                node.listener === listener &&
-                node.listenerType === listenerType
-            ) {
+            if (node.listener === listener && node.listenerType === listenerType) {
                 // Should ignore duplication.
                 return;
             }
+
             prev = node;
             node = node.next;
         }
@@ -508,17 +503,17 @@ class EventTarget {
         let prev = null;
         let node = listeners.get(eventName);
         while (node != null) {
-            if (
-                node.listener === listener &&
-                node.listenerType === listenerType
-            ) {
+            if (node.listener === listener && node.listenerType === listenerType) {
                 if (prev !== null) {
                     prev.next = node.next;
+
                 } else if (node.next !== null) {
                     listeners.set(eventName, node.next);
+
                 } else {
                     listeners.delete(eventName);
                 }
+
                 return;
             }
 
@@ -559,8 +554,10 @@ class EventTarget {
             if (node.once) {
                 if (prev !== null) {
                     prev.next = node.next;
+
                 } else if (node.next !== null) {
                     listeners.set(eventName, node.next);
+
                 } else {
                     listeners.delete(eventName);
                 }
@@ -574,6 +571,7 @@ class EventTarget {
             if (typeof node.listener === 'function') {
                 try {
                     node.listener.call(this, event);
+                    
                 } catch (err) {
                     console.error(err);
                 }

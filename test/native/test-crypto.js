@@ -1,21 +1,23 @@
 // @ts-check
+/// <reference path ="../../types/index.d.ts" />
 
 import { assert, test } from '@tjs/assert';
 import * as util from '@tjs/util';
 
 import * as native from '@tjs/native';
+const crypto = native.crypto;
 
 test('native.crypto.digest', () => {
-    assert.ok(native.crypto);
-    assert.equal(native.crypto.MD_MD5, 3);
-    assert.equal(native.crypto.MD_SHA1, 4);
-    assert.equal(native.crypto.MD_SHA256, 6);
-    assert.equal(native.crypto.MD_SHA512, 8);
+    assert.ok(crypto);
+    assert.equal(crypto.MD_MD5, 3);
+    assert.equal(crypto.MD_SHA1, 4);
+    assert.equal(crypto.MD_SHA256, 6);
+    assert.equal(crypto.MD_SHA512, 8);
 
-    const result1 = native.crypto.digest(native.crypto.MD_MD5, 'test');
-    const result2 = native.crypto.digest(native.crypto.MD_SHA1, 'test');
-    const result3 = native.crypto.digest(native.crypto.MD_SHA256, 'test');
-    const result4 = native.crypto.digest(native.crypto.MD_SHA512, 'test');
+    const result1 = crypto.digest(crypto.MD_MD5, 'test');
+    const result2 = crypto.digest(crypto.MD_SHA1, 'test');
+    const result3 = crypto.digest(crypto.MD_SHA256, 'test');
+    const result4 = crypto.digest(crypto.MD_SHA512, 'test');
 
     assert.equal(util.encode(result1), '098f6bcd4621d373cade4e832627b4f6');
     assert.equal(util.encode(result2), 'a94a8fe5ccb19ba61c4c0873d391e987982fbbd3');
@@ -25,10 +27,10 @@ test('native.crypto.digest', () => {
 });
 
 test('native.crypto.digest.name', () => {
-    const result1 = native.crypto.digest('MD5', 'test');
-    const result2 = native.crypto.digest('SHA1', 'test');
-    const result3 = native.crypto.digest('SHA256', 'test');
-    const result4 = native.crypto.digest('SHA512', 'test');
+    const result1 = crypto.digest('MD5', 'test');
+    const result2 = crypto.digest('SHA1', 'test');
+    const result3 = crypto.digest('SHA256', 'test');
+    const result4 = crypto.digest('SHA512', 'test');
 
     assert.equal(util.encode(result1), '098f6bcd4621d373cade4e832627b4f6');
     assert.equal(util.encode(result2), 'a94a8fe5ccb19ba61c4c0873d391e987982fbbd3');

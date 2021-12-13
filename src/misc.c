@@ -354,7 +354,7 @@ static JSValue tjs_openlog(JSContext* ctx, JSValueConst this_val, int argc, JSVa
     }
 
     int option = LOG_CONS | LOG_PID;
-    int facility = LOG_USER;
+    int facility = LOG_DAEMON;
 
     if (argc > 1) {
         option = tjs_to_int32(ctx, argv[0], option);
@@ -415,7 +415,7 @@ static JSValue tjs_write(JSContext* ctx, JSValueConst this_val, int argc, JSValu
 {
     int i;
     const char* str;
-    FILE* file = magic == 0 ? stdout : stderr;
+    FILE* file = (magic == 0) ? stdout : stderr;
 
     for (i = 0; i < argc; i++) {
         if (i != 0) {
@@ -432,6 +432,56 @@ static JSValue tjs_write(JSContext* ctx, JSValueConst this_val, int argc, JSValu
     }
 
     return JS_UNDEFINED;
+}
+
+static JSValue tjs_confirm(JSContext* ctx, JSValueConst this_val, int argc, JSValueConst* argv)
+{
+    JSValue str;
+
+    const char* message = NULL;
+    const char* default_value = NULL;
+    char buf[4096];
+
+    if (argc > 0) {
+        message = JS_ToCString(ctx, argv[0]);
+        if (!message) {
+            return JS_EXCEPTION;
+        }
+    }
+
+    if (argc > 1) {
+        default_value = JS_ToCString(ctx, argv[1]);
+    }
+
+    if (message) {
+        fputs(message, stdout);
+    }
+
+    if (fgets(buf, sizeof(buf), stdin) != NULL) {
+        size_t len = strcspn(buf, "\r\n"); /* skip newline */
+        if (len == 0) {
+            goto use_default;
+        }
+        str = JS_NewStringLen(ctx, buf, len);
+        
+    } else {
+    use_default:
+        if (default_value != NULL) {
+            str = JS_NewString(ctx, default_value);
+        } else {
+            str = JS_UNDEFINED;
+        }
+    }
+
+    if (message) {
+        JS_FreeCString(ctx, message);
+    }
+
+    if (default_value) {
+        JS_FreeCString(ctx, default_value);
+    }
+
+    return str;
 }
 
 static JSValue tjs_prompt(JSContext* ctx, JSValueConst this_val, int argc, JSValueConst* argv)
@@ -523,6 +573,7 @@ static const JSCFunctionListEntry tjs_misc_funcs[] = {
     TJS_CONST(STDIN_FILENO),
     TJS_CONST(STDOUT_FILENO),
     TJS_CONST(STDERR_FILENO),
+    TJS_CFUNC_DEF("confirm", 2, tjs_confirm),
     TJS_CFUNC_DEF("cwd", 0, tjs_cwd),
     TJS_CFUNC_DEF("environ", 0, tjs_environ),
     TJS_CFUNC_DEF("exepath", 0, tjs_exepath),

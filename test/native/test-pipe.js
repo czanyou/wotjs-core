@@ -1,4 +1,5 @@
 // @ts-check
+/// <reference path ="../../types/index.d.ts" />
 import * as fs from '@tjs/fs';
 import * as native from '@tjs/native';
 
@@ -18,6 +19,7 @@ test('native.pipe', async () => {
     const textDecoder = new TextDecoder();
     const result = {};
     const output = [];
+    const $context = {};
 
     async function createEchoServer() {
         try {
@@ -27,22 +29,12 @@ test('native.pipe', async () => {
         }
 
         const server = new native.Pipe();
-        server.bind('/tmp/test-pipe');
-        server.listen();
 
         server.onconnection = async function () {
-            const connection = await server.accept();
+            const connection = server.accept();
             // console.log('connection', connection);
             result.connection = true;
             output.push('connection');
-
-            connection.onopen = function () {
-                output.push('pong-open');
-            };
-
-            connection.onclose = function () {
-                output.push('pong-close');
-            };
 
             connection.onerror = function () {
                 output.push('pong-error');
@@ -50,7 +42,7 @@ test('native.pipe', async () => {
 
             connection.onmessage = function (data) {
                 if (!data) {
-                    output.push('pong-end');
+                    output.push('exit');
                     result.connectionEnd = true;
                     return;
                 }
@@ -64,7 +56,12 @@ test('native.pipe', async () => {
                     assert.fail(error);
                 }
             };
+
+            $context.connection = connection;
         };
+
+        server.bind('/tmp/test-pipe');
+        server.listen();
 
         return server;
     }
@@ -72,14 +69,6 @@ test('native.pipe', async () => {
     function createEchoClient() {
         const client = new native.Pipe();
 
-        client.onopen = function () {
-            output.push('ping-open');
-        };
-    
-        client.onclose = function () {
-            output.push('ping-close');
-        };
-    
         client.onerror = function () {
             output.push('ping-error');
         };
@@ -88,7 +77,7 @@ test('native.pipe', async () => {
             // console.log('client.data', data);
     
             if (!data) {
-                output.push('ping-end');
+                output.push('exit');
                 result.endOfFile = true;
                 onClose();
                 return;
@@ -105,7 +94,7 @@ test('native.pipe', async () => {
                     await client.write(data);
     
                 } else {
-                    output.push('ping-exit');
+                    output.push('exit');
                     assert.equal(text, 'PONG', 'sending a Uint8Array works');
                     result.isExit = true;
                     onClose();
@@ -133,25 +122,17 @@ test('native.pipe', async () => {
     output.push('ping1');
     await client.write('PING');
 
-    // bad send
-    // @ts-ignore
-    assert.throws(() => { client.write(1234); }, TypeError, 'sending anything else gives TypeError');
-
     startTimeout(10000, () => {
-        // client.close();
-        // server.close();
+
     });
 
     function onClose() {
         stopTimeout();
-
-        // client.close();
-        // server.close();
     }
 
     await waitTimeout();
 
-    console.log(output.join('->'));
+    assert.equal(output.join('->'), 'connect->connection->connected->ping1->pong->ping2->pong->exit');
 
     assert.ok(result.connected, 'connected');
     assert.ok(result.connection, 'connection');

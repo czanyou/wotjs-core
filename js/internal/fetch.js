@@ -1,4 +1,5 @@
 // @ts-check
+/// <reference path ="../../types/index.d.ts" />
 /* eslint-disable no-prototype-builtins */
 // Copyright (c) GitHub, Inc.
 // License: MIT
@@ -323,6 +324,12 @@ export class DOMException extends Error {
 
 // fetch
 
+/**
+ * 
+ * @param {*} input 
+ * @param {*} init 
+ * @returns 
+ */
 export async function fetch(input, init) {
     const request = new Request(input, init);
     // @ts-ignore

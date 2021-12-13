@@ -1,4 +1,5 @@
 // @ts-check
+/// <reference path ="../../types/index.d.ts" />
 import * as native from '@tjs/native';
 import * as dns from '@tjs/dns';
 import * as tls from '@tjs/tls';
@@ -34,7 +35,7 @@ export class Store {
 // MQTT Client
 
 export const ERRORS = {
-    0: '',
+    0: 'OK',
     1: 'Unacceptable protocol version',
     2: 'Identifier rejected',
     3: 'Server unavailable',
@@ -105,11 +106,16 @@ export const ERRORS = {
  */
 
 /**
+ * @typedef {{type: number}} MQTTMessage
+ */
+
+/**
  * The MQTTClient class wraps a client connection to an MQTT broker over an arbitrary transport method.
  */
 export class MQTTClient extends EventTarget {
+
     /**
-     * 
+     * @param {string} url
      * @param {MQTTClientOptions} options 
      */
     constructor(url, options) {
@@ -129,14 +135,9 @@ export class MQTTClient extends EventTarget {
             }
         }
 
-        this.CONNECTING = 0;
-        this.OPEN = 1;
-        this.CLOSING = 2;
-        this.CLOSED = 3;
-
         this.url = url;
         this.reconnecting = false;
-        this.readyState = this.CLOSED;
+        this.readyState = MQTTClient.CLOSED;
         this.authorized = false;
         this.authorizationError = null;
 
@@ -207,8 +208,8 @@ export class MQTTClient extends EventTarget {
      * @param {string} [reason ]
      */
     async close(code, reason) {
-        if (this.readyState != this.CLOSED) {
-            this.readyState = this.CLOSED;
+        if (this.readyState != MQTTClient.CLOSED) {
+            this.readyState = MQTTClient.CLOSED;
 
             await this._sendDisconnectMessage();
 
@@ -234,12 +235,12 @@ export class MQTTClient extends EventTarget {
 
     async connect() {
         if (this._socket) {
-            console.log('socket is not null');
+            console.log('mqtt: socket is not null');
             return;
         }
 
         try {
-            this.readyState = this.CONNECTING;
+            this.readyState = MQTTClient.CONNECTING;
             const options = this._options;
 
             // lookup
@@ -281,7 +282,7 @@ export class MQTTClient extends EventTarget {
             await this._sendConnectMessage();
 
         } catch (error) {
-            this.readyState = this.CLOSED;
+            this.readyState = MQTTClient.CLOSED;
             this.reconnecting = false;
             this._onError(error);
             this.close();
@@ -292,6 +293,9 @@ export class MQTTClient extends EventTarget {
         return this._lastMessageId;
     }
 
+    /**
+     * @param {MQTTMessage} message 
+     */
     handleMessage(message) {
         this.dispatchEvent(new MessageEvent('message', { data: message }));
     }
@@ -310,7 +314,7 @@ export class MQTTClient extends EventTarget {
         message.qos = message.qos >>> 0;
         message.pid = this._nextMessageId();
 
-        if (this.readyState != this.OPEN) {
+        if (this.readyState != MQTTClient.OPEN) {
             this._queue.push(message);
             return;
         }
@@ -381,6 +385,10 @@ export class MQTTClient extends EventTarget {
         await this._sendPacket(packet);
     }
 
+    /**
+     * 
+     * @param {MQTTMessage} message 
+     */
     async _dispatchMessage(message) {
         // console.log(message, mqtt.CONNACK);
 
@@ -415,6 +423,9 @@ export class MQTTClient extends EventTarget {
         return nextMessageId;
     }
 
+    /**
+     * @param {*} conack 
+     */
     async _onConnectAck(conack) {
         const options = this._options;
 
@@ -426,8 +437,8 @@ export class MQTTClient extends EventTarget {
         this.reconnecting = false;
         this._lastPongTime = Date.now();
 
-        if (this.readyState != this.OPEN) {
-            this.readyState = this.OPEN;
+        if (this.readyState != MQTTClient.OPEN) {
+            this.readyState = MQTTClient.OPEN;
 
             this.dispatchEvent(new MessageEvent('open', { data: conack }));
         }
@@ -457,7 +468,7 @@ export class MQTTClient extends EventTarget {
 
     async _onError(error) {
         // Emitted when the client cannot connect(i.e.connack rc != 0) or when a parsing error occurs.
-        this.dispatchEvent(new ErrorEvent(error));
+        this.dispatchEvent(new ErrorEvent('error', { error }));
 
         this._onSocketClose();
     }
@@ -481,8 +492,8 @@ export class MQTTClient extends EventTarget {
             this._connectTimeoutTimer = null;
         }
 
-        if (this.readyState == this.OPEN) {
-            this.readyState = this.CONNECTING;
+        if (this.readyState == MQTTClient.OPEN) {
+            this.readyState = MQTTClient.CONNECTING;
 
             // Emitted when the client goes offline.
             this.dispatchEvent(new Event('offline'));
@@ -492,7 +503,7 @@ export class MQTTClient extends EventTarget {
     async _onTimer() {
         const now = Date.now();
 
-        if (this.readyState == this.OPEN) {
+        if (this.readyState == MQTTClient.OPEN) {
             const lastPongTime = this._lastPongTime || 0;
             const span = (now - lastPongTime) / 1000;
             const keepalive = this._options.keepalive;
@@ -544,7 +555,7 @@ export class MQTTClient extends EventTarget {
 
     async _sendPingMessage() {
         if (!this._socket) {
-            console.log('ping failed');
+            console.log('mqtt: ping failed');
             clearInterval(this._pingTimer);
             this._pingTimer = null;
             return;
@@ -594,10 +605,6 @@ export class MQTTClient extends EventTarget {
             }
         };
 
-        socket.onend = function () {
-            // console.log('onend');
-        };
-
         socket.onconnect = function (status) {
             // console.log('onconnect', status);
         };
@@ -614,16 +621,27 @@ export class MQTTClient extends EventTarget {
             }
         };
 
-        socket.onclose = function (status) {
+        socket.onclose = function () {
             // console.log('onclose', status);
         };
 
         socket.onerror = function (error) {
-            // console.log('onerror', status);
-            self.dispatchEvent(new ErrorEvent(error));
+            self.dispatchEvent(new ErrorEvent('error', { error }));
         };
     }
 }
+
+/** 正在连接中 */
+MQTTClient.CONNECTING = 0;
+
+/** 已连接 */
+MQTTClient.OPEN = 1;
+
+/** 正在关闭连接 */
+MQTTClient.CLOSING = 2;
+
+/** 连接已关闭 */
+MQTTClient.CLOSED = 3;
 
 defineEventAttribute(MQTTClient.prototype, 'close');
 defineEventAttribute(MQTTClient.prototype, 'connect');

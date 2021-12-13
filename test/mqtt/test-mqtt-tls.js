@@ -1,11 +1,13 @@
 // @ts-check
+/// <reference path ="../../types/index.d.ts" />
 import * as mqtt from '@tjs/mqtt';
-import * as assert from '@tjs/assert';
-const test = assert.test;
+
+import { assert, test, startTimeout, stopTimeout, waitTimeout } from '@tjs/assert';
 
 /* global TextDecoder */
 
 test('mqtt', async () => {
+
     const options = {};
     options.username = 'device';
     options.password = 'wot2019';
@@ -15,58 +17,54 @@ test('mqtt', async () => {
     options.keepalive = 60;
     options.reschedulePings = true;
     options.clean = true;
+    options.secure = true;
 
     const result = {};
 
-    const url = 'mqtt://iot.wotcloud.cn:1883';
+    const url = 'mqtts://iot.wotcloud.cn:8883';
     const client = mqtt.connect(url, options);
     assert.ok(client);
 
-    assert.startTimeout(10000, () => {
+    startTimeout(10000, () => {
         client.close();
     });
 
     function onClose() {
-        assert.stopTimeout();
+        stopTimeout();
         client.close();
     }
 
     const textDecoder = new TextDecoder();
 
     client.onerror = function (event) {
-        // console.log('onerror', event.error);
-        result.hasError = true;
+        result.hasError = event.error;
     };
 
     client.onopen = function (event) {
         // console.log('onopen', event);
         result.connected = true;
 
-        setTimeout(() => { client.subscribe('testtopic'); }, 500);
-        setTimeout(() => { client.publish('testtopic', 'data'); }, 1000);
-    };
-
-    client.onlookup = function (event) {
-        // console.log('lookup', event);
-        result.lookup = true;
+        setTimeout(() => { client.subscribe('testtopic'); }, 0);
+        setTimeout(() => { client.publish('testtopic', 'data'); }, 100);
     };
 
     client.onmessage = function (event) {
         const message = event.data;
         const payload = textDecoder.decode(message.payload);
 
-        assert.ok(payload);
-
-        // console.log('onmessage', message.topic, payload);
-
         result.payload = payload;
+        result.topic = message.topic;
         onClose();
     };
 
-    await assert.waitTimeout();
+    await waitTimeout();
 
+    if (!client.authorized) {
+        console.log(client.authorizationError);
+    }
     // console.log(result);
+
     assert.ok(result.connected, 'connected');
-    assert.ok(result.lookup, 'lookup');
     assert.ok(result.payload, 'payload');
+    assert.ok(result.topic, 'topic');
 });

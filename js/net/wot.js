@@ -1,4 +1,5 @@
 // @ts-check
+/// <reference path ="../../types/index.d.ts" />
 import * as mqtt from '@tjs/mqtt';
 import * as util from '@tjs/util';
 
@@ -122,12 +123,7 @@ export class ExposedThing extends ConsumedThing {
     constructor(td) {
         super(td);
 
-        this._propertiesTopic = null;
-        this._eventsTopic = null;
-        this._resultTopic = null;
-        this._messagesTopic = null;
-
-        /** @type {MqttTransport} */
+        this.baseTopic = null;
         this._transport = null;
     }
 
@@ -349,7 +345,7 @@ export class ExposedThing extends ConsumedThing {
             await this._sendMessage(message);
 
         } else {
-            console.log('_handleMessage', topic, message);
+            console.log('wot: _handleMessage', topic, message);
         }
     }
 }
@@ -363,49 +359,27 @@ export class MqttTransport {
         this.mqttClient = null;
         this.isConnected = false;
         this.isOpen = false;
-
-        /** @type {Servient} */
-        this.servient = null;
-
         this.clientTopics = {};
     }
 
     /**
-     * @param {string[]} topics 
-     */
-    async onSubscribe(topics) {
-        let client = this.mqttClient;
-        if (client) {
-            return client;
-        }
-
-        const clientTopics = this.clientTopics;
-        for (let i = 0; i < topics.length; i++) {
-            const topic = topics[i];
-            if (clientTopics && !clientTopics[topic]) {
-                clientTopics[topic] = 1;
-                await client.subscribe(topic);
-            }
-        }
-    }
-
-    /**
+     * 创建 MQTT 连接
      * @param {mqtt.MQTTClientOptions} options
      * @param {Servient} servient
-     * @returns {Promise<mqtt.MQTTClient>}
+     * @returns {Promise<this>}
      */
-    async createConnection(options, servient) {
+    async start(options, servient) {
         const self = this;
 
         let client = this.mqttClient;
         if (client) {
-            return client;
+            return this;
         }
 
         client = mqtt.connect(options);
-        const textDecoder = new TextDecoder();
-
         this.clientTopics = {};
+
+        const textDecoder = new TextDecoder();
 
         client.onmessage = function onMessage(event) {
             const message = event.data;
@@ -414,8 +388,9 @@ export class MqttTransport {
             // console.log('onmessage', data.topic, payload)
             try {
                 self.handleMessage(message.topic, JSON.parse(payload));
+
             } catch (err) {
-                console.log('onmessage', err);
+                console.log('wot: onmessage', err);
             }
         };
 
@@ -437,10 +412,20 @@ export class MqttTransport {
         };
 
         this.mqttClient = client;
-        return client;
+        return this;
+    }
+
+    async destroy() {
+        const mqttClient = this.mqttClient;
+        if (mqttClient) {
+            this.mqttClient = null;
+
+            mqttClient.close();
+        }
     }
 
     /**
+     * 处理 MQTT 消息
      * @param {string} topic 
      * @param {{[key:string]: any}} message 
      * @returns 
@@ -456,80 +441,70 @@ export class MqttTransport {
             did = tokens[2];
         }
 
-        const exposedThing = this.servient?.getThing(did);
+        const exposedThing = $servient?.getThing(did);
         if (exposedThing) {
             exposedThing._handleMessage(topic, message);
 
         } else {
-            console.log('handleMessage:', topic, message);
+            console.log('wot: handleMessage:', topic, message);
         }
     }
 
-    async destroy() {
-        const mqttClient = this.mqttClient;
-        if (mqttClient) {
-            mqttClient.close();
-        }
-    }
-
+    /**
+     * 发送消息
+     * @param {string} topic 
+     * @param {*} data 
+     * @returns 
+     */
     async sendMessage(topic, data) {
         const mqttClient = this.mqttClient;
-        if (mqttClient) {
-            return await mqttClient.publish(topic, data);
+        if (!mqttClient) {
+            return;
+        }
+
+        // console.log('wot: send:', topic, data);
+        return await mqttClient.publish(topic, data);
+    }
+
+    /**
+     * 订阅主题
+     * @param {string[]} topics 
+     */
+    async subscribe(topics) {
+        const client = this.mqttClient;
+        if (!client) {
+            return client;
+        }
+
+        const clientTopics = this.clientTopics;
+        for (let i = 0; i < topics.length; i++) {
+            const topic = topics[i];
+            if (clientTopics && !clientTopics[topic]) {
+                clientTopics[topic] = 1;
+                await client.subscribe(topic);
+            }
         }
     }
-}
-
-export class Servient extends EventTarget {
-    constructor(options) {
-        super();
-
-        this.options = options;
-        this.servers = {};
-        this.clients = {};
-
-        /** @type {{[key:string]: ExposedThing}} */
-        this.exposedThings = {};
-        this.mqttTransport = new MqttTransport();
-        this.mqttTransport.servient = this;
-
-        /** @type {mqtt.MQTTClient} */
-        this.mqttClient = null;
-    }
-
-    get [Symbol.toStringTag]() {
-        return 'Servient';
-    }
-
-    async connect(forms) {
-        const options = this._getMqttOptions(forms);
-        this.mqttClient = await this.mqttTransport.createConnection(options, this);
-        return this.mqttClient;
-    }
-
-    isMqttConnected() {
-        return this.mqttTransport.isConnected;
-    }
 
     /**
-     * 
-     * @param {ExposedThing} thing 
+     * 取消订阅主题
+     * @param {string[]} topics 
      */
-    addThing(thing) {
-        const did = thing.did;
-        this.exposedThings[did] = thing;
-    }
+    async unsubscribe(topics) {
+        const client = this.mqttClient;
+        if (!client) {
+            return client;
+        }
 
-    async destroy() {
-        this.mqttTransport?.destroy();
-    }
+        const clientTopics = this.clientTopics;
+        for (let i = 0; i < topics.length; i++) {
+            const topic = topics[i];
+            if (clientTopics) {
+                delete clientTopics[topic];
+            }
 
-    /**
-     * 
-     * @param {ExposedThing} thing 
-     */
-    expose(thing) {
-
+            client.unsubscribe(topic);
+        }
     }
 
     _getMqttOptions(forms) {
@@ -553,23 +528,39 @@ export class Servient extends EventTarget {
         // console.log('options', options);
         return options;
     }
+}
 
-    /**
-     * @param {string} id 
-     * @returns {ExposedThing}
-     */
-    getThing(id) {
-        return this.exposedThings[id];
+export class Servient extends EventTarget {
+    constructor(options) {
+        super();
+
+        this.options = options;
+
+        /** @type {{[key:string]: ExposedThing}} */
+        this.exposedThings = {};
+
+        this.mqttTransport = new MqttTransport();
+    }
+
+    get [Symbol.toStringTag]() {
+        return 'Servient';
     }
 
     /**
-     * @returns {{[key:string]: ExposedThing}}
+     * 添加指定的事物
+     * @param {ExposedThing} thing 
      */
-    getThings() {
-        return this.exposedThings;
+    addThing(thing) {
+        const did = thing.did;
+        this.exposedThings[did] = thing;
+    }
+
+    async destroy() {
+        this.mqttTransport?.destroy();
     }
 
     /**
+     * 销毁指定 ID 的事物
      * @param {string} thingId 
      * @returns {Promise<boolean>}
      */
@@ -587,23 +578,60 @@ export class Servient extends EventTarget {
             return;
         }
 
-        // @ts-ignore
-        const topics = exposedThing._actionsTopics;
-        if (!topics) {
+        if (!exposedThing.baseTopic) {
             return;
         }
 
-        const clientTopics = mqttTransport.clientTopics;
-        for (let i = 0; i < topics.length; i++) {
-            const topic = topics[i];
-            if (clientTopics) {
-                delete clientTopics[topic];
-            }
-
-            this.mqttClient.unsubscribe(topic);
-        }
-
+        const topics = [exposedThing.baseTopic + 'actions'];
+        mqttTransport?.unsubscribe(topics);
         return true;
+    }
+
+    /**
+     * 返回指定的 ID 的事物
+     * @param {string} id 
+     * @returns {ExposedThing}
+     */
+    getThing(id) {
+        return this.exposedThings[id];
+    }
+
+    /**
+     * 返回所有事物
+     * @returns {{[key:string]: ExposedThing}}
+     */
+    getThings() {
+        return this.exposedThings;
+    }
+
+    getTransport() {
+        const transport = this.mqttTransport;
+        return {
+            /**
+             * @param {string} topic 
+             * @param {*} data 
+             */
+            async sendMessage(topic, data) {
+                return await transport.sendMessage(topic, data);
+            },
+            /**
+             * @param {string[]} topics 
+             */
+            async subscribe(topics) {
+                return await transport.subscribe(topics);
+            }
+        };
+    }
+
+    isConnected() {
+        return this.mqttTransport.isConnected;
+    }
+
+    async start(forms) {
+        const transport = this.mqttTransport;
+        const options = transport._getMqttOptions(forms);
+        await transport.start(options, this);
+        return this;
     }
 }
 
@@ -619,14 +647,10 @@ class MQTTExposedThing extends ExposedThing {
         this.did = null; // 设备 ID
         this.forms = forms; // 协议绑定参数
         this.things = null; // 表示是否是网关
-
-        this._actionsTopics = null; // 要订阅的下行主题列表
-        this._messagesTopic = null; // 默认上行主题
-
         this._exposeTimer = null;
+        this._transport = null;
 
-        /** @type {Servient} */
-        this.servient = $servient;
+        this.baseTopic = forms && forms.topic;
     }
 
     get [Symbol.toStringTag]() {
@@ -635,14 +659,12 @@ class MQTTExposedThing extends ExposedThing {
 
     async destroy() {
         this._transport = null;
-        this.servient?.destroyThing(this.did);
+        $servient?.destroyThing(this.did);
 
         if (this._exposeTimer) {
             clearInterval(this._exposeTimer);
             this._exposeTimer = null;
         }
-
-        this.servient = null;
     }
 
     async expose() {
@@ -651,25 +673,19 @@ class MQTTExposedThing extends ExposedThing {
         }
 
         // console.log('options', options.host, options.port, options.pathname);
-        this._transport = this.servient?.mqttTransport;
+        this._transport = $servient?.getTransport();
         this.did = this.forms.did;
 
+        // 主题
+        if (!this.baseTopic) {
+            this.baseTopic = '$wot/devices/' + this.did + '/';
+        }
+
         // 订阅主题
-        const topics = [];
-        topics.push('actions/' + this.did);
-        topics.push('$wot/devices/' + this.did + '/actions');
+        const topics = [this.baseTopic + 'actions'];
+        this._transport?.subscribe(topics);
 
-        this._actionsTopics = topics;
-        this._transport?.onSubscribe(topics);
-
-        // 上传主题
-        const baseTopic = '$wot/devices/' + this.did + '/messages';
-        this._messagesTopic = baseTopic;
-        this._resultTopic = baseTopic + '/result';
-        this._eventsTopic = baseTopic + '/events';
-        this._propertiesTopic = baseTopic + '/properties';
-
-        this.servient?.addThing(this);
+        $servient?.addThing(this);
     }
 
     /**
@@ -699,21 +715,26 @@ class MQTTExposedThing extends ExposedThing {
         return hash;
     }
 
+    /**
+     * @param {*} message 
+     */
     async _sendMessage(message) {
         let topic = null;
         if (message.type == 'stream' || message.type == 'property') {
-            topic = this._propertiesTopic;
+            topic = this.baseTopic + 'messages/properties';
 
         } else if (message.type == 'event') {
-            topic = this._eventsTopic;
+            topic = this.baseTopic + 'messages/events';
 
         } else if (message.type == 'result') {
-            topic = this._resultTopic;
+            topic = this.baseTopic + 'messages/actions';
         }
 
         if (!topic) {
-            topic = this._messagesTopic;
+            topic = this.baseTopic + 'messages';
         }
+
+        // console.log('wot: send message:', topic, message);
 
         const mqttTransport = this.getTransport();
         if (mqttTransport) {

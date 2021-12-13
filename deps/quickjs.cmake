@@ -21,6 +21,7 @@ target_compile_options(quickjs PRIVATE ${quickjs_cflags})
 file(STRINGS "${QUICKJS_DIR}/VERSION" QJS_VERSION_STR)
 target_compile_definitions(quickjs PRIVATE QJS_VERSION_STR="${QJS_VERSION_STR}")
 target_compile_definitions(quickjs PRIVATE CONFIG_BIGNUM CONFIG_VERSION="${QJS_VERSION_STR}")
+#target_compile_definitions(quickjs PRIVATE CONFIG_BIGNUM CONFIG_VERSION="${QJS_VERSION_STR}")
 
 if (CMAKE_BUILD_TYPE MATCHES Debug)
     target_compile_definitions(quickjs PRIVATE DUMP_LEAKS)

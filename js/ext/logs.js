@@ -1,6 +1,8 @@
 // @ts-check
+/// <reference path ="../../types/index.d.ts" />
 import * as native from '@tjs/native';
 import * as fs from '@tjs/fs';
+import * as os from '@tjs/os';
 
 /** @param {number} [offset] */
 function getFileLineNumber(offset) {
@@ -12,6 +14,40 @@ function getFileLineNumber(offset) {
     }
 
     return line.trim();
+}
+
+/**
+ * @param {number} now 
+ */
+function formatTime(now) {
+    /**
+     * @param {number} value 
+     * @param {number} count 
+     */
+    function padStart(value, count) {
+        return String(Math.floor(value)).padStart(count, '0');
+    }
+
+    let value = now * 1000;
+    const ms = value % 1000;
+
+    value /= 1000;
+    const s = value % 60;
+
+    value /= 60;
+    const m = value % 60;
+
+    value /= 60;
+    const h = value % 24;
+
+    value = Math.floor(value / 24);
+
+    let time = padStart(h, 2) + ':' + padStart(m, 2) + ':' + padStart(s, 2) + '.' + padStart(ms, 3);
+    if (value > 0) {
+        time = value + ',' + time;
+    }
+
+    return time;
 }
 
 const colors = console.colors.colors();
@@ -63,12 +99,18 @@ export class SyslogAppender extends Appender {
      */
     log(type, ...args) {
         const line = getFileLineNumber();
-        const message = console.format(...args);
+        let message = console.format(false, ...args);
 
         const level = syslogLevels[type] || 7;
-        native.syslog(level, `${message} - ${line}`);
+        native.syslog(level, `${message}`);
 
-        console.print(`${message} - ${line}`);
+        if (os.isatty(0)) {
+            const colors = console.colors;
+            const time = formatTime(os.uptime());
+
+            message = console.format(true, ...args);
+            console.print(`[${time}] ${message}\n${colors.black(line)}`);
+        }
     }
 }
 
@@ -94,7 +136,7 @@ export class FileAppender extends Appender {
      */
     log(type, ...args) {
         const line = getFileLineNumber();
-        const message = console.format(...args);
+        const message = console.format(false, ...args);
         native.print(message, `\n- ${type} ${line}`);
     }
 }
@@ -123,7 +165,7 @@ export class TtyAppender extends Appender {
         const tag = startTags[type] || startTag;
         const uptime = native.os.uptime();
         const line = getFileLineNumber();
-        const message = console.format(...args);
+        const message = console.format(false, ...args);
 
         fs.writeFile('/dev/tty', `${message}\n${tag}- ${type} ${startTag}[${uptime}] ${line} ${endTag}`);
     }
@@ -153,7 +195,7 @@ export class ConsoleAppender extends Appender {
         const tag = startTags[type] || startTag;
         const uptime = native.os.uptime();
         const line = getFileLineNumber();
-        const message = console.format(...args);
+        const message = console.format(false, ...args);
         native.print(message, `\n${tag}- ${type} ${startTag}[${uptime}] ${line} ${endTag}`);
     }
 }

@@ -2270,6 +2270,19 @@ static void JS_MarkContext(JSRuntime *rt, JSContext *ctx,
         mark_func(rt, &ctx->array_shape->header);
 }
 
+void JS_DumpObjects(JSRuntime *rt)
+{
+    struct list_head *el;
+    JSGCObjectHeader *p;
+    printf("JSObjects: {\n");
+    JS_DumpObjectHeader(rt);
+    list_for_each(el, &rt->gc_obj_list) {
+        p = list_entry(el, JSGCObjectHeader, link);
+        JS_DumpGCObject(rt, p);
+    }
+    printf("}\n");
+}
+
 void JS_FreeContext(JSContext *ctx)
 {
     JSRuntime *rt = ctx->rt;
@@ -5960,6 +5973,8 @@ void JS_ComputeMemoryUsage(JSRuntime *rt, JSMemoryUsage *s)
         }
     }
 
+    s->class_count = JS_CLASS_INIT_COUNT;
+
     list_for_each(el, &rt->gc_obj_list) {
         JSGCObjectHeader *gp = list_entry(el, JSGCObjectHeader, link);
         JSObject *p;
@@ -5973,7 +5988,10 @@ void JS_ComputeMemoryUsage(JSRuntime *rt, JSMemoryUsage *s)
         } else if (gp->gc_obj_type != JS_GC_OBJ_TYPE_JS_OBJECT) {
             continue;
         }
+
         p = (JSObject *)gp;
+        s->object_classes[min_uint32(p->class_id, JS_CLASS_INIT_COUNT)]++;
+
         sh = p->shape;
         s->obj_count++;
         if (p->prop) {

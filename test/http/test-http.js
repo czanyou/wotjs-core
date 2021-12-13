@@ -1,4 +1,5 @@
 // @ts-check
+/// <reference path ="../../types/index.d.ts" />
 import { assert, test } from '@tjs/assert';
 
 import * as http from '@tjs/http';
@@ -6,13 +7,13 @@ const $textEncoder = new TextEncoder();
 
 /* global */
 
-test('http.get.json', async () => {
-
+test('http - get.json', async () => {
     const url = 'http://www.httpbin.org/get?foo=100';
     const config = { params: { bar: 'test' }, headers: { 'X-Test': 'http.get' } };
     const response = await http.get(url, config);
     assert.ok(response);
     assert.equal(response.status, 200);
+    assert.ok(response.statusText);
 
     const data = response.data;
     const args = data?.args;
@@ -21,11 +22,9 @@ test('http.get.json', async () => {
 
     const headers = data.headers;
     assert.equal(headers['X-Test'], 'http.get');
-    // console.log('headers', headers);
 });
 
-test('http.post.json', async () => {
-
+test('http - post.json', async () => {
     const url = 'http://www.httpbin.org/post?foo=100';
     const config = { params: { bar: 'test' }, headers: { 'X-Test': 'http.post', 'Content-Type': 'application/json' } };
     const response = await http.post(url, { test: 'post' }, config);
@@ -52,7 +51,7 @@ test('http.post.json', async () => {
     assert.equal(json.test, 'post');
 });
 
-test('http.post.text', async () => {
+test('http - post.text', async () => {
     const url = 'http://www.httpbin.org/post';
     const config = { headers: {} };
     const response = await http.post(url, '<root>xml</root>', config);
@@ -72,7 +71,7 @@ test('http.post.text', async () => {
     assert.equal(data.data, '<root>xml</root>');
 });
 
-test('http.post.buffer', async () => {
+test('http - post.buffer', async () => {
     const url = 'http://www.httpbin.org/post';
     const config = { headers: {} };
     const body = $textEncoder.encode('<root>xml</root>');
@@ -93,7 +92,7 @@ test('http.post.buffer', async () => {
     assert.equal(data.data, '<root>xml</root>');
 });
 
-test('http.post.urlencoded', async () => {
+test('http - post.urlencoded', async () => {
     const url = 'http://www.httpbin.org/post';
     const config = { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } };
     const response = await http.post(url, { test: 'post', foo: 100, bar: 'test' }, config);
@@ -115,7 +114,7 @@ test('http.post.urlencoded', async () => {
     assert.equal(form.bar, 'test');
 });
 
-test('http.post.formdata', async () => {
+test('http - post.formdata', async () => {
     const url = 'http://www.httpbin.org/post';
     const config = { headers: { 'Content-Type': 'multipart/form-data' } };
     const formdata = new FormData();

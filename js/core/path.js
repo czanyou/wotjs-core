@@ -21,6 +21,7 @@
 // OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE
 // USE OR OTHER DEALINGS IN THE SOFTWARE.
 
+/// <reference path ="../../types/index.d.ts" />
 import * as native from '@tjs/native';
 
 function assertPath(path) {

@@ -1,20 +1,56 @@
 
+/**
+ * The dns module enables name resolution. For example, use it to look up IP addresses of host names.
+ */
 declare module '@tjs/dns' {
-    export interface DNSLookupOptions {
+    /** 
+     * Limits returned address types to the types of non-loopback addresses configured on the system. 
+     * For example, IPv4 addresses are only returned if the current system has at least one IPv4 address configured. 
+     */
+    const ADDRCONFIG: number;
+
+    /** If the IPv6 family was specified, but no IPv6 addresses were found, then return IPv4 mapped IPv6 addresses. */
+    const V4MAPPED: number;
+
+    export interface LookupOptions {
+        /** 
+         * The record family. Must be 4, 6, or 0. 
+         * The value 0 indicates that IPv4 and IPv6 addresses are both returned. 
+         * Default: 0. 
+         */
         family?: number;
-        hints?: number;
+
+        /** One or more supported getaddrinfo flags. Multiple flags may be passed by bitwise ORing their values. */
+        flags?: number;
+
+        /** 
+         * When true, the callback returns all resolved addresses in an array. 
+         * Otherwise, returns a single address. 
+         * Default: false. 
+         */
         all?: boolean;
     }
 
     export interface AddressInfo {
+        /** 4 or 6, denoting the family of address or 0 if the address is not an IPv4 or IPv6 address.  */
         family?: number;
+
+        /** A string representation of an IPv4 or IPv6 address. */
         address?: string;
+
         host?: string;
+
         port?: number;
     }
 
-    export function lookup(hostname: string, options: DNSLookupOptions): Promise<AddressInfo | AddressInfo[]>
+    /**
+     * Resolves a host name (e.g. 'nodejs.org') into the first found A (IPv4) or AAAA (IPv6) record. 
+     * @param hostname 
+     * @param options All option properties are optional. If options is an integer, then it must be 4 or 6
+     */
+    export function lookup(hostname: string, options?: number | LookupOptions): Promise<AddressInfo | AddressInfo[]>
 }
+
 declare module '@tjs/http' {
     export type RequestListener = (request: Request, response: Response) => Promise<any>;
 
@@ -28,12 +64,14 @@ declare module '@tjs/http' {
     }
 
     export interface RequestConfig {
+        params?: {[key: string]: any};
+        headers?: {[key: string]: any};
         ondata?(data: ArrayBuffer): void;
         onprogress?(readed: number, total: number): void;
     }
 
     export interface Response {
-        statusCode: number;
+        status: number;
         statusText: string;
         data: any;
 
@@ -45,6 +83,36 @@ declare module '@tjs/http' {
         status: any;
         headers: any;
         data: any;
+    }
+
+    export interface IncomingMessage {
+        body: ArrayBuffer;
+        headers: any;
+        method: string;
+        path: string;
+        query: {[key: string]: any}
+        uri: URL;
+        url: string;
+
+        arrayBuffer(): Promise<ArrayBuffer>;
+        get(name: string): string;
+        json(): Promise<any>;
+        text(): Promise<string>;
+    }
+
+    export interface ServerResponse {
+        body: ArrayBuffer;
+        headers: any;
+        status: number;
+        statusText: string;
+
+        get(name: string): string;
+        send(data: object | string | ArrayBuffer | ArrayBufferView): Promise<any>;
+        set(name: string, value: string): void;
+        setStatus(statusCode: number, statusText?: string): void;
+        type(type:string): void;
+        write(data: ArrayBuffer): Promise<any>;
+        writeHead(): Promise<any>;
     }
 
     export interface ServerOptions { }
@@ -106,11 +174,11 @@ declare module '@tjs/mqtt' {
     /**
      * The MQTTClient class wraps a client connection to an MQTT broker over an arbitrary transport method 
      */
-    export interface MQTTClient extends EventTarget {
-        readonly CONNECTING: number;
-        readonly OPEN: number;
-        readonly CLOSING: number;
-        readonly CLOSED: number;
+    export class MQTTClient extends EventTarget {
+        static readonly CONNECTING: number;
+        static readonly OPEN: number;
+        static readonly CLOSING: number;
+        static readonly CLOSED: number;
 
         /** set to true if the client is trying to reconnect to the server. false otherwise. */
         reconnecting: boolean;
@@ -235,15 +303,35 @@ declare module '@tjs/net' {
         connection: TCPSocket
     }
 
-    interface UDPMessageEvent extends MessageEvent {
+    interface LookupEvent extends Event {
         address: SocketAddress
     }
 
-    export interface TCPSocket extends EventTarget {
-        readonly CONNECTING: number;
-        readonly OPEN: number;
-        readonly CLOSING: number;
-        readonly CLOSED: number;
+    interface UDPMessageEvent extends MessageEvent {
+        data: any;
+        address: SocketAddress
+    }
+
+    export class TCPSocket extends EventTarget {
+        /**
+         * Socket has been created. The connection is not yet open.
+         */
+        static readonly CONNECTING: number;
+
+        /**
+         * The connection is open and ready to communicate.
+         */
+        static readonly OPEN: number;
+
+        /**
+         * The connection is in the process of closing.
+         */
+        static readonly CLOSING: number;
+
+        /**
+         * The connection is closed or couldn't be opened.
+         */
+        static readonly CLOSED: number;
 
         /** The amount of received bytes. */
         bytesRead: number;
@@ -257,18 +345,6 @@ declare module '@tjs/net' {
          * then it is set to false and the 'connect' event is emitted.
          */
         connecting: boolean;
-
-        /**
-         * Indicates if the connection is destroyed or not. 
-         * Once a connection is destroyed no further data can be transferred using it.
-         */
-        destroyed: boolean;
-
-        /**
-         * This is true if the socket is not connected yet, 
-         * either because .connect() has not yet been called or because it is still in the process of connecting
-         */
-        pending: boolean;
 
         /**
          * This property represents the state of the connection as a number.
@@ -292,9 +368,9 @@ declare module '@tjs/net' {
          * @param port 
          * @param host 
          */
-        connect(port: number, host?: string): void;
-        connect(path: string): void;
-        connect(options: object): void;
+        connect(port: number, host?: string): Promise<void>;
+        connect(path: string): Promise<void>;
+        connect(options: object): Promise<void>;
 
         /**
          * Ensures that no more I/O activity happens on this socket. 
@@ -315,6 +391,27 @@ declare module '@tjs/net' {
          * Returns an object containing the address, family, and port of the remote endpoint. 
          */
         remoteAddress(): SocketAddress;
+
+        /**
+         * Enable/disable the use of Nagle's algorithm.
+         * @param noDelay 
+         */
+        setNoDelay(noDelay: boolean): void;
+
+        /**
+         * Enable/disable keep-alive functionality, and optionally set the initial 
+         * delay before the first keepalive probe is sent on an idle socket.
+         * @param keepAlive 
+         * @param timeout 
+         */
+        setKeepAlive(keepAlive: boolean, timeout: number): void;
+
+        /**
+         * Sets the socket to timeout after timeout milliseconds of inactivity on the socket. 
+         * By default net.Socket do not have a timeout.
+         * @param timeout 
+         */
+        setTimeout(timeout: number): void;
 
         /**
          * Sends data on the socket. 
@@ -340,13 +437,6 @@ declare module '@tjs/net' {
         onconnect(event: Event): void;
 
         /**
-         * Emitted when the other end of the socket signals the end of transmission, 
-         * thus ending the readable side of the socket.
-         * @param event 
-         */
-        onend(event: Event): void;
-
-        /**
          * Emitted when an error occurs. 
          * The 'close' event will be called directly following this event.
          * @param event 
@@ -358,7 +448,7 @@ declare module '@tjs/net' {
          * - Not applicable to Unix sockets.
          * @param event 
          */
-        onlookup(event: Event): void;
+        onlookup(event: LookupEvent): void;
 
         /**
          * Emitted when data is received. The argument data will be a Buffer or String. 
@@ -382,28 +472,62 @@ declare module '@tjs/net' {
          */
         ontimeout(event: Event): void;
     }
-    export interface TCPServer extends EventTarget {
-        accept(): Promise<TCPSocket>;
+    export class TCPServer extends EventTarget {
+        /**
+         * Returns the bound address
+         */
         address(): SocketAddress;
-        bind(options: ServerOptions): void;
-        close(error?: any): Promise<void>;
-        listen(backlog?: number): void;
 
+        /**
+         * Stops the server from accepting new connections and keeps existing connections. 
+         * @param error 
+         */
+        close(): Promise<void>;
+
+        /**
+         * Start a server listening for connections. A net.Server can be a TCP 
+         * or an IPC server depending on what it listens to.
+         * @param options 
+         * @param backlog 
+         */
+        listen(options: string | SocketAddress, backlog?: number): void;
+
+        /**
+         * Emitted when the server closes. If connections exist, this event is 
+         * not emitted until all connections are ended.
+         * @param event 
+         */
         onclose(event: Event): void;
+
+        /**
+         * Emitted when a new connection is made. socket is an instance of net.Socket.
+         * @param event 
+         */
         onconnection(event: ConnectionEvent): void;
+
+        /**
+         * Emitted when an error occurs. Unlike net.Socket, the 'close' event will not 
+         * be emitted directly following this event unless server.close() is manually called. 
+         * @param event 
+         */
         onerror(event: ErrorEvent): void;
+
+        /**
+         * Emitted when the server has been bound after calling server.listen().
+         * @param event 
+         */
         onlistening(event: Event): void;
     }
 
-    export interface UDPSocket extends EventTarget {
+    export class UDPSocket extends EventTarget {
         address(): SocketAddress;
-        remoteAddress(): SocketAddress;
-        connect(address: SocketAddress): void;
+        bind(address: SocketAddress, flags?: number): void;
+        bind(port: number, host?: string, flags?: number): void;
         close(): Promise<void>;
-        recv(): Promise<ArrayBuffer>;
+        connect(address: SocketAddress): void;
+        disconnect(): void;
+        remoteAddress(): SocketAddress;
         send(data: string | ArrayBuffer, address?: SocketAddress): Promise<void>;
-        bind(port: number, host?: string): void;
-        bind(address: SocketAddress): void;
 
         onclose(event: Event): void;
         onerror(event: ErrorEvent): void;
@@ -430,11 +554,15 @@ declare module '@tjs/net' {
 declare module '@tjs/tls' {
     export const rootCertificates: string[];
 
-    export interface TLSSocket extends EventTarget {
-        readonly CONNECTING: number;
-        readonly OPEN: number;
-        readonly CLOSING: number;
-        readonly CLOSED: number;
+    interface LookupEvent extends Event {
+        address: SocketAddress
+    }
+
+    export class TLSSocket extends EventTarget {
+        static readonly CONNECTING: number;
+        static readonly OPEN: number;
+        static readonly CLOSING: number;
+        static readonly CLOSED: number;
 
         /** The amount of received bytes. */
         bytesRead: number;
@@ -448,18 +576,6 @@ declare module '@tjs/tls' {
          * then it is set to false and the 'connect' event is emitted.
          */
         connecting: boolean;
-
-        /**
-         * Indicates if the connection is destroyed or not. 
-         * Once a connection is destroyed no further data can be transferred using it.
-         */
-        destroyed: boolean;
-
-        /**
-         * This is true if the socket is not connected yet, 
-         * either because .connect() has not yet been called or because it is still in the process of connecting
-         */
-        pending: boolean;
 
         /**
          * This property represents the state of the connection as a string.
@@ -531,13 +647,6 @@ declare module '@tjs/tls' {
         onconnect(event: Event): void;
 
         /**
-         * Emitted when the other end of the socket signals the end of transmission, 
-         * thus ending the readable side of the socket.
-         * @param event 
-         */
-        onend(event: Event): void;
-
-        /**
          * Emitted when an error occurs. 
          * The 'close' event will be called directly following this event.
          * @param event 
@@ -549,7 +658,7 @@ declare module '@tjs/tls' {
          * - Not applicable to Unix sockets.
          * @param event 
          */
-        onlookup(event: Event): void;
+        onlookup(event: LookupEvent): void;
 
         /**
          * Emitted when data is received. The argument data will be a Buffer or String. 
@@ -573,7 +682,7 @@ declare module '@tjs/tls' {
          */
         ontimeout(event: Event): void;
     }
-    export interface TLSServer extends EventTarget {
+    export class TLSServer extends EventTarget {
         accept(): Promise<TLSSocket>;
         address(): SocketAddress;
         bind(options: TLSServerOptions): void;
@@ -586,7 +695,7 @@ declare module '@tjs/tls' {
         onlistening(event: Event): void;
     }
 
-    export interface DTLSSocket extends EventTarget {
+    export class DTLSSocket extends EventTarget {
         address(): SocketAddress;
         connect(port: number, host?: string): void;
         close(): Promise<void>;
@@ -790,20 +899,15 @@ declare module '@tjs/wot' {
     export function discover(filter?: ThingFilter): Promise<ThingDiscovery>;
 
     export class Servient extends EventTarget {
-        servers: { [key: string]: any };
-        things: { [key: string]: any };
-
-        isMqttConnected(): boolean;
-
-        connect(options: any): Promise<void>;
-        expose(thing: ExposedThing): Promise<void>;
+        destroy(): Promise<this>;
+ 
         addThing(thing: ExposedThing): boolean;
         destroyThing(thingId: string): Promise<boolean>;
         getThing(id: string): ExposedThing;
         getThings(): object;
+        isConnected(): boolean;
 
-        start(): Promise<void>;
-        shutdown(): void;
+        start(options: any): Promise<this>;
     }
 
     export function servient(): Servient;

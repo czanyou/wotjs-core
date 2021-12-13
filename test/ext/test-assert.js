@@ -1,4 +1,5 @@
 // @ts-check
+/// <reference path ="../../types/index.d.ts" />
 import * as assert from '@tjs/assert';
 
 assert.test('assert', () => {
@@ -33,20 +34,20 @@ assert.test('assert.waitTimeout', async () => {
     const start = Date.now();
     await assert.waitTimeout();
     const now = Date.now();
-    assert.ok(now - start <= 1000);
+    assert.ok(now - start <= 100);
 });
 
 assert.test('assert.stopTimeout', async () => {
     const start = Date.now();
     assert.stopTimeout();
     const now = Date.now();
-    assert.ok(now - start <= 1000);
+    assert.ok(now - start <= 100);
 });
 
 assert.test('assert.timeout.wait', async () => {
     let timeout = 0;
     const start = Date.now();
-    assert.startTimeout(1000, () => {
+    assert.startTimeout(100, () => {
         timeout = 1;
     });
 
@@ -54,22 +55,22 @@ assert.test('assert.timeout.wait', async () => {
     const now = Date.now();
 
     assert.equal(timeout, 1);
-    assert.ok(now - start >= 1000);
+    assert.ok(now - start >= 90, String(now - start));
 });
 
 assert.test('assert.timeout.stop', async () => {
     let timeout = 0;
     const start = Date.now();
-    assert.startTimeout(1000, () => {
+    assert.startTimeout(100, () => {
         timeout = 1;
     });
 
-    setTimeout(() => { assert.stopTimeout(); }, 500);
+    setTimeout(() => { assert.stopTimeout(); }, 50);
 
     await assert.waitTimeout();
     const now = Date.now();
 
     assert.equal(timeout, 0);
-    assert.ok(now - start >= 500);
-    assert.ok(now - start < 1000);
+    assert.ok(now - start >= 40);
+    assert.ok(now - start < 110);
 });

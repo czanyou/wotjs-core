@@ -1,10 +1,11 @@
 // @ts-check
+/// <reference path ="../../types/index.d.ts" />
 import { assert, test } from '@tjs/assert';
 
 import * as http from '@tjs/http';
 const $textEncoder = new TextEncoder();
 
-test('http.upload.text', async () => {
+test('http - upload.text', async () => {
     const url = 'http://www.httpbin.org/post';
     const config = { headers: { 'Content-Type': 'application/octet-stream' } };
     const body = $textEncoder.encode('<root>xml</root>');

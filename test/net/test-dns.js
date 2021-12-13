@@ -1,31 +1,41 @@
 // @ts-check
+/// <reference path ="../../types/index.d.ts" />
 import { assert, test } from '@tjs/assert';
 
 import * as dns from '@tjs/dns';
 
-test('dns', async () => {
-    let address = await dns.lookup('www.baidu.com', { family: 4, all: true });
+test('dns.lookup - baidu', async () => {
+    const result = await dns.lookup('www.baidu.com', { family: 4, all: true });
+    const addresses = Array.isArray(result) ? result : [result];
+
     // console.log('www.baidu.com', address);
-    assert.ok(address.length > 0, 'www.baidu.com');
+    assert.ok(addresses.length > 0, 'www.baidu.com');
 
-    address = address[0];
-    assert.ok(address.ip, 'www.baidu.com');
+    const address = addresses[0];
+    assert.ok(address.address);
+});
 
-    address = await dns.lookup('localhost', { family: 4, all: true });
-    address = address[0];
+test('dns.lookup - localhost', async () => {
+    const result = await dns.lookup('localhost', { family: 4, all: true });
+    const addresses = Array.isArray(result) ? result : [result];
+    const address = addresses[0];
     // console.log('localhost', address);
-    assert.equal(address.ip, '127.0.0.1');
+    assert.equal(address.address, '127.0.0.1');
+});
 
-    address = await dns.lookup('', { family: 4 });
-    // console.log('', address);
-    assert.equal(address, undefined);
+test('dns.lookup - ip', async () => {
+    // ''
+    let result = await dns.lookup('', { family: 4 });
+    assert.equal(result, undefined);
 
-    address = await dns.lookup('127.0.0.1', { family: 4 });
-    // console.log('127.0.0.1', address);
-    assert.equal(address.ip, '127.0.0.1');
+    // 127.0.0.1
+    result = await dns.lookup('127.0.0.1', { family: 4 });
+    let address = Array.isArray(result) ? result[0] : result;
+    assert.equal(address.address, '127.0.0.1');
 
-    address = await dns.lookup('192.168.31.1');
-    // console.log('192.168.31.1', address);
-    assert.equal(address.ip, '192.168.31.1');
+    // 192.168.31
+    result = await dns.lookup('192.168.31.1');
+    address = Array.isArray(result) ? result[0] : result;
+    assert.equal(address.address, '192.168.31.1');
 
 });

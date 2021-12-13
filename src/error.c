@@ -29,6 +29,7 @@ JSValue tjs_new_error(JSContext* ctx, int errorCode)
 {
     JSValue error = JS_NewError(ctx);
     JSValue message = JS_NewString(ctx, uv_strerror(errorCode));
+    JS_DefinePropertyValueStr(ctx, error, "code", JS_NewString(ctx, "UV_ERROR"), JS_PROP_C_W_E);
     JS_DefinePropertyValueStr(ctx, error, "message", message, JS_PROP_C_W_E);
     JS_DefinePropertyValueStr(ctx, error, "errno", JS_NewInt32(ctx, errorCode), JS_PROP_C_W_E);
     return error;
@@ -71,6 +72,9 @@ JSValue tjs_throw_errno(JSContext* ctx, int errorNumber)
 
 static const JSCFunctionListEntry tjs_error_funcs[] = { 
     TJS_CFUNC_DEF("strerror", 1, tjs_error_strerror),
+};
+
+static const JSCFunctionListEntry tjs_error_errors[] = { 
 /* various errno values */
 #define DEF(x, s) JS_PROP_INT32_DEF(STRINGIFY(UV_##x), UV_##x, JS_PROP_CONFIGURABLE | JS_PROP_ENUMERABLE),
     UV_ERRNO_MAP(DEF)
@@ -79,12 +83,20 @@ static const JSCFunctionListEntry tjs_error_funcs[] = {
 
 void tjs_mod_error_init(JSContext* ctx, JSModuleDef* m)
 {
-    JSValue obj = JS_NewCFunction2(ctx, tjs_error_constructor, "Error", 1, JS_CFUNC_constructor, 0);
-    JS_SetPropertyFunctionList(ctx, obj, tjs_error_funcs, countof(tjs_error_funcs));
-    JS_SetModuleExport(ctx, m, "Error", obj);
+    JS_SetModuleExportList(ctx, m, tjs_error_funcs, countof(tjs_error_funcs));
+
+    JSValue errorClass = JS_NewCFunction2(ctx, tjs_error_constructor, "Error", 1, JS_CFUNC_constructor, 0);
+    JS_SetModuleExport(ctx, m, "Error", errorClass);
+
+    JSValue errors = JS_NewObject(ctx);
+    JS_SetPropertyFunctionList(ctx, errors, tjs_error_errors, countof(tjs_error_errors));
+    JS_SetModuleExport(ctx, m, "errors", errors);
 }
 
 void tjs_mod_error_export(JSContext* ctx, JSModuleDef* m)
 {
+    JS_AddModuleExportList(ctx, m, tjs_error_funcs, countof(tjs_error_funcs));
+
     JS_AddModuleExport(ctx, m, "Error");
+    JS_AddModuleExport(ctx, m, "errors");
 }

@@ -30,9 +30,8 @@ const start = async () => {
 
     function createEchoServer() {
         const server = net.createServer();
-        server.bind(serverAddress);
-        server.listen();
-    
+        server.listen(serverAddress);
+
         server.onconnection = function (event) {
             handleConnection(event.connection);
         };

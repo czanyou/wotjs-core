@@ -133,14 +133,14 @@ static void tjs__promise_rejection_tracker(JSContext* ctx,
 
     JSValue global_obj = JS_GetGlobalObject(ctx);
 
-    JSValue event_ctor = JS_GetPropertyStr(ctx, global_obj, "PromiseRejectionEvent");
-    CHECK_EQ(JS_IsUndefined(event_ctor), 0);
+    JSValue event_constructor = JS_GetPropertyStr(ctx, global_obj, "PromiseRejectionEvent");
+    CHECK_EQ(JS_IsUndefined(event_constructor), 0);
 
     JSValue event_name = JS_NewString(ctx, "unhandledrejection");
     JSValueConst args[2];
     args[0] = event_name;
     args[1] = reason;
-    JSValue event = JS_CallConstructor(ctx, event_ctor, 2, args);
+    JSValue event = JS_CallConstructor(ctx, event_constructor, 2, args);
     CHECK_EQ(JS_IsException(event), 0);
 
     JSValue dispatch_func = JS_GetPropertyStr(ctx, global_obj, "dispatchEvent");
@@ -150,7 +150,7 @@ static void tjs__promise_rejection_tracker(JSContext* ctx,
 
     JS_FreeValue(ctx, global_obj);
     JS_FreeValue(ctx, event);
-    JS_FreeValue(ctx, event_ctor);
+    JS_FreeValue(ctx, event_constructor);
     JS_FreeValue(ctx, event_name);
     JS_FreeValue(ctx, dispatch_func);
 
@@ -326,6 +326,7 @@ void TJS_FreeRuntime(TJSRuntime* qrt)
 
         uv_run(&qrt->loop, UV_RUN_NOWAIT);
     }
+    
 #ifdef DEBUG
     if (!closed)
         uv_print_all_handles(&qrt->loop, stderr);

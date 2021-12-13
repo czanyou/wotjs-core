@@ -1,4 +1,5 @@
 // @ts-check
+/// <reference path ="../../types/index.d.ts" />
 import { join } from '@tjs/path';
 import * as fs from '@tjs/fs';
 import * as native from '@tjs/native';
@@ -9,6 +10,14 @@ const basePath = '/sys/class/gpio';
 // GPIO
 
 export class GPIO {
+    /**
+     * @param {object} options 
+     * @param {string} [options.direction]
+     * @param {string} [options.edge]
+     * @param {number} [options.level]
+     * @param {string} [options.name]
+     * @param {string} [options.port]
+     */
     constructor(options) {
         options = options || {};
 
@@ -37,7 +46,7 @@ export class GPIO {
             }
 
         } catch (err) {
-            console.log(err);
+            console.log('gpio:', err);
         }
     }
 
@@ -81,7 +90,7 @@ export class GPIO {
             this.handle = handle;
 
         } catch (err) {
-            console.log(err);
+            console.log('gpio:', err);
         }
     }
 
@@ -371,8 +380,12 @@ export class Output extends Input {
 }
 
 const $context = {
+    /** @type {Output[] | Input[]} */
     devices: null,
+
     initing: false,
+
+    /** @type {{[key: string]: number}} */
     names: {}
 };
 
@@ -393,7 +406,7 @@ async function initDefaults() {
     } catch (e) {
         $context.initing = false;
 
-        console.log('initDefaults', e);
+        console.log('gpio: initDefaults', e);
         if (!$context.devices) {
             $context.devices = [];
         }
@@ -414,6 +427,7 @@ export async function getDevices() {
  * @param {boolean} withExport 是否导出 IO 口，默认为 false, 建议只在设备开机后调用
  */
 export async function init(config, withExport = false) {
+    /** @param {number} index */
     function getPortOptions(index) {
         const name = config['gpio.' + index + '.name'];
         if (!name) {
@@ -449,7 +463,7 @@ export async function init(config, withExport = false) {
         const gpioHandle = device.handle;
         const isExported = await gpioHandle.isExported();
         if (!isExported) {
-            const error = await GPIO.export(options.port);
+            await GPIO.export(options.port);
             // console.log('export', options.port, options.name, error && error.message);
 
             if (isOutput) {
@@ -466,18 +480,22 @@ export async function init(config, withExport = false) {
     }
 }
 
-export async function open(options) {
-    const gpio = new GPIO(options);
-    return gpio;
-}
-
+/**
+ * @param {object} options 
+ * @param {string} options.name 
+ * @returns {Promise<Input | Output>}
+ */
 export async function requestDevice(options) {
-    let name = options;
+    /** @type string */
+    let name = null;
     if (options == null) {
         return;
 
     } else if (typeof options == 'object') {
         name = options.name;
+
+    } else if (typeof options == 'string') {
+        name = options;
     }
 
     if (!$context.devices) {
@@ -486,7 +504,7 @@ export async function requestDevice(options) {
 
     let index = Number.parseInt(name);
     if (!(index >= 0)) {
-        index = $context.names[String(name)];
+        index = $context.names[name];
     }
 
     if (index >= 0) {

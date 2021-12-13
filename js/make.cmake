@@ -16,7 +16,7 @@ set(core_js_files
 if ("${BOARD_TYPE}" MATCHES "local")
 set(CUSTOM_QJSC "${CMAKE_CURRENT_BINARY_DIR}/tjsc" CACHE STRING "Custom path to tjsc")
 else ()
-set(CUSTOM_QJSC "${PROJECT_ROOT_DIR}/build/local/tjsc" CACHE STRING "Custom path to tjsc")
+set(CUSTOM_QJSC "${CMAKE_SOURCE_DIR}/build/local/tjsc" CACHE STRING "Custom path to tjsc")
 endif ()
 
 message("-- # QJSC: ${CUSTOM_QJSC}")

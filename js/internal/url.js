@@ -1,4 +1,5 @@
 // @ts-check
+/// <reference path ="../../types/index.d.ts" />
 /* eslint-disable no-labels */
 
 /* URL */

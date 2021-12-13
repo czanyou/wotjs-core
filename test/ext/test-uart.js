@@ -1,4 +1,5 @@
 // @ts-check
+/// <reference path ="../../types/index.d.ts" />
 import * as assert from '@tjs/assert';
 import * as serial from '@tjs/serial';
 

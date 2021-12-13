@@ -1,8 +1,8 @@
 import * as dns from '@tjs/dns';
 import * as assert from '@tjs/assert';
-const test = assert.test;
-
 import * as native from '@tjs/native';
+
+const test = assert.test;
 
 test('tls.http.get', async () => {
     const client = new native.TLS();
@@ -20,11 +20,6 @@ test('tls.http.get', async () => {
     address.host = host;
     address.port = 8883;
     const result = {};
-
-    client.onend = async function () {
-        result.ended = true;
-        onClose();
-    };
 
     client.onclose = async function (hadError) {
         result.closed = true;
@@ -70,8 +65,6 @@ test('tls.http.get', async () => {
     assert.ok(result.connected, 'connected');
     assert.ok(result.hasData, 'hasData');
     assert.ok(result.endOfFile, 'endOfFile');
-    assert.ok(result.ended, 'ended');
-    // assert.ok(result.closed, 'closed');
     assert.ok(result.open, 'open');
     assert.ok(!result.hasError, 'hasError');
 });

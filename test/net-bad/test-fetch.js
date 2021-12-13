@@ -1,33 +1,31 @@
 // @ts-check
+/// <reference path ="../../types/index.d.ts" />
 import { assert, test } from '@tjs/assert';
 
-async function basicFetch() {
-    const response = await fetch('http://www.baidu.com/get');
+test('fetch - basic', async () => {
+    const response = await fetch('http://www.baidu.com/?');
     assert.equal(response.status, 200, 'status is 200');
-};
+});
 
-async function abortFetch() {
+test('fetch - abort', async () => {
     const controller = new AbortController();
     const signal = controller.signal;
 
-    setTimeout(() => {
-        controller.abort();
-    }, 500);
+    setTimeout(() => { controller.abort(); }, 500);
 
     try {
         await fetch('https://httpbin.org/delay/3', { signal });
+
     } catch (e) {
         assert.equal(e.name, 'AbortError', 'fetch was aborted');
     }
-};
+});
 
-async function fetchWithPostAndBody() {
+test('fetch - post and body', async () => {
     const data = JSON.stringify({ foo: 'bar', bar: 'baz' });
     const response = await fetch('https://httpbin.org/post', {
         method: 'POST',
-        headers: {
-            'Content-Type': 'application/json'
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: data
     });
 
@@ -38,8 +36,4 @@ async function fetchWithPostAndBody() {
     // console.log(json, 'json');
 
     assert.equal(json.data, data, 'sent and received data match');
-};
-
-test('basic fetch', basicFetch);
-test('abort fetch', abortFetch);
-test('post and body fetch', fetchWithPostAndBody);
+});

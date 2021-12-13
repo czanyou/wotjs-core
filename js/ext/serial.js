@@ -1,4 +1,5 @@
 // @ts-check
+/// <reference path ="../../types/index.d.ts" />
 import * as native from '@tjs/native';
 import { defineEventAttribute, EventTarget } from '@tjs/event-target';
 
@@ -16,7 +17,7 @@ const uart = native.uart;
  * @property {function(number):void} [wait] 等待数据就绪
  * @property {function(string):number} [write] 写数据
  * @property {function} [onmessage] 处理读取的消息
- * @property {function} [onend] 当设备断开
+ * @property {function} [onclose] 当设备断开
  */
 
 /**
@@ -114,8 +115,12 @@ export class SerialPort extends EventTarget {
             this.dispatchEvent(new MessageEvent('message', { data: data }));
         };
 
-        handle.onend = () => {
-            this.dispatchEvent(new Event('end'));
+        handle.onclose = () => {
+            this.dispatchEvent(new Event('close'));
+        };
+
+        handle.ondisconnect = () => {
+            this.dispatchEvent(new Event('disconnect'));
         };
 
         this.handle = handle;
@@ -136,9 +141,9 @@ export class SerialPort extends EventTarget {
     }
 }
 
-defineEventAttribute(SerialPort.prototype, 'connect');
+defineEventAttribute(SerialPort.prototype, 'open');
 defineEventAttribute(SerialPort.prototype, 'disconnect');
-defineEventAttribute(SerialPort.prototype, 'end');
+defineEventAttribute(SerialPort.prototype, 'close');
 defineEventAttribute(SerialPort.prototype, 'message');
 
 const $context = {
@@ -154,7 +159,7 @@ async function initDefaults() {
         await init(deviceConfig.data);
 
     } catch (e) {
-        console.log('initDefaults', e);
+        console.log('serial: initDefaults', e);
         if (!$context.devices) {
             $context.devices = [];
         }

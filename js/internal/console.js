@@ -1,4 +1,5 @@
 // @ts-check
+/// <reference path ="../../types/index.d.ts" />
 import * as native from '@tjs/native';
 
 export const NAMES = {
@@ -157,118 +158,98 @@ export class Colors {
     }
 }
 
-/** 
- * @param {boolean} mode 
- * @param {any[]} args 
- */
-function format(mode, ...args) {
-    // native.print(args);
+const $types = {
+    isArray(arg) {
+        return Array.isArray(arg);
+    },
 
-    // Copyright Joyent, Inc. and other Node contributors.
-    //
-    // Permission is hereby granted, free of charge, to any person obtaining a
-    // copy of this software and associated documentation files (the
-    // "Software"), to deal in the Software without restriction, including
-    // without limitation the rights to use, copy, modify, merge, publish,
-    // distribute, sublicense, and/or sell copies of the Software, and to permit
-    // persons to whom the Software is furnished to do so, subject to the
-    // following conditions:
-    //
-    // The above copyright notice and this permission notice shall be included
-    // in all copies or substantial portions of the Software.
-    //
-    // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
-    // OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
-    // MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN
-    // NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
-    // DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
-    // OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE
-    // USE OR OTHER DEALINGS IN THE SOFTWARE.
-    //
-    // https://github.com/joyent/node/blob/master/lib/util.js
+    isBigInt(arg) {
+        return typeof arg === 'bigint';
+    },
 
-    const formatRegExp = /%[sdj%]/g;
+    isBigFloat(arg) {
+        // @ts-ignore
+        return typeof arg === 'bigfloat';
+    },
 
-    function formatValues(...args) {
-        // native.print('formatValues', args);
+    isBoolean(arg) {
+        return typeof arg === 'boolean';
+    },
 
-        const f = args[0];
-        if (!isString(f)) {
-            const objects = [];
-            for (let i = 0; i < args.length; i++) {
-                objects.push(inspect(args[i], {}));
-            }
-            return objects.join(' ');
+    isNull(arg) {
+        return arg === null;
+    },
+
+    isNullOrUndefined(arg) {
+        return arg == null;
+    },
+
+    isNumber(arg) {
+        return typeof arg === 'number';
+    },
+
+    isString(arg) {
+        return typeof arg === 'string';
+    },
+    isSymbol(arg) {
+        return typeof arg === 'symbol';
+    },
+
+    isUndefined(arg) {
+        // eslint-disable-next-line no-void
+        return arg === void 0;
+    },
+
+    isRegExp(re) {
+        return $types.isObject(re) && $types.objectToString(re) === '[object RegExp]';
+    },
+
+    isObject(arg) {
+        return typeof arg === 'object' && arg !== null;
+    },
+
+    isDate(d) {
+        return $types.isObject(d) && $types.objectToString(d) === '[object Date]';
+    },
+
+    isError(e) {
+        return ($types.isObject(e) && ($types.objectToString(e) === '[object Error]' || e instanceof Error));
+    },
+
+    isFunction(arg) {
+        return typeof arg === 'function';
+    },
+
+    objectToString(o) {
+        return Object.prototype.toString.call(o);
+    },
+
+    getClassName(o) {
+        const objectName = $types.objectToString(o);
+        if (objectName.startsWith('[object ')) {
+            return objectName.substring(8, objectName.length - 1);
         }
+    },
 
-        let i = 1;
-        // const args = arguments;
-        const len = args.length;
-        let str = String(f).replace(formatRegExp, function (x) {
-            if (x === '%%') return '%';
-            if (i >= len) return x;
-            switch (x) {
-                case '%s': return String(args[i++]);
-                case '%d': return String(args[i++]);
-                case '%j':
-                    try {
-                        return JSON.stringify(args[i++]);
-                    } catch (_) {
-                        return '[Circular]';
-                    }
-                default:
-                    return x;
-            }
-        });
-
-        for (let x = args[i]; i < len; x = args[++i]) {
-            if (isNull(x) || !isObject(x)) {
-                str += ' ' + x;
-            } else {
-                str += ' ' + inspect(x, {});
-            }
-        }
-
-        return str;
+    haveOwnProperty(obj, prop) {
+        return Object.prototype.hasOwnProperty.call(obj, prop);
     }
+};
 
-    // eslint-disable-next-line no-unused-vars
-    function stylizeNoColor(str, styleType) {
-        return str;
-    }
-
-    function stylizeColor(str, styleType) {
-        const colors = {
-            name: COLORS.green,
-            number: COLORS.yellow,
-            special: COLORS.cyan,
-            boolean: COLORS.blue,
-            undefined: COLORS.red,
-            regexp: COLORS.bright_red,
-            date: COLORS.bright_green,
-            null: COLORS.magenta
-        };
-
-        const color = colors[styleType];
-        if (!color) {
-            return str;
-        }
-
-        return color + str + COLORS.none;
-    }
-
-    let stylize = stylizeNoColor;
-    if (mode) {
-        stylize = stylizeColor;
-    }
-
-    function inspect(obj, options) {
+const $formatter = {
+    /**
+     * @param {Function} stylize 
+     * @param {*} obj 
+     * @param {*} options 
+     * @returns 
+     */
+    inspect(stylize, obj, options) {
         const ctx = { seen: [], stylize: stylize };
 
-        return formatValue(ctx, obj, options.depth);
-    }
+        return $formatter.formatValue(ctx, obj, options.depth);
+    },
 
-    function arrayToHash(array) {
+    arrayToHash(array) {
         const hash = {};
 
         array.forEach(function (val, index) {
@@ -276,16 +257,16 @@ function format(mode, ...args) {
         });
 
         return hash;
-    }
+    },
 
-    function formatValue(ctx, value, recurseTimes) {
+    formatValue(ctx, value, recurseTimes) {
         // Primitive types cannot have properties
-        const primitive = formatPrimitive(ctx, value);
+        const primitive = $formatter.formatPrimitive(ctx, value);
         if (primitive) {
             return primitive;
 
-        } else if (isError(value)) {
-            return formatError(value);
+        } else if ($types.isError(value)) {
+            return $formatter.formatError(value);
         }
 
         // Look up the keys of the object.
@@ -293,18 +274,18 @@ function format(mode, ...args) {
 
         // Some type of object without properties can be shortcutted.
         if (keys.length === 0) {
-            if (isFunction(value)) {
+            if ($types.isFunction(value)) {
                 const name = value.name ? ': ' + value.name : '';
                 return ctx.stylize('[Function' + name + ']', 'special');
 
-            } else if (isRegExp(value)) {
+            } else if ($types.isRegExp(value)) {
                 return ctx.stylize(RegExp.prototype.toString.call(value), 'regexp');
 
-            } else if (isDate(value)) {
+            } else if ($types.isDate(value)) {
                 return ctx.stylize(Date.prototype.toString.call(value), 'date');
 
-            } else if (isError(value)) {
-                return formatError(value);
+            } else if ($types.isError(value)) {
+                return $formatter.formatError(value);
             }
         }
 
@@ -312,32 +293,32 @@ function format(mode, ...args) {
         let array = false;
         let braces = ['{', '}'];
 
-        if (isArray(value)) {
+        if ($types.isArray(value)) {
             // Make Array say that they are Array
             array = true;
             braces = ['[', ']'];
 
-        } else if (isFunction(value)) {
+        } else if ($types.isFunction(value)) {
             // Make functions say that they are functions
             const n = value.name ? ': ' + value.name : '';
             base = ' [Function' + n + ']';
 
-        } else if (isRegExp(value)) {
+        } else if ($types.isRegExp(value)) {
             // Make RegExps say that they are RegExps
             base = ' ' + RegExp.prototype.toString.call(value);
 
-        } else if (isDate(value)) {
+        } else if ($types.isDate(value)) {
             // Make dates with properties first say the date
             base = ' ' + Date.prototype.toUTCString.call(value);
 
-        } else if (isError(value)) {
+        } else if ($types.isError(value)) {
             // Make error with message first say the error
-            base = ' ' + formatError(value);
+            base = ' ' + $formatter.formatError(value);
         }
 
         // Class name
         let prefix = '';
-        const className = getClassName(value);
+        const className = $types.getClassName(value);
         if (className) {
             if (className != 'Object' && className != 'Array') {
                 prefix = ctx.stylize(className, 'special') + ' ';
@@ -350,7 +331,7 @@ function format(mode, ...args) {
         }
 
         if (recurseTimes < 0) {
-            if (isRegExp(value)) {
+            if ($types.isRegExp(value)) {
                 return ctx.stylize(RegExp.prototype.toString.call(value), 'regexp');
             } else {
                 return ctx.stylize('[Object]', 'special');
@@ -362,27 +343,27 @@ function format(mode, ...args) {
         let output;
         if (array) {
             // array
-            const visibleKeys = arrayToHash(keys);
-            output = formatArray(ctx, value, recurseTimes, visibleKeys, keys);
+            const visibleKeys = $formatter.arrayToHash(keys);
+            output = $formatter.formatArray(ctx, value, recurseTimes, visibleKeys, keys);
 
         } else {
             // object
-            const visibleKeys = arrayToHash(keys);
+            const visibleKeys = $formatter.arrayToHash(keys);
             output = keys.map(function (key) {
-                return formatProperty(ctx, value, recurseTimes, visibleKeys, key, array);
+                return $formatter.formatProperty(ctx, value, recurseTimes, visibleKeys, key, array);
             });
         }
 
         ctx.seen.pop();
 
-        return prefix + reduceToSingleString(output, base, braces);
-    }
+        return prefix + $formatter.reduceToSingleString(output, base, braces);
+    },
 
-    function formatPrimitive(ctx, value) {
-        if (isUndefined(value)) {
+    formatPrimitive(ctx, value) {
+        if ($types.isUndefined(value)) {
             return ctx.stylize('undefined', 'undefined');
 
-        } else if (isString(value)) {
+        } else if ($types.isString(value)) {
             const simple =
                 "'" +
                 JSON.stringify(value)
@@ -392,34 +373,34 @@ function format(mode, ...args) {
                 "'";
             return ctx.stylize(simple, 'string');
 
-        } else if (isNumber(value)) {
+        } else if ($types.isNumber(value)) {
             if (value == 0) {
                 if (1 / value < 0) { value = '-0'; } else { value = '0'; }
             }
             return ctx.stylize('' + value, 'number');
 
-        } else if (isBoolean(value)) {
+        } else if ($types.isBoolean(value)) {
             return ctx.stylize('' + value, 'boolean');
 
-        } else if (isNull(value)) {
+        } else if ($types.isNull(value)) {
             // For some reason typeof null is "object", so special case here.
             return ctx.stylize('null', 'null');
 
-        } else if (isBigInt(value)) {
+        } else if ($types.isBigInt(value)) {
             return ctx.stylize('' + value + 'n', 'bigint');
 
-        } else if (isBigFloat(value)) {
+        } else if ($types.isBigFloat(value)) {
             return ctx.stylize('' + value + 'l', 'bigfloat');
 
         } else if (value instanceof ArrayBuffer) {
-            return ctx.stylize(getClassName(value), 'special') + ` { byteLength: ${value.byteLength} }`;
+            return ctx.stylize($types.getClassName(value), 'special') + ` { byteLength: ${value.byteLength} }`;
 
         } else if (ArrayBuffer.isView(value)) {
-            return ctx.stylize(getClassName(value), 'special') + ` { byteOffset: ${value.byteOffset}, byteLength: ${value.byteLength} }`;
+            return ctx.stylize($types.getClassName(value), 'special') + ` { byteOffset: ${value.byteOffset}, byteLength: ${value.byteLength} }`;
         }
-    }
+    },
 
-    function formatError(error) {
+    formatError(error) {
         let text = Error.prototype.toString.call(error);
         if (error.errno) {
             text += ` (${error.errno})`;
@@ -431,15 +412,15 @@ function format(mode, ...args) {
         }
 
         return text;
-    }
+    },
 
-    function formatArray(ctx, value, recurseTimes, visibleKeys, keys) {
+    formatArray(ctx, value, recurseTimes, visibleKeys, keys) {
         const output = [];
 
         for (let i = 0, l = value.length; i < l; ++i) {
-            if (hasOwnProperty(value, String(i))) {
+            if ($types.haveOwnProperty(value, String(i))) {
                 output.push(
-                    formatProperty(
+                    $formatter.formatProperty(
                         ctx,
                         value,
                         recurseTimes,
@@ -457,15 +438,15 @@ function format(mode, ...args) {
         keys.forEach(function (key) {
             if (!key.match(/^\d+$/)) {
                 output.push(
-                    formatProperty(ctx, value, recurseTimes, visibleKeys, key, true)
+                    $formatter.formatProperty(ctx, value, recurseTimes, visibleKeys, key, true)
                 );
             }
         });
 
         return output;
-    }
+    },
 
-    function formatProperty(ctx, value, recurseTimes, visibleKeys, key, array) {
+    formatProperty(ctx, value, recurseTimes, visibleKeys, key, array) {
         let name, str;
         const desc = Object.getOwnPropertyDescriptor(value, key) || { value: value[key] };
         if (desc.get) {
@@ -482,17 +463,17 @@ function format(mode, ...args) {
             }
         }
 
-        if (!hasOwnProperty(visibleKeys, key)) {
+        if (!$types.haveOwnProperty(visibleKeys, key)) {
             name = '[' + key + ']';
         }
 
         if (!str) {
             if (ctx.seen.indexOf(desc.value) < 0) {
-                if (isNull(recurseTimes)) {
-                    str = formatValue(ctx, desc.value, null);
+                if ($types.isNull(recurseTimes)) {
+                    str = $formatter.formatValue(ctx, desc.value, null);
 
                 } else {
-                    str = formatValue(ctx, desc.value, recurseTimes - 1);
+                    str = $formatter.formatValue(ctx, desc.value, recurseTimes - 1);
                 }
 
                 if (str.indexOf('\n') > -1) {
@@ -521,7 +502,7 @@ function format(mode, ...args) {
             }
         }
 
-        if (isUndefined(name)) {
+        if ($types.isUndefined(name)) {
             if (array && key.match(/^\d+$/)) {
                 return str;
             }
@@ -541,7 +522,7 @@ function format(mode, ...args) {
         }
 
         return name + ': ' + str;
-    }
+    },
 
     /**
      * @param {any[]} output 
@@ -549,7 +530,7 @@ function format(mode, ...args) {
      * @param {string[]} braces 
      * @returns 
      */
-    function reduceToSingleString(output, base, braces) {
+    reduceToSingleString(output, base, braces) {
         const length = output.reduce(function (prev, current) {
             return prev + current.replace(/\u001b\[\d\d?m/g, '').length + 1;
         }, 0);
@@ -560,90 +541,90 @@ function format(mode, ...args) {
         }
 
         return braces[0] + base + ' ' + output.join(', ') + ' ' + braces[1];
-    }
+    },
 
-    // NOTE: These type checking functions intentionally don't use `instanceof`
-    // because it is fragile and can be easily faked with `Object.create()`.
-    function isArray(arg) {
-        return Array.isArray(arg);
-    }
-
-    function isBigInt(arg) {
-        return typeof arg === 'bigint';
-    }
-
-    function isBigFloat(arg) {
-        // @ts-ignore
-        return typeof arg === 'bigfloat';
-    }
-
-    function isBoolean(arg) {
-        return typeof arg === 'boolean';
-    }
-
-    function isNull(arg) {
-        return arg === null;
-    }
-
-    // eslint-disable-next-line no-unused-vars
-    function isNullOrUndefined(arg) {
-        return arg == null;
-    }
-
-    function isNumber(arg) {
-        return typeof arg === 'number';
-    }
-
-    function isString(arg) {
-        return typeof arg === 'string';
-    }
-
-    // eslint-disable-next-line no-unused-vars
-    function isSymbol(arg) {
-        return typeof arg === 'symbol';
-    }
-
-    function isUndefined(arg) {
-        // eslint-disable-next-line no-void
-        return arg === void 0;
-    }
-
-    function isRegExp(re) {
-        return isObject(re) && objectToString(re) === '[object RegExp]';
-    }
-
-    function isObject(arg) {
-        return typeof arg === 'object' && arg !== null;
-    }
-
-    function isDate(d) {
-        return isObject(d) && objectToString(d) === '[object Date]';
-    }
-
-    function isError(e) {
-        return (isObject(e) && (objectToString(e) === '[object Error]' || e instanceof Error));
-    }
-
-    function isFunction(arg) {
-        return typeof arg === 'function';
-    }
-
-    function objectToString(o) {
-        return Object.prototype.toString.call(o);
-    }
-
-    function getClassName(o) {
-        const objectName = objectToString(o);
-        if (objectName.startsWith('[object ')) {
-            return objectName.substring(8, objectName.length - 1);
+    formatValues(mode, ...args) {
+        let stylize = $formatter.stylizeNoColor;
+        if (mode) {
+            stylize = $formatter.stylizeColor;
         }
+    
+        // native.print('formatValues', args);
+        const formatRegExp = /%[sdj%]/g;
+
+        const f = args[0];
+        if (!$types.isString(f)) {
+            const objects = [];
+            for (let i = 0; i < args.length; i++) {
+                objects.push($formatter.inspect(stylize, args[i], {}));
+            }
+            return objects.join(' ');
+        }
+
+        let i = 1;
+        // const args = arguments;
+        const len = args.length;
+        let str = String(f).replace(formatRegExp, function (x) {
+            if (x === '%%') return '%';
+            if (i >= len) return x;
+            switch (x) {
+                case '%s': return String(args[i++]);
+                case '%d': return String(args[i++]);
+                case '%j':
+                    try {
+                        return JSON.stringify(args[i++]);
+                    } catch (_) {
+                        return '[Circular]';
+                    }
+                default:
+                    return x;
+            }
+        });
+
+        for (let x = args[i]; i < len; x = args[++i]) {
+            if ($types.isNull(x) || !$types.isObject(x)) {
+                str += ' ' + x;
+            } else {
+                str += ' ' + $formatter.inspect(stylize, x, {});
+            }
+        }
+
+        return str;
+    },
+
+    // eslint-disable-next-line no-unused-vars
+    stylizeNoColor(str, styleType) {
+        return str;
+    },
+
+    stylizeColor(str, styleType) {
+        const colors = {
+            name: COLORS.green,
+            number: COLORS.yellow,
+            special: COLORS.cyan,
+            boolean: COLORS.blue,
+            undefined: COLORS.red,
+            regexp: COLORS.bright_red,
+            date: COLORS.bright_green,
+            null: COLORS.magenta
+        };
+
+        const color = colors[styleType];
+        if (!color) {
+            return str;
+        }
+
+        return color + str + COLORS.none;
     }
 
-    function hasOwnProperty(obj, prop) {
-        return Object.prototype.hasOwnProperty.call(obj, prop);
-    }
+};
 
-    return formatValues(...args);
+/** 
+ * @param {boolean} mode 
+ * @param {any[]} args 
+ */
+function format(mode, ...args) {
+    return $formatter.formatValues(mode, ...args);
 }
 
 function stringWidth(value) {
@@ -897,15 +878,31 @@ function printTable(data, properties, title) {
  * @param {number} now 
  */
 function formatTime(now) {
-    let value = Math.floor(now / 60);
-    let time = (now % 60).toFixed(3);
-    if (value > 0) {
-        time = String(Math.floor(value % 60)).padStart(2, '0') + ':' + time;
+    /**
+     * @param {number} value 
+     * @param {number} count 
+     */
+    function padStart(value, count) {
+        return String(Math.floor(value)).padStart(count, '0');
     }
 
-    value = value / 60;
+    let value = now * 1000;
+    const ms = value % 1000;
+
+    value /= 1000;
+    const s = value % 60;
+
+    value /= 60;
+    const m = value % 60;
+
+    value /= 60;
+    const h = value % 24;
+
+    value = Math.floor(value / 24);
+
+    let time = padStart(h, 2) + ':' + padStart(m, 2) + ':' + padStart(s, 2) + '.' + padStart(ms, 3);
     if (value > 0) {
-        time = String(Math.floor(value)) + ':' + time;
+        time = value + ',' + time;
     }
 
     return time;
@@ -1063,11 +1060,12 @@ class Console {
     }
 
     /** 
+     * @param {any} mode 
      * @param {any} message 
      * @param {any[]} args 
      */
-    format(message, ...args) {
-        return format(false, message, ...args);
+    format(mode, message, ...args) {
+        return format(mode, message, ...args);
     }
 
     /** 
