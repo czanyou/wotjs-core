@@ -1,34 +1,30 @@
-cmake_minimum_required(VERSION 2.8)
+cmake_minimum_required(VERSION 3.12)
 
 set(JS_DIR ${CMAKE_CURRENT_LIST_DIR})
 
 # core-js.c
 
 set(core_js_files
-    ${JS_DIR}/bootstrap/*.js
-    ${JS_DIR}/core/*.js
-    ${JS_DIR}/ext/*.js
-    ${JS_DIR}/internal/*.js
-    ${JS_DIR}/net/*.js
+    ${JS_DIR}/tjs/*.js
 )
 
 # build js files to c files
-if ("${BOARD_TYPE}" MATCHES "local")
-set(CUSTOM_QJSC "${CMAKE_CURRENT_BINARY_DIR}/tjsc" CACHE STRING "Custom path to tjsc")
-else ()
-set(CUSTOM_QJSC "${CMAKE_SOURCE_DIR}/build/local/tjsc" CACHE STRING "Custom path to tjsc")
-endif ()
+set(TJS_COMPILER "${CMAKE_SOURCE_DIR}/build/local/tjsc" CACHE STRING "Custom path to tjsc")
 
-message("-- # QJSC: ${CUSTOM_QJSC}")
+# 版本信息
+configure_file(${JS_DIR}/version.json ${CMAKE_BINARY_DIR}/version.json @ONLY)
+
+# message("-- # TJS_COMPILER: ${TJS_COMPILER}")
+# message("-- # core_js_files: ${core_js_files}")
 
 add_custom_command(
     COMMAND
-        ${CUSTOM_QJSC}
-        -o ${CMAKE_CURRENT_BINARY_DIR}/core-js.c
-        -m ${core_js_files}
+        ${TJS_COMPILER} -o ${CMAKE_CURRENT_BINARY_DIR}/core-js.c -m ${core_js_files}
     DEPENDS
-        ${CUSTOM_QJSC}
+        ${TJS_COMPILER}
         ${core_js_files}
     OUTPUT
         ${CMAKE_CURRENT_BINARY_DIR}/core-js.c
+    COMMENT
+        "Built core js files"
 )

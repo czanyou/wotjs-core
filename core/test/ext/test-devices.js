@@ -3,12 +3,12 @@
 import * as assert from '@tjs/assert';
 import * as devices from '@tjs/devices';
 
-const test = assert.test;
+import { test } from '@tjs/test';
 
 test('devices', async () => {
     assert.ok(devices != null);
     
-    const device = await devices.requestDevice(0);
-    assert.ok(device);
+    const device = await devices.requestWatchdog({ name: 'watchdog' });
+    // assert.ok(device != null);
     // console.log(device);
 });

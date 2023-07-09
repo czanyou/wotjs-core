@@ -5,7 +5,7 @@ import * as native from '@tjs/native';
 
 import * as assert from '@tjs/assert';
 
-const test = assert.test;
+import { test } from '@tjs/test';
 
 const cacert =
 
@@ -213,24 +213,23 @@ const cacert =
     'CAUw7C29C79Fv1C5qfPrmAESrciIxpg0X40KPMbp1ZWVbd4=\r\n' +
     '-----END CERTIFICATE-----\r\n';
 
-test('native.tls.http.get', async () => {
+test('native.tls.http:get', async () => {
     // console.log(cacert);
 
     const options = {
-        cacert: cacert
+        cacert
     };
 
     const client = new native.TLS(options);
 
-    assert.startTimeout(10000, () => {
-        client.close();
-    });
+    let onResolve = null;
+    const promise = new Promise((resolve, reject) => { onResolve = resolve; });
 
     function onClose() {
-        assert.stopTimeout();
+        onResolve(undefined);
     }
 
-    const host = 'iot.wotcloud.cn'; // 'www.baidu.com';
+    const host = 'localhost'; // 'www.baidu.com';
     const addressInfo = await dns.lookup(host, { family: 4 });
 
     const address = {};
@@ -255,12 +254,12 @@ test('native.tls.http.get', async () => {
     };
 
     client.onconnect = function () {
-        // console.log('client-onconnect', status);
+        // console.log('client-onconnect');
         result.connected = true;
     };
 
     client.onopen = function () {
-        // console.log('client-onopen', status);
+        // console.log('client-onopen');
         result.open = true;
     };
 
@@ -284,7 +283,7 @@ test('native.tls.http.get', async () => {
 
     await client.write(`GET /libs/bootstrap/4.4.1/css/bootstrap.min.css HTTP/1.0\r\nHost: ${host}\r\n\r\n`);
 
-    await assert.waitTimeout();
+    await promise;
 
     assert.ok(result.connected, 'connected');
     assert.ok(result.open, 'open');
@@ -293,22 +292,21 @@ test('native.tls.http.get', async () => {
     assert.ok(!result.hasError, 'hasError');
 });
 
-test('native.tls.http.post', async () => {
+test('native.tls.http:post', async () => {
     const options = {
-        cacert: cacert
+        cacert
     };
+
+    let onResolve = null;
+    const promise = new Promise((resolve, reject) => { onResolve = resolve; });
 
     const client = new native.TLS(options);
 
-    assert.startTimeout(10000, () => {
-        client.close();
-    });
-
     function onClose() {
-        assert.stopTimeout();
+        onResolve(undefined);
     }
 
-    const host = 'iot.wotcloud.cn'; // 'www.baidu.com';
+    const host = 'localhost'; // 'www.baidu.com';
     const addressInfo = await dns.lookup(host, { family: 4 });
 
     const address = {};
@@ -349,7 +347,7 @@ test('native.tls.http.post', async () => {
     // console.log('bufferedAmount', client.bufferedAmount());
     // console.log('data', result.data);
 
-    await assert.waitTimeout();
+    await promise;
 
     assert.ok(result.connected, 'connected');
     assert.ok(result.hasData, 'hasData');

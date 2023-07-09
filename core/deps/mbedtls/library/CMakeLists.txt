@@ -6,26 +6,25 @@ option(LINK_WITH_TRUSTED_STORAGE "Explicitly link mbed TLS library to trusted_st
 # Set the project root directory if it's not already defined, as may happen if
 # the library folder is included directly by a parent project, without
 # including the top level CMakeLists.txt.
-if(NOT DEFINED MBEDTLS_DIR)
-    set(MBEDTLS_DIR ${CMAKE_SOURCE_DIR})
+if(NOT DEFINED LIBMBEDTLS_DIR)
+    set(LIBMBEDTLS_DIR ${CMAKE_SOURCE_DIR})
 endif()
 
 set(src_crypto
     aes.c
     aesni.c
-    arc4.c
     aria.c
     asn1parse.c
     asn1write.c
     base64.c
     bignum.c
-    blowfish.c
     camellia.c
     ccm.c
     chacha20.c
     chachapoly.c
     cipher.c
     cipher_wrap.c
+    constant_time.c
     cmac.c
     ctr_drbg.c
     des.c
@@ -39,14 +38,13 @@ set(src_crypto
     entropy_poll.c
     error.c
     gcm.c
-    havege.c
     hkdf.c
     hmac_drbg.c
     md.c
-    md2.c
-    md4.c
     md5.c
     memory_buffer_alloc.c
+    mps_reader.c
+    mps_trace.c
     nist_kw.c
     oid.c
     padlock.c
@@ -61,9 +59,13 @@ set(src_crypto
     platform_util.c
     poly1305.c
     psa_crypto.c
+    psa_crypto_aead.c
+    psa_crypto_cipher.c
     psa_crypto_client.c
     psa_crypto_driver_wrappers.c
     psa_crypto_ecp.c
+    psa_crypto_hash.c
+    psa_crypto_mac.c
     psa_crypto_rsa.c
     psa_crypto_se.c
     psa_crypto_slot_management.c
@@ -71,22 +73,18 @@ set(src_crypto
     psa_its_file.c
     ripemd160.c
     rsa.c
-    rsa_internal.c
+    rsa_alt_helpers.c
     sha1.c
     sha256.c
     sha512.c
+    ssl_debug_helpers_generated.c
     threading.c
     timing.c
     version.c
     version_features.c
-    xtea.c
 )
 
-list(APPEND src_crypto ${thirdparty_src})
-
 set(src_x509
-    certs.c
-    pkcs11.c
     x509.c
     x509_create.c
     x509_crl.c
@@ -108,7 +106,64 @@ set(src_tls
     ssl_ticket.c
     ssl_tls.c
     ssl_tls13_keys.c
+    ssl_tls13_server.c
+    ssl_tls13_client.c
+    ssl_tls13_generic.c
 )
+
+if(GEN_FILES)
+    find_package(Perl REQUIRED)
+
+    file(GLOB error_headers ${CMAKE_CURRENT_SOURCE_DIR}/../include/mbedtls/*.h)
+    add_custom_command(
+        OUTPUT
+            ${CMAKE_CURRENT_BINARY_DIR}/error.c
+        COMMAND
+            ${PERL_EXECUTABLE}
+                ${CMAKE_CURRENT_SOURCE_DIR}/../scripts/generate_errors.pl
+                ${CMAKE_CURRENT_SOURCE_DIR}/../include/mbedtls
+                ${CMAKE_CURRENT_SOURCE_DIR}/../scripts/data_files
+                ${CMAKE_CURRENT_BINARY_DIR}/error.c
+        DEPENDS
+            ${CMAKE_CURRENT_SOURCE_DIR}/../scripts/generate_errors.pl
+            ${error_headers}
+            ${CMAKE_CURRENT_SOURCE_DIR}/../scripts/data_files/error.fmt
+    )
+
+    add_custom_command(
+        OUTPUT
+            ${CMAKE_CURRENT_BINARY_DIR}/version_features.c
+        COMMAND
+            ${PERL_EXECUTABLE}
+                ${CMAKE_CURRENT_SOURCE_DIR}/../scripts/generate_features.pl
+                ${CMAKE_CURRENT_SOURCE_DIR}/../include/mbedtls
+                ${CMAKE_CURRENT_SOURCE_DIR}/../scripts/data_files
+                ${CMAKE_CURRENT_BINARY_DIR}/version_features.c
+        DEPENDS
+            ${CMAKE_CURRENT_SOURCE_DIR}/../scripts/generate_features.pl
+            ${CMAKE_CURRENT_SOURCE_DIR}/../include/mbedtls/mbedtls_config.h
+            ${CMAKE_CURRENT_SOURCE_DIR}/../scripts/data_files/version_features.fmt
+    )
+
+    add_custom_command(
+        OUTPUT
+            ${CMAKE_CURRENT_BINARY_DIR}/ssl_debug_helpers_generated.h
+            ${CMAKE_CURRENT_BINARY_DIR}/ssl_debug_helpers_generated.c
+        COMMAND
+            ${MBEDTLS_PYTHON_EXECUTABLE}
+                ${CMAKE_CURRENT_SOURCE_DIR}/../scripts/generate_ssl_debug_helpers.py
+                --mbedtls-root ${CMAKE_CURRENT_SOURCE_DIR}/..
+                ${CMAKE_CURRENT_BINARY_DIR}
+        DEPENDS
+            ${CMAKE_CURRENT_SOURCE_DIR}/../scripts/generate_ssl_debug_helpers.py
+            ${error_headers}
+    )
+else()
+    link_to_source(error.c)
+    link_to_source(version_features.c)
+    link_to_source(ssl_debug_helpers_generated.c)
+    link_to_source(ssl_debug_helpers_generated.h)
+endif()
 
 if(CMAKE_COMPILER_IS_GNUCC)
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wmissing-declarations -Wmissing-prototypes")
@@ -132,14 +187,6 @@ endif()
 if(HAIKU)
     set(libs ${libs} network)
 endif(HAIKU)
-
-if(USE_PKCS11_HELPER_LIBRARY)
-    set(libs ${libs} pkcs11-helper)
-endif(USE_PKCS11_HELPER_LIBRARY)
-
-if(ENABLE_ZLIB_SUPPORT)
-    set(libs ${libs} ${ZLIB_LIBRARIES})
-endif(ENABLE_ZLIB_SUPPORT)
 
 if(LINK_WITH_PTHREAD)
     set(libs ${libs} pthread)
@@ -185,6 +232,10 @@ if(USE_STATIC_MBEDTLS_LIBRARY)
     set_target_properties(${mbedcrypto_static_target} PROPERTIES OUTPUT_NAME mbedcrypto)
     target_link_libraries(${mbedcrypto_static_target} PUBLIC ${libs})
 
+    if(TARGET everest)
+        target_link_libraries(${mbedcrypto_static_target} PUBLIC everest)
+    endif()
+
     add_library(${mbedx509_static_target} STATIC ${src_x509})
     set_target_properties(${mbedx509_static_target} PROPERTIES OUTPUT_NAME mbedx509)
     target_link_libraries(${mbedx509_static_target} PUBLIC ${libs} ${mbedcrypto_static_target})
@@ -196,19 +247,21 @@ endif(USE_STATIC_MBEDTLS_LIBRARY)
 
 if(USE_SHARED_MBEDTLS_LIBRARY)
     add_library(${mbedcrypto_target} SHARED ${src_crypto})
-    set_target_properties(${mbedcrypto_target} PROPERTIES VERSION 2.26.0 SOVERSION 6)
+    set_target_properties(${mbedcrypto_target} PROPERTIES VERSION 3.1.0 SOVERSION 11)
     target_link_libraries(${mbedcrypto_target} PUBLIC ${libs})
 
+    if(TARGET everest)
+        target_link_libraries(${mbedcrypto_target} PUBLIC everest)
+    endif()
+
     add_library(${mbedx509_target} SHARED ${src_x509})
-    set_target_properties(${mbedx509_target} PROPERTIES VERSION 2.26.0 SOVERSION 1)
+    set_target_properties(${mbedx509_target} PROPERTIES VERSION 3.1.0 SOVERSION 4)
     target_link_libraries(${mbedx509_target} PUBLIC ${libs} ${mbedcrypto_target})
 
     add_library(${mbedtls_target} SHARED ${src_tls})
-    set_target_properties(${mbedtls_target} PROPERTIES VERSION 2.26.0 SOVERSION 13)
+    set_target_properties(${mbedtls_target} PROPERTIES VERSION 3.1.0 SOVERSION 17)
     target_link_libraries(${mbedtls_target} PUBLIC ${libs} ${mbedx509_target})
 endif(USE_SHARED_MBEDTLS_LIBRARY)
-
-target_compile_options(${mbedx509_target} PRIVATE -Wno-format-truncation)
 
 foreach(target IN LISTS target_libraries)
     # Include public header files from /include and other directories
@@ -217,15 +270,14 @@ foreach(target IN LISTS target_libraries)
     # /library needs to be listed explicitly when building .c files outside
     # of /library (which currently means: under /3rdparty).
     target_include_directories(${target}
-        PUBLIC ${MBEDTLS_DIR}/include/
-        PUBLIC ${thirdparty_inc_public}
-        PRIVATE ${MBEDTLS_DIR}/library/
-        PRIVATE ${thirdparty_inc})
-    target_compile_definitions(${target}
-        PRIVATE ${thirdparty_def})
-    install(TARGETS ${target}
-            DESTINATION ${LIB_INSTALL_DIR}
-            PERMISSIONS OWNER_READ OWNER_WRITE GROUP_READ WORLD_READ)
+        PUBLIC $<BUILD_INTERFACE:${LIBMBEDTLS_DIR}/include/>
+               $<INSTALL_INTERFACE:include/>
+        PRIVATE ${LIBMBEDTLS_DIR}/library/)
+    install(
+        TARGETS ${target}
+        EXPORT MbedTLSTargets
+        DESTINATION ${LIB_INSTALL_DIR}
+        PERMISSIONS OWNER_READ OWNER_WRITE GROUP_READ WORLD_READ)
 endforeach(target)
 
 set(lib_target "${MBEDTLS_TARGET_PREFIX}lib")

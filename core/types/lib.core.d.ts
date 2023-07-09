@@ -1,3 +1,6 @@
+/**
+ * The fs module enables interacting with the file system in a way modeled on standard POSIX functions.
+ */
 declare module '@tjs/fs' {
     export interface IReadFileOptions {
         encoding?: string, // Default: 'utf8'
@@ -26,8 +29,10 @@ declare module '@tjs/fs' {
         nlink: number,
         rdev: number,
         size: number,
+
+        /** 文件类型: `file`, `directory`, `link`, `fifo`, `socket`, `char`, `block` */
         type: string,
-        uid: number
+        uid: number;
     }
 
     export interface FsStats {
@@ -41,7 +46,11 @@ declare module '@tjs/fs' {
     }
 
     export interface Dirent {
-        name: string
+        /** 文件或目录名称 */
+        name: string;
+
+        /** 文件类型, 1 FILE 文件, 2 DIR 目录, 3 LINK 链接文件, 4 FIFO, 5 SOCKET, 6 CHAR, 7 BLOCK */
+        type: number;
     }
 
     export interface Dir extends IterableIterator<Dirent> {
@@ -66,6 +75,7 @@ declare module '@tjs/fs' {
         /**
          * 锁定或释放文件，可以在多个进程间创建互斥锁
          * @param lock 
+         * @retuns 
          */
         flock(lock?: boolean): number;
 
@@ -111,43 +121,72 @@ declare module '@tjs/fs' {
         fileno(): number;
     }
 
-    export const constants: any;
+    export const constants: {
+        /** 文件是否存在 */
+        F_OK: 0,
 
-    /** 检查访问权限 */
-    export function access(path: string, mode?: number): Promise<any>;
+        /** 读权限 */
+        R_OK: 4,
+
+        /** 写权限 */
+        W_OK: 2,
+
+        /** 执行权限 */
+        X_OK: 1,
+
+        /** 只读 */
+        O_RDONLY: 0,
+
+        /** 只写 */
+        O_WRONLY: 1,
+
+        /** 读写 */
+        O_RDWR: 2
+    };
+
+    /** 
+     * 检查文件是否存在或者具有指定的访问权限 
+     * @param path 要检查的文件
+     * @param mode 要检查的权限
+     * @retrun 0 表示文件存在或者具有指定的访问权限, 否则返回 -1
+     */
+    export function access(path: string, mode?: number): Promise<number>;
 
     /** 写入数据到文件尾 */
-    export function appendFile(path: string, data: ArrayBuffer | string, options?: IWriteFileOptions): Promise<any>;
+    export function appendFile(path: string, data: ArrayBuffer | string, options?: IWriteFileOptions): Promise<void>;
 
     /** chmod */
-    export function chmod(path: string, mode: number): Promise<any>;
+    export function chmod(path: string, mode: number): Promise<void>;
 
     /** chown */
-    export function chown(path: string, uid: number, gid: number): Promise<any>;
+    export function chown(path: string, uid: number, gid: number): Promise<void>;
 
     /** 复制文件 */
-    export function copyFile(src: string, dest: string, mode?: number): Promise<any>;
+    export function copyFile(src: string, dest: string, mode?: number): Promise<void>;
+
+    /** 复制目录和文件 */
+    export function cp(src: string, dest: string, options?: { force?: boolean, recursive?: boolean }): Promise<void>;
 
     /** 检查指定的文件或目录是否存在 */
     export function exists(path: string): Promise<boolean>;
 
     /** 计算文件 Hash 值 */
-    export function hashFile(path: string, type?: string): Promise<ArrayBuffer>;
+    export function md5sum(path: string): Promise<string>;
 
     /** 计算文件 Hash 值 */
-    export function md5sum(path: string, type?: string): Promise<string>;
+    export function sha1sum(path: string): Promise<string>;
 
     /** 计算文件 Hash 值 */
-    export function sha1sum(path: string, type?: string): Promise<string>;
+    export function filesum(path: string, hash: string): Promise<string>;
 
     /** lstat */
-    export function lstat(path: string, options: any): Promise<void>;
+    export function lstat(path: string): Promise<void>;
 
     /** 创建一个目录 */
-    export function mkdir(path: string, options: any): Promise<void>;
+    export function mkdir(path: string, options?: { recursive?: boolean, mode?: string | number }): Promise<void>;
 
     /** 创建一个临时目录 */
-    export function mkdtemp(prefix: string, options: any): Promise<string>;
+    export function mkdtemp(prefix: string): Promise<string>;
 
     /** 创建一个临时文件 */
     export function mkstemp(path?: string): Promise<FileHandle>;
@@ -162,10 +201,10 @@ declare module '@tjs/fs' {
     export function open(path: string, flags: string | number, mode?: number): Promise<FileHandle>;
 
     /** 打开一个目录 */
-    export function opendir(path: string, options?: any): Promise<Dir>;
+    export function opendir(path: string): Promise<Dir>;
 
     /** 读取目录内容 */
-    export function readdir(path: string, options?: any): Promise<any[]>;
+    export function readdir(path: string): Promise<Dirent[]>;
 
     /**
      * Asynchronously reads the entire contents of a file.
@@ -174,26 +213,33 @@ declare module '@tjs/fs' {
      */
     export function readFile(filename: string, encoding?: IReadFileOptions | string): Promise<string | ArrayBuffer>;
 
+    /**
+     * Asynchronously reads the entire contents of a file.
+     * @param filename 文件名
+     * @param encoding 编码格式, 只支持 `utf-8`
+     */
+    export function readTextFile(filename: string, encoding?: IReadFileOptions | string): Promise<string>;
+
     /** 返回链接的路径 */
-    export function readlink(path: string, options?: any): Promise<string>;
+    export function readlink(path: string): Promise<string>;
 
     /** 返回真实路径 */
-    export function realpath(path: string, options?: any): Promise<string>;
+    export function realpath(path: string): Promise<string>;
 
     /** 重命名 */
     export function rename(oldPath: string, newPath: string): Promise<void>;
 
     /** 删除文件 */
-    export function rm(path: string, options?: any): Promise<void>;
+    export function rm(path: string, options?: { force?: boolean, recursive?: boolean }): Promise<void>;
 
     /** 删除目录 */
-    export function rmdir(path: string, options?: any): Promise<void>;
+    export function rmdir(path: string): Promise<void>;
 
     /** stat */
-    export function stat(path: string, options?: any): Promise<Stats>;
+    export function stat(path: string): Promise<Stats>;
 
     /** statfs */
-    export function statfs(path: string, options?: any): Promise<FsStats>;
+    export function statfs(path: string): Promise<FsStats>;
 
     /** 创建符号链接 */
     export function symlink(target: string, path: string): Promise<void>;
@@ -218,11 +264,22 @@ declare module '@tjs/fs' {
      */
     export function writeFile(filename: string, data: string | ArrayBuffer | ArrayBufferView, options?: IWriteFileOptions | string): Promise<void>;
 
+    /**
+     * 创建文件流
+     * @param filename 文件名
+     * @param options 选项
+     */
+    export function readableStream(filename: string, options?: { chunkSize?: number, onprogress?: (event: {loaded: number, total: number}) => void}): Promise<ReadableStream>;
 }
 
+/**
+ * The os module provides operating system-related utility methods and properties.
+ */
 declare module '@tjs/os' {
+    import * as native from '@tjs/native';
+
     export class ProcessOptions {
-        /** Current working directory of the child process. Default: process.cwd(). */
+        /** Current working directory of the child process. Default: os.cwd(). */
         cwd?: string;
 
         detached?: boolean;
@@ -258,11 +315,21 @@ declare module '@tjs/os' {
         uid?: number;
     }
 
-    export class ProcessResult {
-        code: number;
-        signal?: number;
+    /**
+     * 子进程返回结果
+     */
+    export interface ProcessResult {
+        /** 输出 */
         stdout?: string;
+
+        /** 错误输出 */
         stderr?: string;
+
+        /** 退出代码 */
+        code?: number;
+
+        /** 错误 */
+        error?: Error;
     }
 
     /**
@@ -270,18 +337,18 @@ declare module '@tjs/os' {
      */
     export class ChildProcess {
         /** 标准输入类型: inherit, pipe, ignore */
-        stdin?: any;
+        stdin?: native.Pipe;
 
         /** 标准输出类型: inherit, pipe, ignore */
-        stdout?: any;
+        stdout?: native.Pipe;
 
         /** 标准错误类型: inherit, pipe, ignore */
-        stderr?: any;
+        stderr?: native.Pipe;
 
         /** pid */
         pid: number;
 
-        /** 是已连接 */
+        /** 是否已连接 */
         connected: boolean;
 
         /** 断开连接 */
@@ -300,10 +367,10 @@ declare module '@tjs/os' {
         wait(): Promise<ProcessResult>;
 
         /** 当断开连接 */
-        ondisconnect(message: Event): void;
+        ondisconnect?(message: Event): void;
 
         /** 当收到消息 */
-        onmessage(message: MessageEvent): void;
+        onmessage?(message: MessageEvent): void;
     }
 
     /**
@@ -338,14 +405,32 @@ declare module '@tjs/os' {
         flags?: number;
     }
 
+    export interface SignalHandler {
+        readonly signum: number;
+        close(): void;
+    }
+
     /**
      * 启动一个子进程
      * @param command 
+     * @param args 
      * @param options 
      */
-    export function spawn(command: string[], options?: ProcessOptions): ChildProcess;
+    export function spawn(command: string, args?: string[], options?: ProcessOptions): ChildProcess;
 
+    /**
+     * 
+     * @param file 
+     * @param args 
+     * @param options 
+     */
     export function execFile(file: string, args?: string[], options?: ProcessOptions): Promise<ChildProcess>;
+
+    /**
+     * 
+     * @param file 
+     * @param options 
+     */
     export function execFile(file: string, options?: ProcessOptions): Promise<ChildProcess>;
 
     /**
@@ -355,22 +440,37 @@ declare module '@tjs/os' {
      */
     export function exec(command: string[] | string, options?: ProcessOptions): Promise<ProcessResult>;
 
+    /**
+     * 执行 Shell 命令
+     * @param args 
+     */
+    export function shell(...args: string[]): Promise<ProcessResult>;
+
     export function daemon(command: string[] | string, options?: ProcessOptions): Promise<ProcessResult>;
 
     /** CPU 架构类型 */
     export const arch: string;
 
+    /** 主板类型 */
+    export const board: string;
+
     /** 操作系统类型 */
     export const platform: string;
 
-    /** 操作系统类型 */
-    export const signals: { [key: string]: number };
-
-    /** 信号 */
-    export const signal: Map<string, number>;
+    /**
+     * Registers the given function as a listener of the given signal event. 
+     * 信号 
+     */
+    export function signal(signal: number, handler: (signal: number) => any): SignalHandler;
 
     /** CPU 信息 */
     export function cpus(): string[];
+
+    /** 
+     * Change the current working directory to the specified path.
+     * 改变当前进程的工作目录，如果失败则抛出异常。 
+     */
+    export function chdir(path: string): void
 
     /** 当前工作目录 */
     export function cwd(): string;
@@ -384,7 +484,10 @@ declare module '@tjs/os' {
     /** 用户主目录 */
     export function homedir(): string;
 
-    /** 主机名 */
+    /** 
+     * Get the hostname of the machine the process is running on.
+     * 返回当前进程运行的主机的名称 
+     */
     export function hostname(): string;
 
     /** 高精度时钟时间，单位为纳秒。 */
@@ -417,7 +520,7 @@ declare module '@tjs/os' {
     export function totalmem(): number;
 
     /** 操作系统信息 */
-    export function uname(): string;
+    export function uname(): { sysname: string, release: string, version: string, machine: string };
 
     /** 系统启动时间, 单位为秒 */
     export function uptime(): number;
@@ -427,114 +530,11 @@ declare module '@tjs/os' {
 
     /** 打印内存使用情况 */
     export function printMemoryUsage(): void;
-    export function dumpObjects(): void;
-
-    export function openlog(name: string): void;
-    export function syslog(level: number, data: any): void;
-}
-
-declare module '@tjs/path' {
-    export interface PathObject {
-        root?: string;
-        dir?: string;
-        base?: string;
-        ext?: string;
-        name?: string;
-    }
 
     /**
-     * 
-     * @param path 路径
+     * Operating signals
      */
-    export function basename(path: string, extName?: string): string;
-    export function extname(path: string): string;
-    export function dirname(path: string): string;
-    export function join(...args: string[]): string;
-
-    export function isAbsolute(path: string): boolean;
-    export function parse(path: string): PathObject;
-    export function format(path: PathObject): string;
-}
-
-declare module '@tjs/process' {
-    /** CPU 架构类型，可能的值为：'arm'、'arm64'、'ia32'、'mips'、'x32' 和 'x64' */
-    export const arch: string;
-
-    export const applet: string;
-
-    /** 
-     * 命令行参数，
-     * - 第一个元素将是 process.exepath
-     * - 第二个元素将是正在执行的 JavaScript 文件的路径。
-     * - 其余元素将是任何其他命令行参数。 
-     */
-    export const args: string[];
-
-    /** 命令行参数，args 的别名 */
-    export const argv: string[];
-
-    /** 当前进程的 PID */
-    export const pid: number;
-
-    /** 操作系统平台类型, 目前可能的值是: `linux` */
-    export const platform: string;
-
-    /** 当前进程的父进程的 PID */
-    export const ppid: number;
-
-    /** 根目录 */
-    export const root: string;
-
-    /** 当前进程标题（即返回 ps 的当前值）, 为 process.title 分配一个新值会修改 ps 的当前值 */
-    export let title: string;
-
-    /** 软件版本 */
-    export const version: string;
-
-    /** 版本号 */
-    export const versions: string;
-
-    /** 改变当前进程的工作目录，如果失败则抛出异常。 */
-    export function chdir(directory: string): Promise<void>
-
-    /** 当前工作目录 */
-    export function cwd(): string
-
-    /** 当前进程执行文件的绝对路径 */
-    export function exepath(): string
-
-    /**
-     * 以 `code` 的退出状态同步终止进程。 
-     * @param code 退出码，默认为 `0`
-     */
-    export function exit(code?: number): void
-
-    /** 高精度时钟时间，单位为纳秒。 */
-    export function hrtime(): number
-
-    /** 
-     * 发送信号 
-     * @param pid 进程标识号
-     * @param signal 要发送的信号，可以是字符串或数字。默认值: 'SIGTERM'。
-     */
-    export function kill(pid: number, signal?: string | number): void
-
-    /** 查询环境变量 */
-    export function getenv(name: string): string
-
-    /** 查询环境变量 */
-    export function environ(): { [key: string]: string }
-
-    /** 删除环境变量 */
-    export function unsetenv(name: string): void
-
-    /** 设置环境变量 */
-    export function setenv(name: string, value: string): void
-
-    /** 当前进程占用的物理内存 */
-    export function rss(): number;
-
-    export const SIGNAL: {
+    export const signals: {
         SIGABRT: 6,
         SIGALRM: 14,
         SIGBUS: 7,
@@ -571,6 +571,207 @@ declare module '@tjs/process' {
     }
 }
 
+/**
+ * The path module provides utilities for working with file and directory paths.
+ */
+declare module '@tjs/path' {
+    export interface PathObject {
+        root?: string;
+        dir?: string;
+        base?: string;
+        ext?: string;
+        name?: string;
+    }
+
+    /**
+     * Returns the last portion of a path, similar to the Unix basename command. 
+     * Trailing directory separators are ignored.
+     * @param path 路径
+     */
+    export function basename(path: string, extName?: string): string;
+
+    /**
+     * returns the extension of the path, from the last occurrence of the . (period) 
+     * character to end of string in the last portion of the path. 
+     * If there is no . in the last portion of the path, or if there are no . characters 
+     * other than the first character of the basename of path (see path.basename()) , 
+     * an empty string is returned.
+     * @param path 
+     */
+    export function extname(path: string): string;
+
+    /**
+     * Returns the directory name of a path, similar to the Unix dirname command. 
+     * Trailing directory separators are ignored, see path.sep.
+     * @param path 
+     */
+    export function dirname(path: string): string;
+
+    /**
+     * Joins all given path segments together using the platform-specific separator as a delimiter, 
+     * then normalizes the resulting path.
+     * @param args A sequence of path segments
+     */
+    export function join(...args: string[]): string;
+
+    /**
+     * Determines if path is an absolute path.
+     * If the given path is a zero-length string, false will be returned.
+     * @param path 
+     */
+    export function isAbsolute(path: string): boolean;
+
+    /**
+     * Returns an object whose properties represent significant elements of the path. 
+     * Trailing directory separators are ignored,
+     * @param path 
+     */
+    export function parse(path: string): PathObject;
+
+    /**
+     * Returns a path string from an object. This is the opposite of path.parse().
+     * @param path 
+     */
+    export function format(path: PathObject): string;
+}
+
+/**
+ * The process module provides information about, and control over, the current WoT.js process.
+ */
+declare module '@tjs/process' {
+    import * as native from '@tjs/native'
+
+    /** CPU 架构类型，可能的值为：'arm'、'arm64'、'ia32'、'mips'、'x32' 和 'x64' */
+    export const arch: string;
+
+    /** 
+     * Returns the script arguments to the program.
+     * 命令行参数。
+     * - 第一个元素是 process.execPath
+     * - 第二个元素是指向被执行的 JavaScript 文件的路径。
+     * - 其余元素则是其他命令行参数。 
+     */
+    export const args: string[];
+
+    /** 
+     * 命令行参数，args 的别名。
+     * - 第一个元素是 process.execPath
+     * - 第二个元素是指向被执行的 JavaScript 文件的路径。
+     * - 其余元素则是其他命令行参数。 
+     */
+    export const argv: string[];
+
+    /**
+     * 返回当前应用的名称
+     */
+    export const command: string;
+
+    /**
+     * 当前进程退出码
+     */
+    export function exitCode(code?: number): number;
+
+    /** 
+     * The current process ID of this instance.
+     * 当前进程的 ID 
+     */
+    export const pid: number;
+
+    /** 操作系统平台类型, 目前可能的值是: `linux` */
+    export const platform: string;
+
+    /** 
+     * The process ID of parent process of this instance.
+     * 当前进程的父进程的 PID 
+     */
+    export const ppid: number;
+
+    /** 根目录 */
+    export const root: string;
+
+    /** 当前进程标题（即返回 ps 的当前值）, 为 process.title 分配一个新值会修改 ps 的当前值 */
+    export function title(title?: string): string;
+
+    /** 软件版本 */
+    export const version: string;
+
+    /** 
+     * Version information related to the current runtime environment.
+     * 当前运行环境相关版本号 
+     */
+    export const versions: { [key: string]: string };
+
+    /** 
+     * Returns the path to the current executable.
+     * 当前进程执行文件的绝对路径 
+     */
+    export function execPath(): string
+
+    /** 
+     * The URL of the entrypoint module entered from the command-line. 
+     * 当前进程执行脚本的路径 
+     */
+    export function scriptPath(): string
+
+    /**
+     * Exit the process with optional exit code.
+     * 以 `code` 的退出状态同步终止进程。 
+     * @param code 退出码，默认为 `0`
+     */
+    export function exit(code?: number): void
+
+    /** 
+     * Retrieve the value of an environment variable.
+     * 查询环境变量 
+     */
+    export function getenv(name: string): string
+
+    /** 
+     * Returns a snapshot of the environment variables at invocation as a simple object of keys and values.
+     * 查询环境变量 
+     */
+    export function environ(): { [key: string]: string }
+
+    /** 
+     * Delete the value of an environment variable.
+     * 删除环境变量 
+     */
+    export function unsetenv(name: string): void
+
+    /** 
+     * Set the value of an environment variable.
+     * 设置环境变量 
+     */
+    export function setenv(name: string, value: string): void
+
+    /** 
+     * The number of bytes of the current process resident set size, 
+     * which is the amount of memory occupied in main memory (RAM).
+     * 当前进程占用的物理内存 
+     */
+    export function rss(): number;
+
+    export function getegid(): number;
+    export function geteuid(): number;
+    export function getgid(): number;
+    export function getuid(): number;
+    export function setegid(gid: number): number;
+    export function seteuid(gid: number): number;
+    export function setgid(gid: number): number;
+    export function setuid(gid: number): number;
+
+    export function stdin(): native.TTY;
+    export function stdout(): native.TTY;
+    export function stderr(): native.TTY;
+
+    export function addEventListener(eventName: string, listener: Function, options?: boolean | { capture?: boolean, passive?: boolean, once?: boolean }): void;
+    export function removeEventListener(eventName: string, listener: Function, options:any): void;
+}
+
+/**
+ * The util module supports the needs of WoT.js internal APIs. 
+ * Many of the utilities are useful for application and module developers as well. 
+ */
 declare module '@tjs/util' {
     export class MessageParser extends EventTarget {
         execute(data: ArrayBuffer | string): void;
@@ -588,11 +789,37 @@ declare module '@tjs/util' {
     }
 
     /**
-     * 将二进制数据转换为字符串
-     * @param data 二进制数据
-     * @param format 编码格式 'utf-8', 'utf8', 'hex', 'base64'
+     * 解码
+     * @param text 要解码的数据
+     * @param format `hex`,`base64`
      */
-    export function toString(data: Uint8Array | ArrayBuffer, format?: string): string;
+    export function decode(text: string, format?: string): Uint8Array;
+
+    /**
+     * 
+     * @param message 
+     */
+    export function encodeMessage(message: boolean | number | string | object | Array<any> | ArrayBuffer): Uint8Array;
+
+    /**
+     * 编码
+     * @param data 要编码的数据
+     * @param format `hex`,`base64`
+     */
+    export function encode(data: string | Uint8Array | ArrayBuffer, format?: string): string;
+
+    /**
+     * 计算 hash 值
+     * @param data 要计算的数据
+     * @param type 算法类型，`md5`,`sha1`
+     */
+    export function hash(data: ArrayBuffer | Uint8Array | string, type?: string): string;
+
+    /**
+     * 睡眠
+     * @param time 
+     */
+    export function sleep(time: number): Promise<void>;
 
     /**
      * 将字符串转换为二进制数据
@@ -602,16 +829,11 @@ declare module '@tjs/util' {
     export function toBuffer(text: string, format?: string): ArrayBuffer;
 
     /**
-     * 计算 hash 值
-     * @param data 
-     * @param type 
+     * 将二进制数据转换为字符串
+     * @param data 二进制数据
+     * @param format 编码格式 'utf-8', 'utf8', 'hex', 'base64'
      */
-    export function hash(data: ArrayBuffer | Uint8Array | string, type?: string): string;
-    export function encode(data: string | Uint8Array | ArrayBuffer, format?: string): string;
-    export function decode(text: string, format?: string): Uint8Array;
-
-    export function sleep(time: number): Promise<void>;
-    export function encodeMessage(message: boolean | number | string | object | Array<any> | ArrayBuffer): Uint8Array;
+    export function toString(data: Uint8Array | ArrayBuffer, format?: string): string;
 
     /**
      * 数据格式化
@@ -619,7 +841,7 @@ declare module '@tjs/util' {
     export namespace format {
         /**
          * 将指定的数据格式化显示
-         * @param data 
+         * @param data 要格式化的数据
          * @param format 数据格式, `bytes`, `time`
          * @param fixed 
          */
@@ -627,7 +849,7 @@ declare module '@tjs/util' {
 
         /**
          * 解析指定格式的数值
-         * @param data 
+         * @param data 要解析的数据
          * @param format 数据格式, `bytes`, `time`
          * @param defaultValue 
          */
@@ -635,9 +857,8 @@ declare module '@tjs/util' {
 
         /**
          * 解析指定格式的数据
-         * @param data 
-         * @param format 
-         * @param defaultValue 
+         * @param data 要解析的数据
+         * @param format 格式
          */
         function parse(data: string, format?: string): any;
     }
@@ -697,63 +918,29 @@ declare module '@tjs/util' {
          */
         function uncompress(data: BufferSource, uncompressedSize: number): ArrayBuffer;
     }
-}
 
-declare module '@tjs/abort-controller' {
-    export class AbortController {
-
-    }
-
-    export class AbortSignal {
-
-    }
-}
-
-declare module '@tjs/console' {
-    export class Console {
-
-    }
-}
-
-declare module '@tjs/performance' {
-    export class Performance {
-
-    }
-}
-
-declare module '@tjs/navigator' {
-    export class Navigator {
-
+    export namespace types {
+        function isArray(value: any): boolean;
+        function isArrayBuffer(value: any): boolean;
+        function isBoolean(value: any): boolean;
+        function isDataView(value: any): boolean;
+        function isDate(value: any): boolean;
+        function isFinite(value: any): boolean;
+        function isFunction(value: any): boolean;
+        function isMap(value: any): boolean;
+        function isNull(value: any): boolean;
+        function isNullOrUndefined(value: any): boolean;
+        function isNumber(value: any): boolean;
+        function isObject(value: any): boolean;
+        function isPromise(value: any): boolean;
+        function isProxy(value: any): boolean;
+        function isRegExp(value: any): boolean;
+        function isSet(value: any): boolean;
+        function isString(value: any): boolean;
+        function isSymbol(value: any): boolean;
+        function isTypedArray(value: any): boolean;
+        function isUndefined(value: any): boolean;
+        function isWeakSet(value: any): boolean;
     }
 }
 
-declare module '@tjs/event-target' {
-    export class Event {
-        constructor(type: string, init?: any);
-        type: string;
-    }
-
-    export class CustomEvent extends Event {
-
-    }
-
-    export class EventTarget {
-        dispatchEvent(event: Event | { type: string }): void;
-        addEventListener(eventName: string, listener: Function, options: boolean | { capture?: boolean, passive?: boolean, once?: boolean }): void;
-        removeEventListener(eventName: string, listener: Function, options): void;
-
-    }
-
-    export function defineEventAttribute(prototype: object, eventName: string): void;
-}
-
-declare module '@tjs/storage' {
-    export function createStorage(type: string): Storage;
-}
-
-declare namespace NodeJS {
-    interface Process {
-        readonly root: string;
-    }
-
-}

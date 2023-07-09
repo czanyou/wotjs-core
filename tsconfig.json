@@ -1,0 +1,15 @@
+{
+    "compilerOptions": {
+        "module": "esnext",
+        "target": "es2020",
+        "baseUrl": "./"
+    },
+    "include": [
+        "core/js/**/*",
+        "core/types/**/*",
+        "app/**/*"
+    ],
+    "files": [
+        "./core/types/index.d.ts",
+    ]
+}

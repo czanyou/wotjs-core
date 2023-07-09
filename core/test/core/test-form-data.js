@@ -1,6 +1,8 @@
 // @ts-check
 /// <reference path ="../../types/index.d.ts" />
-import { assert, test } from '@tjs/assert';
+
+import * as assert from '@tjs/assert';
+import { test } from '@tjs/test';
 
 test('Blob', async () => {
     const blob = new Blob(['test', '100'], { type: 'text/plain' });
@@ -33,6 +35,27 @@ test('File', async () => {
 
     const text = await file.text();
     assert.equal(text, 'test100');
+});
+
+test('FileReader', async () => {
+    const blob = new Blob(['test', '100'], { type: 'text/plain' });
+
+    const reader = new FileReader();
+    const promise = new Promise(function (resolve, reject) {
+        reader.onload = function () {
+            resolve(reader.result);
+        };
+
+        reader.onerror = function () {
+            reject(reader.error);
+        };
+    });
+
+    reader.readAsArrayBuffer(blob);
+    
+    await promise;
+
+    // console.log('reader', reader);
 });
 
 test('FormData', async () => {

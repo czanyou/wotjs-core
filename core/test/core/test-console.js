@@ -1,6 +1,8 @@
 // @ts-check
 /// <reference path ="../../types/index.d.ts" />
-import { assert, test } from '@tjs/assert';
+
+import * as assert from '@tjs/assert';
+import { test } from '@tjs/test';
 
 test('console', async () => {
     assert.ok(console.clear);

@@ -1,6 +1,8 @@
 // @ts-check
 /// <reference path ="../../types/index.d.ts" />
-import { assert, test } from '@tjs/assert';
+
+import * as assert from '@tjs/assert';
+import { test } from '@tjs/test';
 
 import * as util from '@tjs/util';
 
@@ -36,5 +38,7 @@ test('string.length', () => {
 
     assert.equal(text.length, 18);
     assert.equal(buffer.byteLength, 30);
+
+    // @ts-ignore
     assert.equal(console.width(text), 22);
 });

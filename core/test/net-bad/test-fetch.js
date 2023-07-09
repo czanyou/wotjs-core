@@ -1,6 +1,8 @@
 // @ts-check
 /// <reference path ="../../types/index.d.ts" />
-import { assert, test } from '@tjs/assert';
+
+import * as assert from '@tjs/assert';
+import { test } from '@tjs/test';
 
 test('fetch - basic', async () => {
     const response = await fetch('http://www.baidu.com/?');

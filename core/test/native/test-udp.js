@@ -1,6 +1,8 @@
 // @ts-check
 /// <reference path ="../../types/index.d.ts" />
-import { assert, test } from '@tjs/assert';
+
+import * as assert from '@tjs/assert';
+import { test } from '@tjs/test';
 
 import * as native from '@tjs/native';
 
@@ -23,7 +25,10 @@ test('native.udp', async () => {
             assert.equal(text, 'PING', 'recving strings works');
 
             output.push('pong');
-            server.send('PONG', message.address);
+
+            if (message.address) {
+                server.send('PONG', message.address);
+            }
         };
 
         return server;
@@ -56,6 +61,7 @@ test('native.udp', async () => {
     rinfo = await client.recv();
     text = textDecoder.decode(rinfo.data);
     assert.equal(text, 'PONG', 'sending a Uint8Array works');
+    // @ts-ignore
     assert.throws(() => { client.send(null, serverAddress); }, TypeError, 'sending anything else gives TypeError');
 
     output.push('exit');

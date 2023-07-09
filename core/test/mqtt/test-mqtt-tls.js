@@ -2,7 +2,8 @@
 /// <reference path ="../../types/index.d.ts" />
 import * as mqtt from '@tjs/mqtt';
 
-import { assert, test, startTimeout, stopTimeout, waitTimeout } from '@tjs/assert';
+import * as assert from '@tjs/assert';
+import { test } from '@tjs/test';
 
 /* global TextDecoder */
 
@@ -21,46 +22,50 @@ test('mqtt', async () => {
 
     const result = {};
 
-    const url = 'mqtts://iot.wotcloud.cn:8883';
+    const url = 'mqtts://localhost:8883';
     const client = mqtt.connect(url, options);
     assert.ok(client);
 
-    startTimeout(10000, () => {
-        client.close();
+    const promise = new Promise((resolve, reject) => {
+
+        setTimeout(() => {
+            client.close();
+        }, 10000);
+
+        function onClose() {
+            resolve(undefined);
+            client.close();
+        }
+
+        const textDecoder = new TextDecoder();
+
+        client.onerror = function (event) {
+            result.hasError = event.error;
+        };
+
+        client.onopen = function (event) {
+            // console.log('onopen', event);
+            result.connected = true;
+
+            setTimeout(() => { client.subscribe('testtopic'); }, 0);
+            setTimeout(() => { client.publish('testtopic', 'data'); }, 100);
+        };
+
+        client.onmessage = function (event) {
+            const message = event.data;
+            const payload = textDecoder.decode(message.payload);
+
+            result.payload = payload;
+            result.topic = message.topic;
+            onClose();
+        };
+
     });
 
-    function onClose() {
-        stopTimeout();
-        client.close();
-    }
-
-    const textDecoder = new TextDecoder();
-
-    client.onerror = function (event) {
-        result.hasError = event.error;
-    };
-
-    client.onopen = function (event) {
-        // console.log('onopen', event);
-        result.connected = true;
-
-        setTimeout(() => { client.subscribe('testtopic'); }, 0);
-        setTimeout(() => { client.publish('testtopic', 'data'); }, 100);
-    };
-
-    client.onmessage = function (event) {
-        const message = event.data;
-        const payload = textDecoder.decode(message.payload);
-
-        result.payload = payload;
-        result.topic = message.topic;
-        onClose();
-    };
-
-    await waitTimeout();
+    await promise;
 
     if (!client.authorized) {
-        console.log(client.authorizationError);
+        // console.log(client.authorizationError);
     }
     // console.log(result);
 

@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="zh">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="format-detection" content="telephone=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>首页 - WoT 知识分享
+  </title>
+  <link rel="shortcut icon" href="./favicon.ico" />
+  <link rel="stylesheet" href="./libs/font-awesome/4.7.0/css/font-awesome.min.css" />
+  <link rel="stylesheet" href="./libs/bootstrap/4.4.1/css/bootstrap.min.css" />
+  <link rel="stylesheet" href="./home/css/wot-home.css?_v=clipsqjba001ycappbevc0kak" />
+  <style>
+    .banner-header .banner-content p {
+      max-width: 450px;
+    }
+
+    .banner-header .banner-content img {
+      width: 100%;
+    }
+
+    #navbar-item-user {
+      display: none;
+    }
+  </style>
+</head>
+
+<body>
+  <header id="navbar" class="nav-toggle nav-default">
+    <div class="container-fluid">
+      <ul class="navbar-left">
+        <li>
+          <a href="/" class="navbar-brand" title="Home">
+            <img src="./home/images/cloud.png?_v=clipsqjba001ycappbevc0kak" alt="Cloud">
+            <span id="navbar-brand-title">首页</span>
+          </a>
+        </li>
+      </ul>
+
+      <ul id="header-navbar-center" class="navbar-center">
+        <li><a class="navbar-item d-none" href="./docs/?_v=clipsqjba001ycappbevc0kak">开放文档</a></li>
+        <li><a class="navbar-item d-none" href="./dashboard/?lang=zh-CN&_v=clipsqjba001ycappbevc0kak">应用中心</a></li>
+        <li><a class="navbar-item" href="./console/?lang=zh-CN&_v=clipsqjba001ycappbevc0kak">管理控制台</a></li>
+      </ul>
+
+      <ul class="navbar-right">
+        <li id="navbar-item-login">
+          <a class="navbar-item" href="./login?lang=zh-CN&callback=/">登录</a>
+        </li>
+
+        <li id="navbar-item-user">
+          <a class="navbar-item" href="#" id="dropdownMenuButton" data-toggle="dropdown" aria-haspopup="true"
+            aria-expanded="false"><i class="fa fa-user"></i>
+            <span>用户名</span></a>
+          <div class="dropdown-menu dropdown-menu-right" aria-labelledby="dropdownMenuButton">
+            <a class="dropdown-item" href="./console/views/user/settings/?lang=zh-CN&_v=clipsqjba001ycappbevc0kak">账号管理</a>
+            <a class="dropdown-item" href="./auth/logout?lang=zh-CN&callback=/">退出</a>
+          </div>
+        </li>
+      </ul>
+
+      <a href="#" class="navbar-item navbar-bars" id="navbar-bars" title="bars"><i class="fa fa-bars"></i></a>
+    </div>
+  </header>
+
+  <main>
+    <div class="banner banner-header">
+      <div class="container">
+        <div id="home-banner-content" class="banner-content row" style="display: none;">
+          <div class="col-12 col-sm-6 col-md-6">
+            <h1 id="banner-title">
+              WoT 知识分享
+            </h1>
+            <p>在边缘和云中连接、处理、存储和分析数据的一整套工具。</p>
+            <div class="p-4">
+              <a class="d-none" href="./dashboard/?lang=zh-CN&_v=clipsqjba001ycappbevc0kak" class="btn btn-lg btn-info">应用中心</a>
+              <a href="./console/?lang=zh-CN&_v=clipsqjba001ycappbevc0kak" class="btn btn-lg btn-info">管理控制台</a>
+            </div>
+          </div>
+
+          <div class="col-12 col-sm-6 col-md-6">
+            <img title="cover" src="./home/images/cover.png?_v=clipsqjba001ycappbevc0kak" class="mt-3" />
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <footer>
+    <div class="container">
+      <div class="copyright">
+        <span>©2023 WoT 知识分享. All rights reserved </span>
+        <a title="beian" href="http://www.beian.miit.gov.cn/">
+          粤ICP备19041438号
+        </a>
+      </div>
+    </div>
+  </footer>
+
+  <script src="./libs/jquery/3.7/jquery.min.js"></script>
+  <script src="./libs/jquery/3.7/jquery.cookie.min.js"></script>
+  <script src="./libs/bootstrap/4.4.1/js/popper.min.js"></script>
+  <script src="./libs/bootstrap/4.4.1/js/bootstrap.min.js?v=4.3.1"></script>
+  <script src="./home/js/wot-common.js?_v=clipsqjba001ycappbevc0kak"></script>
+</body>
+
+</html>

@@ -410,13 +410,10 @@ typedef struct JSMemoryUsage {
     int64_t c_func_count, array_count;
     int64_t fast_array_count, fast_array_elements;
     int64_t binary_object_count, binary_object_size;
-    int class_count;
-    int object_classes[100];
 } JSMemoryUsage;
 
 void JS_ComputeMemoryUsage(JSRuntime *rt, JSMemoryUsage *s);
 void JS_DumpMemoryUsage(FILE *fp, const JSMemoryUsage *s, JSRuntime *rt);
-void JS_DumpObjects(JSRuntime *rt);
 
 /* atom support */
 #define JS_ATOM_NULL 0

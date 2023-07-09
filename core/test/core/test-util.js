@@ -1,6 +1,8 @@
 // @ts-check
 /// <reference path ="../../types/index.d.ts" />
-import { assert, test } from '@tjs/assert';
+
+import * as assert from '@tjs/assert';
+import { test } from '@tjs/test';
 
 import * as util from '@tjs/util';
 
@@ -73,4 +75,44 @@ test('util.encode.base64', () => {
     // console.log(output);
 
     assert.equal(output, text);
+});
+
+test('util.types', async () => {
+    // isArray
+    assert.ok(!util.types.isArray(null));
+    assert.ok(!util.types.isArray({}));
+    assert.ok(!util.types.isArray(new Uint8Array()));
+    assert.ok(util.types.isArray([]));
+
+    // isObject
+    assert.ok(!util.types.isObject(null));
+    assert.ok(!util.types.isObject(''));
+    assert.ok(!util.types.isObject(String('')));
+    assert.ok(util.types.isObject({}));
+    assert.ok(util.types.isObject([]));
+
+    // isArrayBuffer
+    assert.ok(!util.types.isArrayBuffer(null));
+    assert.ok(!util.types.isArrayBuffer([]));
+    assert.ok(!util.types.isArrayBuffer(new Uint8Array()));
+    assert.ok(!util.types.isArrayBuffer(new DataView(new ArrayBuffer(4))));
+    assert.ok(util.types.isArrayBuffer(new ArrayBuffer(0)));
+
+    // isDataView
+    assert.ok(!util.types.isDataView(new ArrayBuffer(0)));
+    assert.ok(util.types.isDataView(new Uint8Array()));
+    assert.ok(util.types.isDataView(new DataView(new ArrayBuffer(4))));
+
+    // isTypedArray
+    assert.ok(!util.types.isTypedArray(new ArrayBuffer(0)));
+    assert.ok(!util.types.isTypedArray(new DataView(new ArrayBuffer(4))));
+    assert.ok(util.types.isTypedArray(new Uint8Array()));
+
+    async function test() { };
+
+    // isPromise
+    assert.ok(!util.types.isPromise(null));
+    assert.ok(util.types.isPromise(Promise.resolve(0)));
+    assert.ok(util.types.isPromise(test()));
+    assert.ok(util.types.isPromise(Promise.reject(new Error('test isPromise(reject)'))));
 });

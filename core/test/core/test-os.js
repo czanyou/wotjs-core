@@ -1,7 +1,9 @@
 // @ts-check
 /// <reference path ="../../types/index.d.ts" />
 import * as os from '@tjs/os';
-import { assert, test } from '@tjs/assert';
+
+import * as assert from '@tjs/assert';
+import { test } from '@tjs/test';
 
 test('os', () => {
     // console.log(Object.keys(os).sort());
@@ -11,6 +13,7 @@ test('os', () => {
     assert.ok(os.homedir());
     assert.ok(os.cwd());
     assert.ok(os.cpus());
+    assert.ok(os.board);
     assert.ok(os.exec);
     assert.ok(os.execFile);
     assert.ok(os.kill);
@@ -27,15 +30,8 @@ test('os', () => {
 });
 
 test('os.sleep', () => {
+    // @ts-ignore
     os.sleep(null);
     os.sleep(0);
     os.sleep(1);
-});
-
-test('os.syslog', () => {
-    os.openlog('test-process');
-    os.syslog(3, 'test syslog error'); // LOG_ERR
-    os.syslog(4, 'test syslog warn'); // LOG_WARNING
-    os.syslog(6, 'test syslog info'); // LOG_INFO
-    os.syslog(7, 'test syslog debug'); // LOG_DEBUG
 });

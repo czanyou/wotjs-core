@@ -1,6 +1,8 @@
 // @ts-check
 /// <reference path ="../../types/index.d.ts" />
-import { assert, test } from '@tjs/assert';
+
+import * as assert from '@tjs/assert';
+import { test } from '@tjs/test';
 
 import * as native from '@tjs/native';
 
@@ -10,7 +12,8 @@ test('native.env', () => {
     assert.equal(value1, 'TEST');
 
     const environ = native.environ();
-    assert.equal(environ.test, 'TEST');
+    // eslint-disable-next-line dot-notation
+    assert.equal(environ['test'], 'TEST');
     // console.log(envs);
 
     native.unsetenv('test');
@@ -22,7 +25,7 @@ test('native.env', () => {
 test('native.std', () => {
     assert.ok(native.cwd(), 'cwd');
     assert.ok(native.exepath(), 'exepath');
-    assert.ok(native.gc, 'gc');
+    assert.ok(native.runtime.gc, 'gc');
     assert.ok(native.homedir(), 'homedir');
     assert.ok(native.hrtime(), 'hrtime');
     assert.ok(native.tmpdir(), 'tmpdir');
@@ -48,8 +51,8 @@ test('native.evalScript', async () => {
     const __filename = import.meta.url.slice(7); // strip "file://"
     const __dirname = path.dirname(__filename);
 
-    assert.equal(native.evalScript('(function() { return 100; }) ()'), 100);
-    assert.equal(native.loadScript(__dirname + '/helpers/test-eval.js'), 200);
+    assert.equal(native.runtime.evalScript('(function() { return 100; }) ()'), 100);
+    assert.equal(native.runtime.loadScript(__dirname + '/helpers/test-eval.js'), 200);
 
-    native.gc();
+    native.runtime.gc();
 });

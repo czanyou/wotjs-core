@@ -1,98 +1,91 @@
-cmake_minimum_required(VERSION 2.8)
+cmake_minimum_required(VERSION 3.12)
 
-set(MBEDTLS_DIR ${CMAKE_CURRENT_LIST_DIR}/mbedtls)
-
-include_directories(${MBEDTLS_DIR}/include)
+set(LIBMBEDTLS_DIR ${CMAKE_CURRENT_LIST_DIR}/mbedtls)
 
 set(SOURCES
 	# libcrypto
-	${MBEDTLS_DIR}/library/aes.c
-	${MBEDTLS_DIR}/library/aesni.c
-	${MBEDTLS_DIR}/library/arc4.c
-	${MBEDTLS_DIR}/library/asn1parse.c
-	${MBEDTLS_DIR}/library/asn1write.c
-	${MBEDTLS_DIR}/library/base64.c
-	${MBEDTLS_DIR}/library/bignum.c
-	${MBEDTLS_DIR}/library/blowfish.c
-	${MBEDTLS_DIR}/library/camellia.c
-	${MBEDTLS_DIR}/library/ccm.c
-	${MBEDTLS_DIR}/library/chacha20.c
-	${MBEDTLS_DIR}/library/chachapoly.c
-	${MBEDTLS_DIR}/library/cipher_wrap.c
-	${MBEDTLS_DIR}/library/cipher.c
-	${MBEDTLS_DIR}/library/ctr_drbg.c
-	${MBEDTLS_DIR}/library/des.c
-	${MBEDTLS_DIR}/library/dhm.c
-	${MBEDTLS_DIR}/library/ecdh.c
-	${MBEDTLS_DIR}/library/ecdsa.c
-	${MBEDTLS_DIR}/library/ecjpake.c
-	${MBEDTLS_DIR}/library/ecp_curves.c
-	${MBEDTLS_DIR}/library/ecp.c
-	${MBEDTLS_DIR}/library/entropy_poll.c
-	${MBEDTLS_DIR}/library/entropy.c
-	${MBEDTLS_DIR}/library/error.c
-	${MBEDTLS_DIR}/library/gcm.c
-	${MBEDTLS_DIR}/library/havege.c
-	${MBEDTLS_DIR}/library/hmac_drbg.c
-	${MBEDTLS_DIR}/library/md.c
-	${MBEDTLS_DIR}/library/md5.c
-	${MBEDTLS_DIR}/library/memory_buffer_alloc.c
-	${MBEDTLS_DIR}/library/oid.c
-	${MBEDTLS_DIR}/library/padlock.c
-	${MBEDTLS_DIR}/library/pem.c
-	${MBEDTLS_DIR}/library/pk_wrap.c
-	${MBEDTLS_DIR}/library/pk.c
-	${MBEDTLS_DIR}/library/pkcs12.c
-	${MBEDTLS_DIR}/library/pkcs5.c
-	${MBEDTLS_DIR}/library/pkparse.c
-	${MBEDTLS_DIR}/library/pkwrite.c
-	${MBEDTLS_DIR}/library/platform_util.c
-	${MBEDTLS_DIR}/library/platform.c
-	${MBEDTLS_DIR}/library/poly1305.c
-	${MBEDTLS_DIR}/library/ripemd160.c
-	${MBEDTLS_DIR}/library/rsa_internal.c
-	${MBEDTLS_DIR}/library/rsa.c
-	${MBEDTLS_DIR}/library/sha1.c
-	${MBEDTLS_DIR}/library/sha256.c
-	${MBEDTLS_DIR}/library/sha512.c
-	${MBEDTLS_DIR}/library/threading.c
-	${MBEDTLS_DIR}/library/timing.c
-	${MBEDTLS_DIR}/library/version_features.c
-	${MBEDTLS_DIR}/library/version.c
-	${MBEDTLS_DIR}/library/xtea.c
+	${LIBMBEDTLS_DIR}/library/aes.c
+	${LIBMBEDTLS_DIR}/library/aesni.c
+	${LIBMBEDTLS_DIR}/library/asn1parse.c
+	${LIBMBEDTLS_DIR}/library/asn1write.c
+	${LIBMBEDTLS_DIR}/library/base64.c
+	${LIBMBEDTLS_DIR}/library/bignum.c
+	${LIBMBEDTLS_DIR}/library/rsa_alt_helpers.c
+	${LIBMBEDTLS_DIR}/library/camellia.c
+	${LIBMBEDTLS_DIR}/library/ccm.c
+	${LIBMBEDTLS_DIR}/library/chacha20.c
+	${LIBMBEDTLS_DIR}/library/chachapoly.c
+	${LIBMBEDTLS_DIR}/library/cipher_wrap.c
+	${LIBMBEDTLS_DIR}/library/cipher.c
+	${LIBMBEDTLS_DIR}/library/ctr_drbg.c
+	${LIBMBEDTLS_DIR}/library/des.c
+	${LIBMBEDTLS_DIR}/library/dhm.c
+	${LIBMBEDTLS_DIR}/library/ecdh.c
+	${LIBMBEDTLS_DIR}/library/ecdsa.c
+	${LIBMBEDTLS_DIR}/library/ecjpake.c
+	${LIBMBEDTLS_DIR}/library/ecp_curves.c
+	${LIBMBEDTLS_DIR}/library/ecp.c
+	${LIBMBEDTLS_DIR}/library/entropy_poll.c
+	${LIBMBEDTLS_DIR}/library/entropy.c
+	${LIBMBEDTLS_DIR}/library/error.c
+	${LIBMBEDTLS_DIR}/library/gcm.c
+	${LIBMBEDTLS_DIR}/library/constant_time.c
+	${LIBMBEDTLS_DIR}/library/hmac_drbg.c
+	${LIBMBEDTLS_DIR}/library/md.c
+	${LIBMBEDTLS_DIR}/library/md5.c
+	${LIBMBEDTLS_DIR}/library/memory_buffer_alloc.c
+	${LIBMBEDTLS_DIR}/library/oid.c
+	${LIBMBEDTLS_DIR}/library/padlock.c
+	${LIBMBEDTLS_DIR}/library/pem.c
+	${LIBMBEDTLS_DIR}/library/pk_wrap.c
+	${LIBMBEDTLS_DIR}/library/pk.c
+	${LIBMBEDTLS_DIR}/library/pkcs12.c
+	${LIBMBEDTLS_DIR}/library/pkcs5.c
+	${LIBMBEDTLS_DIR}/library/pkparse.c
+	${LIBMBEDTLS_DIR}/library/pkwrite.c
+	${LIBMBEDTLS_DIR}/library/platform_util.c
+	${LIBMBEDTLS_DIR}/library/platform.c
+	${LIBMBEDTLS_DIR}/library/poly1305.c
+	${LIBMBEDTLS_DIR}/library/ripemd160.c
+	${LIBMBEDTLS_DIR}/library/nist_kw.c
+	${LIBMBEDTLS_DIR}/library/rsa.c
+	${LIBMBEDTLS_DIR}/library/sha1.c
+	${LIBMBEDTLS_DIR}/library/sha256.c
+	${LIBMBEDTLS_DIR}/library/sha512.c
+	${LIBMBEDTLS_DIR}/library/threading.c
+	${LIBMBEDTLS_DIR}/library/timing.c
+	${LIBMBEDTLS_DIR}/library/version_features.c
+	${LIBMBEDTLS_DIR}/library/version.c
+	${LIBMBEDTLS_DIR}/library/aria.c
 
 	# libx509
-	${MBEDTLS_DIR}/library/certs.c
-	${MBEDTLS_DIR}/library/pkcs11.c
-	${MBEDTLS_DIR}/library/x509_create.c
-	${MBEDTLS_DIR}/library/x509_crl.c
-	${MBEDTLS_DIR}/library/x509_crt.c
-	${MBEDTLS_DIR}/library/x509_csr.c
-	${MBEDTLS_DIR}/library/x509.c
-	${MBEDTLS_DIR}/library/x509write_crt.c
-	${MBEDTLS_DIR}/library/x509write_csr.c
+	${LIBMBEDTLS_DIR}/library/x509_create.c
+	${LIBMBEDTLS_DIR}/library/x509_crl.c
+	${LIBMBEDTLS_DIR}/library/x509_crt.c
+	${LIBMBEDTLS_DIR}/library/x509_csr.c
+	${LIBMBEDTLS_DIR}/library/x509.c
+	${LIBMBEDTLS_DIR}/library/x509write_crt.c
+	${LIBMBEDTLS_DIR}/library/x509write_csr.c
 
 	# libtls
-	${MBEDTLS_DIR}/library/debug.c
-	${MBEDTLS_DIR}/library/ssl_cache.c
-	${MBEDTLS_DIR}/library/ssl_ciphersuites.c
-	${MBEDTLS_DIR}/library/ssl_cli.c
-	${MBEDTLS_DIR}/library/ssl_cookie.c
-	${MBEDTLS_DIR}/library/ssl_msg.c
-	${MBEDTLS_DIR}/library/ssl_srv.c
-	${MBEDTLS_DIR}/library/ssl_ticket.c
-	${MBEDTLS_DIR}/library/ssl_tls.c
+	${LIBMBEDTLS_DIR}/library/debug.c
+	${LIBMBEDTLS_DIR}/library/ssl_cache.c
+	${LIBMBEDTLS_DIR}/library/ssl_ciphersuites.c
+	${LIBMBEDTLS_DIR}/library/ssl_cli.c
+	${LIBMBEDTLS_DIR}/library/ssl_cookie.c
+	${LIBMBEDTLS_DIR}/library/ssl_msg.c
+	${LIBMBEDTLS_DIR}/library/ssl_srv.c
+	${LIBMBEDTLS_DIR}/library/ssl_ticket.c
+	${LIBMBEDTLS_DIR}/library/ssl_tls.c
 )
 
-if (WIN32)
-	add_library(mbedtls STATIC ${SOURCES})
-# 	set_target_properties(mbedtls PROPERTIES PREFIX "")
-
-elseif (APPLE)
-  	add_library(mbedtls STATIC ${SOURCES})
-
+if (BUILD_SHARED_LIBS)
+	add_library(tjs_mbedtls SHARED ${SOURCES})
+	
 else ()
-  	add_library(mbedtls STATIC ${SOURCES})
-# 	set_target_properties(mbedtls PROPERTIES PREFIX "")
-
+	add_library(tjs_mbedtls STATIC ${SOURCES})
 endif ()
+
+target_include_directories(tjs_mbedtls PUBLIC ${LIBMBEDTLS_DIR}/include)
+
+# set_target_properties(tjs_mbedtls PROPERTIES PREFIX "")

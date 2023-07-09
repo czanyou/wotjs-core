@@ -3,7 +3,8 @@
 import * as fs from '@tjs/fs';
 import * as native from '@tjs/native';
 
-import { assert, test, startTimeout, stopTimeout, waitTimeout } from '@tjs/assert';
+import * as assert from '@tjs/assert';
+import { test } from '@tjs/test';
 
 /**
  * 测试有名管道通信
@@ -20,6 +21,18 @@ test('native.pipe', async () => {
     const result = {};
     const output = [];
     const $context = {};
+
+    const promise = new Promise((resolve, reject) => {
+        $context.callback = () => {
+            clearTimeout($context.timer);
+            resolve(0);
+        };
+
+        $context.timer = setTimeout(() => {
+            $context.callback = null;
+            resolve(0);
+        }, 1000);
+    });
 
     async function createEchoServer() {
         try {
@@ -79,7 +92,6 @@ test('native.pipe', async () => {
             if (!data) {
                 output.push('exit');
                 result.endOfFile = true;
-                onClose();
                 return;
             }
     
@@ -97,7 +109,10 @@ test('native.pipe', async () => {
                     output.push('exit');
                     assert.equal(text, 'PONG', 'sending a Uint8Array works');
                     result.isExit = true;
-                    onClose();
+                    
+                    if ($context.callback) {
+                        $context.callback();
+                    }
                 }
     
             } catch (error) {
@@ -122,15 +137,7 @@ test('native.pipe', async () => {
     output.push('ping1');
     await client.write('PING');
 
-    startTimeout(10000, () => {
-
-    });
-
-    function onClose() {
-        stopTimeout();
-    }
-
-    await waitTimeout();
+    await promise;
 
     assert.equal(output.join('->'), 'connect->connection->connected->ping1->pong->ping2->pong->exit');
 

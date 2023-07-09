@@ -2,10 +2,12 @@
 /// <reference path ="../../types/index.d.ts" />
 import * as fs from '@tjs/fs';
 import * as util from '@tjs/util';
-import process from '@tjs/process';
+import * as os from '@tjs/os';
 
 import { dirname, join } from '@tjs/path';
-import { assert, test } from '@tjs/assert';
+
+import * as assert from '@tjs/assert';
+import { test } from '@tjs/test';
 
 // @ts-ignore
 const __filename = import.meta.url.slice(7); // strip "file://"
@@ -14,7 +16,7 @@ const __dirname = dirname(__filename);
 // console.log(fs);
 
 async function testAccess() {
-    const cwd = process.cwd();
+    const cwd = os.cwd();
 
     // access
     const result = await fs.access(cwd);
@@ -32,12 +34,21 @@ async function testAccess() {
     assert.ok(cwd);
 }
 
+async function testAppendFile() {
+    const filename = '/tmp/write.test';
+    await fs.writeFile(filename, 'write\n');
+    await fs.appendFile(filename, '12345\n');
+    await fs.appendFile(filename, '67890\n');
+    const data = await fs.readFile(filename, 'utf-8');
+    // console.log(data);
+    assert.equal(data, 'write\n12345\n67890\n');
+}
+
 async function testHashFile() {
     const filename = join(__dirname, 'helpers/worker.js');
 
     // hashFile
-    const data = await fs.hashFile(filename, 'sha1');
-    const hash1 = util.encode(data, 'hex');
+    const hash1 = await fs.filesum(filename, 'SHA1');
 
     // readFile
     let filedata = await fs.readFile(filename, 'utf-8');
@@ -155,19 +166,9 @@ async function testOpen() {
     await file.close();
 }
 
-async function testAppendFile() {
-    const filename = '/tmp/write.test';
-    await fs.writeFile(filename, 'write\n');
-    await fs.appendFile(filename, '12345\n');
-    await fs.appendFile(filename, '67890\n');
-    const data = await fs.readFile(filename, 'utf-8');
-    // console.log(data);
-    assert.equal(data, 'write\n12345\n67890\n');
-}
-
 test('fs.access', testAccess);
 test('fs.appendFile', testAppendFile);
-test('fs.hashFile', testHashFile);
+test('fs.filesum', testHashFile);
 test('fs.mkdir', testMkdir);
 test('fs.mkstemp', testMkstemp);
 test('fs.open', testOpen);

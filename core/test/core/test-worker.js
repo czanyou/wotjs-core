@@ -1,33 +1,40 @@
 // @ts-check
 /// <reference path ="../../types/index.d.ts" />
-import { assert, test } from '@tjs/assert';
+
+import * as assert from '@tjs/assert';
+import { test } from '@tjs/test';
 
 import { dirname, join } from '@tjs/path';
 
-function testWorker() {
+test('worker', async () => {
     // @ts-ignore
     const __filename = import.meta.url.slice(7); // strip "file://"
     const __dirname = dirname(__filename);
 
-    // console.log('__dirname:', __dirname);
-
-    const data = JSON.stringify({ foo: 42, bar: 'baz!' });
-
     const filename = join(__dirname, 'helpers', 'worker.js');
+    // console.log('filename:', filename);
     const worker = new Worker(filename);
 
-    const timer = setTimeout(() => {
-        worker.terminate();
-    }, 1000);
+    const promise = new Promise((resolve, reject) => {
+        const timer = setTimeout(() => {
+            // console.log(worker);
+            reject(new Error('woker timeout'));
 
-    worker.onmessage = event => {
-        // console.log('event', event.data);
+            // worker.terminate();
+        }, 1000);
 
-        const recvData = JSON.stringify(event.data);
-        assert.equal(data, recvData, 'Message received matches');
-        worker.terminate();
-        clearTimeout(timer);
-    };
-}
+        worker.onmessage = event => {
+            // console.log('event', event.data);
 
-test('worker', testWorker);
+            const data = JSON.stringify({ foo: 42, bar: 'baz!' });
+            const recvData = JSON.stringify(event.data);
+            assert.equal(data, recvData, 'Message received matches');
+            worker.terminate();
+            clearTimeout(timer);
+
+            resolve(null);
+        };
+    });
+
+    await promise;
+});

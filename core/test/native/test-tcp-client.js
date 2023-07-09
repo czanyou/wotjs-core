@@ -4,18 +4,20 @@ import * as dns from '@tjs/dns';
 
 import * as assert from '@tjs/assert';
 import * as native from '@tjs/native';
+import * as util from '@tjs/util';
 
-const test = assert.test;
+import { test } from '@tjs/test';
 
-test('native.tcp.http.get', async () => {
+test('native.tcp.http:get', async () => {
+    let onResolve = null;
+    const promise = new Promise((resolve, reject) => { onResolve = resolve; });
+
+    await util.sleep(1000);
+
     const client = new native.TCP();
 
-    assert.startTimeout(10000, () => {
-        client.close();
-    });
-
     function onClose() {
-        assert.stopTimeout();
+        onResolve(undefined);
     }
 
     const host = 'www.baidu.com'; // 'www.baidu.com';
@@ -59,7 +61,9 @@ test('native.tcp.http.get', async () => {
     result.connected = true;
 
     await client.write('GET / HTTP/1.0\r\nHost: www.baidu.com\r\n\r\n');
-    await assert.waitTimeout();
+
+    await util.sleep(100);
+    await promise;
 
     assert.ok(result.connected, 'connected');
     assert.ok(result.hasData, 'hasData');

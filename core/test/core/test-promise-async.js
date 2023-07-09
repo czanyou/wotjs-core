@@ -1,7 +1,9 @@
 // @ts-check
 /// <reference path ="../../types/index.d.ts" />
 /* eslint-disable no-return-assign */
-import { assert, test } from '@tjs/assert';
+
+import * as assert from '@tjs/assert';
+import { test } from '@tjs/test';
 
 async function testTask() {
     const runner1 = () => {

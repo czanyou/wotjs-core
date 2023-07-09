@@ -1,4 +1,6 @@
-
+/**
+ * 断言测试
+ */
 declare module '@tjs/assert' {
 
     /**
@@ -47,6 +49,8 @@ declare module '@tjs/assert' {
      * @param message Default: 'Failed'
      */
     export function fail(message?: string | Error): void;
+
+
     export function is(actual: any, expected: any, message?: string): void;
 
     /**
@@ -79,165 +83,178 @@ declare module '@tjs/assert' {
      * @param message will be appended to the message provided by the AssertionError
      */
     export function throws(fn: Function, expected: any, message?: string): void;
-
-    /**
-     * 加载测试套件
-     * @param meta 
-     */
-    export function loadAll(meta: string | object): Promise<void>;
-
-    /** 运行所有加载的测试套件和测试用例 */
-    export function runAll(): Promise<void>;
-
-    /** 添加一个测试用例 */
-    export function test(description: string, testFunction: Function): void;
-
-    /** 
-     * 休眠并等待一段时间
-     * @param timeout
-     */
-    export function sleep(timeout: number): Promise<void>;
-
-    /** 
-     * 设置一个超时定时器 
-     * @param timeout 超时时间
-     * @param callback 超时回调函数
-     */
-    export function startTimeout(timeout: number, callback: Function): void;
-
-    /** 停止超时定时器 */
-    export function stopTimeout(): void;
-
-    /** 等待超时定时器结束或被中止 */
-    export function waitTimeout(): Promise<void>;
-
-    export namespace assert {
-
-        /**
-         * Expects the function fn does not throw an error.
-         * @param fn 
-         * @param expected 
-         * @param message will be appended to the message provided by the AssertionError
-         */
-        function doesNotThrow(func: Function, expected: any, description?: string): void;
-
-        /**
-         * Tests strict equality between the actual and expected parameters
-         * @param actual 
-         * @param expected 
-         * @param message will be appended to the message provided by the AssertionError
-         */
-        function equal(actual: any, expected: any, description?: string): void;
-
-        /**
-         * Throws an AssertionError with the provided error message or a default error message. 
-         * If the message parameter is an instance of an Error then it will be thrown instead of the AssertionError.
-         * @param message Default: 'Failed'
-         */
-        function fail(description?: string): void;
-        function is(actual: any, expected: any, description?: string): void;
-
-        /**
-         * Tests strict inequality between the actual and expected parameters
-         * @param actual 
-         * @param expected 
-         * @param message will be appended to the message provided by the AssertionError
-         */
-        function notEqual(actual: any, expected: any, description?: string): void;
-
-        /**
-         * Tests if value is truthy. It is equivalent to assert.equal(!!value, true, message).
-         * @param actual 
-         * @param message will be appended to the message provided by the AssertionError
-         */
-        function ok(actual: boolean | any, description?: string): void;
-
-        /**
-         * Expects the function fn to throw an error.
-         * @param fn 
-         * @param expected 
-         * @param message will be appended to the message provided by the AssertionError
-         */
-        function throws(func: Function, expected: any, description?: string): void;
-    }
-
-    export default assert;
 }
 
-declare module '@tjs/bluetooth' {
-    export class BluetoothDevice {
-
-    }
-
-    /**
-     * 返回所有设备
-     * @returns 设备列表
-     */
-    export function getDevices(): Promise<BluetoothDevice[]>;
-
-    /**
-     * 请求指定的设备
-     * @param options 设备名称或索引
-     */
-    export function requestDevice(options: string | number): Promise<BluetoothDevice>;
-}
-
+/**
+ * 配置参数读取和保存
+ */
 declare module '@tjs/config' {
     /**
      * Config File
      */
     export class Config {
-        readonly data: Map<String, String> | any;
+        /** 所有数据 */
+        readonly data: { [key: string]: string };
 
+        /** 文件名 */
         readonly filename: string;
 
+        /** 最后修改时间 */
         readonly lastModified: number;
 
+        /** 名称 */
+        readonly name: string;
+
+        /** 
+         * Returns the number of key/value pairs.
+         * 返回一个整数，表示存储在 Config 对象里的数据项（data items）数量。 
+         */
+        readonly length: number;
+
+        /** 分组 */
+        sections: string[];
+
+        /**
+         * 
+         * @param name 
+         * @param basepath 
+         */
         constructor(name: string, basepath?: string);
 
         /**
-         * Get the config value(s) to stdout.
+         * Removes all key/value pairs, if there are any.
+         */
+        clear(): undefined;
+
+        /**
+         * Get the array config value(s).
          * @param name 
          */
-        get(name: string | string[], type?: Boolean | String | Number | null | any): string | any;
+        getArray(name: string, options?: { flat?: boolean }): any[] | undefined;
+
+        /**
+         * Get the boolean config value(s).
+         * - true (1)
+         * - false (0)
+         * @param name 
+         */
+        getBoolean(name: string): boolean | undefined;
+
+        /**
+         * Returns the current value associated with the given key, or null if the given key does not exist.
+         * @param name 
+         */
+        getItem(name: string): string | undefined;
+
+        /**
+         * Get the number config value(s).
+         * - 10 进制整数和浮点数：124.56
+         * - 16 进制整数：0x1234
+         * @param name 
+         */
+        getNumber(name: string): number | undefined;
+
+        /**
+         * Get the object config value(s).
+         * @param name 
+         */
+        getObject(name?: string, options?: { flat?: boolean }): { [key: string]: any } | undefined;
+
+        /**
+         * Get the string config value(s).
+         * - 默认都为字符串
+         * - 带双引号的字符串
+         * @param name 
+         */
+        getString(name: string): string | undefined;
 
         /**
          * Save to file.
          */
-        flush(): Promise<any>;
-
-        /**
-         * Show all the config settings.
-         */
-        list(): Map<string, string>;
+        flush(): Promise<boolean>;
 
         /**
          * Load from file.
          */
-        load(cache?: boolean): Promise<any>;
+        load(strings?: string): Promise<boolean>;
+
+        /**
+         * Load from string.
+         */
+        parse(strings?: string, options?: any): boolean;
+
+        /**
+         * Removes the key/value pair with the given key, if a key/value pair with the given key exists.
+         * @param name 
+         */
+        removeItem(name: string): boolean;
+
+        /**
+         * Rename the given section to a new name.
+         * @param oldName 
+         * @param newName 
+         */
+        renameSection(oldName: string, newName: string): boolean;
+
+        /**
+         * Remove the given section from the configuration file.
+         * @param name 
+         */
+        removeSection(name: string): boolean;
 
         /**
          * Save to file.
+         * @param filename 
          */
-        save(): Promise<any>;
+        save(filename?: string): Promise<boolean>;
 
         /**
          * Set a value in the configuration
          * @param name 
          * @param value 
          */
-        set(name: string | object, value?: string | number | boolean): Promise<any>;
+        set(name: string | object, value?: string | number | boolean): boolean;
 
         /**
-         * Deletes the specified keys from configuration file.
+         * Set a value in the configuration
          * @param name 
+         * @param value 
          */
-        unset(name: string): Promise<any>;
+        setItem(name: string, value?: string | number | boolean): boolean;
+
+        /**
+         * Encode as string
+         */
+        stringify(): string;
+
+        /**
+         * Encode as JavaScript object.
+         */
+        toObject(): { [key: string]: any };
+
+        /**
+         * Encode as JSON string
+         */
+        toJSON(): string;
     }
 
+    /**
+     * 加载指定的名称的配置文件
+     * @param name 配置文件名称，不包含扩展名在内
+     * @param basepath 配置文件所在的路径，如果没有指定，默认为 `/usr/local/tjs/conf`。
+     */
     export function load(name: string, basepath?: string): Promise<Config>;
+
+    /**
+     * 
+     * @param filename 
+     */
+    export function open(filename: string): Promise<Config>;
 }
 
+/**
+ * 提供 Watchdog 等设备访问接口
+ */
 declare module '@tjs/devices' {
 
     export namespace adc {
@@ -247,6 +264,10 @@ declare module '@tjs/devices' {
 
     /** 代表一个硬件看门狗设备 */
     export interface Watchdog {
+        fileno?: number
+
+        device?: string
+
         /** 关闭这个设备 */
         close(): void
 
@@ -272,6 +293,8 @@ declare module '@tjs/devices' {
         /** 指出是否开启了看门狗 */
         isEnabled(): boolean
 
+        reset(): any;
+
         /** 设置新的超时时间，一般建议为 60s，单位为秒. */
         setTimeout(timeout: number): void
     }
@@ -280,65 +303,20 @@ declare module '@tjs/devices' {
      * 返回所有设备
      * @returns 设备列表
      */
-    export function getDevices(): Promise<Watchdog[]>
+    export function getWatchdogs(): Promise<Watchdog[]>
 
     /**
      * 请求指定的设备
      * @param options 设备名称或索引
      */
-    export function requestDevice(options: string | number): Promise<Watchdog>
+    export function requestWatchdog(options: { name?: string }): Promise<Watchdog>
 }
 
-declare module '@tjs/getopts' {
-    export interface Options {
-        /**
-         * An object of option aliases. An alias can be a string or an array of strings. 
-         * Aliases let you declare substitute names for an option, e.g., 
-         * the short (abbreviated) and long (canonical) variations.
-         */
-        alias?: { [key: string]: string | string[] };
-
-        /**
-         * An array of flags to parse as strings. In the example below, t is parsed as a string, 
-         * causing all adjacent characters to be treated as a single value and not as individual options.
-         */
-        string?: string[];
-
-        /**
-         * An array of options to parse as boolean. In the example below, t is parsed as a boolean, 
-         * causing the following argument to be treated as an operand.
-         */
-        boolean?: string[];
-
-        /**
-         * An object of default values for options not present in the arguments array.
-         */
-        default?: { [key: string]: any };
-
-        /**
-         * We call this function for each unknown option. Return false to discard the option. 
-         * Unknown options are those that appear in the arguments array, 
-         * but are not in opts.string, opts.boolean, opts.default, or opts.alias.
-         */
-        unknown?: (option: string) => any;
-
-        /** 
-         * A boolean property. If true, the operands array _ will be populated with all 
-         * the arguments after the first operand.
-         */
-        stopEarly?: boolean;
-    }
-
-    /**
-     * Parse command-line arguments. Returns an object mapping argument names to their values.
-     * @param argv An array of arguments, usually process.argv.
-     * @param options 
-     */
-    export function getopts(argv: string[], options?: Options): { [key: string]: boolean | number | string | string[] };
-}
-
+/**
+ * 提供 GPIO 口设备访问接口
+ */
 declare module '@tjs/gpio' {
-    export interface GPIOOptions {
+    export interface GpioOptions {
         /** The direction of the interface, could either be "in" or "out". */
         direction: string;
 
@@ -352,7 +330,7 @@ declare module '@tjs/gpio' {
     /**
      * 代表一个 IO 口
      */
-    export interface GPIO {
+    export interface GpioHandle {
         /** 端口号 */
         port: number;
 
@@ -367,6 +345,12 @@ declare module '@tjs/gpio' {
 
         /** 边缘触发方式 */
         edge: string;
+
+        /** 当前值 */
+        value: number;
+
+        /** 设备 */
+        device: string;
 
         /** 关闭这个端口 */
         close(): Promise<void>
@@ -398,137 +382,381 @@ declare module '@tjs/gpio' {
         write(value: number): Promise<void>;
     }
 
-    /** 输入端口 */
-    export interface Input {
-        handle: GPIO
+    /** 输入输出端口 */
+    export interface GpioPort {
+        handle: GpioHandle
 
         /** 关闭这个端口 */
         close(): Promise<void>
 
-        /** 检查是否为 on */
-        isOn(): Promise<boolean>
-
         /** 检查是否为 off */
         isOff(): Promise<boolean>
 
+        /** 检查是否为 on */
+        isOn(): Promise<boolean>
+
+        /** 设置输出状态为 off */
+        setOff(): Promise<void>
+
+        /** 设置输出状态为 on */
+        setOn(): Promise<void>
+
+        /** 切换输出状态 */
+        toggle(): Promise<void>
+
         /** 当输入状态发生改变时调用这个方法 */
-        onstatechange(isOn: boolean): void
-
-        /** 设置输出状态为 on */
-        setOn(): Promise<void>
-
-        /** 设置输出状态为 off */
-        setOff(): Promise<void>
-
-        /** 切换输出状态 */
-        toggle(): Promise<void>
+        onstatechange?(isOn: boolean): void
     }
 
-    /** 输出端口 */
-    export interface Output extends Input {
-        /** 设置输出状态为 on */
-        setOn(): Promise<void>
-
-        /** 设置输出状态为 off */
-        setOff(): Promise<void>
-
-        /** 切换输出状态 */
-        toggle(): Promise<void>
-    }
-
-    export function init(config: any, init?: boolean): Promise<void>;
-
-
-    export function open(device: string, options: number | GPIOOptions): GPIO;
-
-    /** 导出一个端口 */
-    export function exports(port: number): Promise<void>;
-
-    /** 反导出一个端口 */
-    export function unexport(port: number): Promise<void>;
+    export function closePorts(): Promise<void>;
 
     /**
      * 返回所有输入输出设备
      * @returns 设备列表
      */
-    export function getDevices(): Promise<Input[] | Output[]>
+    export function getPorts(): Promise<GpioPort[]>
 
     /**
      * 请求指定的输入输出设备
      * @param options 输入输出设备名称或索引
      */
-    export function requestDevice(options: string | number): Promise<Input | Output>
+    export function requestPort(options: {}): Promise<GpioPort>
+
+    /**
+     * 配置 GPIO 端口
+     * @param options 
+     * @param init 
+     */
+    export function setPortInfos(options: any): void;
+
+    export class Gpio {
+        /**
+         * @param name I/O 口的名称
+         */
+        constructor(name: string);
+
+        /**
+         * 查询当前值
+         */
+        getValue(): number;
+
+        /**
+         * 设置为输入
+         */
+        setInput(): number;
+
+        /**
+         * 设置为输出
+         * @param value 输出值
+         */
+        setOutput(value: number): number;
+    }
 }
 
+/**
+ * 日志管理
+ */
 declare module '@tjs/logs' {
-    /** 日志输出 */
-    namespace Log {
-        export function init(config: any): void;
+    export interface LogConfig {
+        /** 进程名 */
+        name: string,
 
-        /** 配置日志输出 */
-        export function config(config: any): string
+        /** 日志输出方式 `syslog`, `console` */
+        type?: string,
 
-        /** 输出 debug 级别日志信息 */
-        export function d(tag: string, ...args: any[]): void
-
-        /** 输出 info 级别日志信息 */
-        export function i(tag: string, ...args: any[]): void
-
-        /** 输出 warn 级别日志信息 */
-        export function w(tag: string, ...args: any[]): void
-
-        /** 输出 error 级别日志信息 */
-        export function e(tag: string, ...args: any[]): void
-
-        /** 根据 import.meta 生成日志 tag */
-        export function tag(meta: any): string
+        /** 日志输出级别 `log` | `info` | `warn` | `error` */
+        level?: string
     }
 
-    export default Log;
-}
+    export namespace syslog {
 
-declare module '@tjs/location' {
-    export class LocationDevice {
+        /**
+         * 初始化 syslog 日志输出
+         * @param name 进程名
+         */
+        export function open(name: string): void;
 
+        /**
+         * 输出 syslog 日志
+         * @param level 日志级别
+         * @param data 日志消息
+         */
+        export function log(level: number, data: string): void;
     }
 
     /**
-     * 返回所有设备
-     * @returns 设备列表
+     * 配置控制台日志输出
+     * @param config 日志配置参数
      */
-    export function getDevices(success, error, options): Promise<LocationDevice[]>
-
-    /**
-     * 请求指定的设备
-     * @param options 设备名称或索引
-     */
-    export function requestDevice(success, error, options): Promise<LocationDevice>
-
-    export function clearWatch(id): void;
+    export function config(config?: LogConfig): LogConfig;
 }
 
-declare module '@tjs/media' {
-    export class MediaDevice {
+declare module '@tjs/shell' {
 
+    import * as fs from '@tjs/fs';
+    import * as os from '@tjs/os';
+
+    export const constants: {
+        /** 文件是否存在 */
+        F_OK: 0,
+
+        /** 读权限 */
+        R_OK: 4,
+
+        /** 写权限 */
+        W_OK: 2,
+
+        /** 执行权限 */
+        X_OK: 1,
+
+        /** 只读 */
+        O_RDONLY: 0,
+
+        /** 只写 */
+        O_WRONLY: 1,
+
+        /** 读写 */
+        O_RDWR: 2
+    };
+
+    export interface Shell {
+
+        readonly $0: number;
+
+        /** CPU 架构类型 */
+        readonly arch: string;
+
+        /** 命令行参数 */
+        readonly args: string[];
+
+        /** 主板类型 */
+        readonly board: string;
+
+        /** 脚本目录 */
+        readonly error?: Error;
+
+        /** 执行文件目录 */
+        readonly execPath: string;
+
+        /** 进程 ID */
+        readonly pid: number;
+
+        /** 父进程 ID */
+        readonly ppid: number;
+
+        /** 操作系统类型 */
+        readonly platform: string;
+
+        /** 根目录 */
+        readonly rootPath: string;
+
+        /** 脚本目录 */
+        readonly scriptPath: string;
+
+        /** 检查文件访问权限 */
+        access(path: string, mode?: number): Promise<number>;
+
+        /** 写入数据到文件尾 */
+        append(path: string, data: ArrayBuffer | string): Promise<void>;
+
+        /**
+         * 返回文件名部分
+         * @param path 路径
+         */
+        basename(path: string, extName?: string): string;
+
+        /** 
+         * 改变当前进程的工作目录
+         */
+        cd(directory: string): void;
+
+        /** 修改文件访问权限 */
+        chmod(path: string, mode: number): Promise<void>;
+
+        /** 修改文件用户和用户组 */
+        chown(path: string, uid: number, gid: number): Promise<void>;
+
+        /** 复制文件或目录 */
+        cp(src: string, dest: string, options?: { force?: boolean, recursive?: boolean }): Promise<void>;
+
+        /**
+         * 返回路径所属的目录名
+         * @param path 
+         */
+        dirname(path: string): string;
+
+        /** 打印到控制台 */
+        echo(...args: any[]): void;
+
+        /** 执行 shell 命令 */
+        exec(...args: string[]): Promise<os.ProcessResult>;
+
+        /** 检查指定的文件或目录是否存在 */
+        exists(path: string): Promise<boolean>;
+
+        /**
+         * Exit the process with optional exit code.
+         * 以 `code` 的退出状态同步终止进程。 
+         * @param code 退出码，默认为 `0`
+         */
+        exit(code?: number): void
+
+        /**
+         * returns the extension of the path, from the last occurrence of the . (period) 
+         * character to end of string in the last portion of the path. 
+         * If there is no . in the last portion of the path, or if there are no . characters 
+         * other than the first character of the basename of path (see path.basename()) , 
+         * an empty string is returned.
+         * @param path 
+         */
+        extname(path: string): string;
+
+        /** 
+         * Retrieve the value of an environment variable.
+         * 查询环境变量 
+         */
+        getenv(name: string): string
+
+        /** 返回当前进程用户 ID */
+        getgid(): number;
+
+        /** 返回当前进程用户组 ID */
+        getuid(): number;
+
+        /** 用户主目录 */
+        homedir(): string;
+
+        /** 主机名称 */
+        hostname(): string;
+
+        /**
+         * 指出是否是绝对路径
+         * @param path 
+         */
+        isAbsolute(path: string): boolean;
+
+        /**
+         * 连接路径名
+         * @param args A sequence of path segments
+         */
+        join(...args: string[]): string;
+
+        /** 发送信号 */
+        kill(pid: number, siganl: number): void;
+
+        /** 创建符号链接文件 */
+        ln(target: string, path: string): Promise<void>;
+
+        /** 计算文件 Hash 值 */
+        md5sum(path: string): Promise<string>;
+
+        /** 创建一个目录 */
+        mkdir(path: string, options?: { recursive?: boolean, mode?: string | number }): Promise<void>;
+
+        /** 创建一个临时目录 */
+        mkdtemp(prefix: string): Promise<string>;
+
+        /** 显示进度条 */
+        progress(percent: number, name: string): void;
+
+        /** 当前工作目录 */
+        pwd(): string;
+
+        /** 读取目录内容 */
+        readdir(path: string): Promise<fs.Dirent[]>;
+
+        /**
+         * Asynchronously reads the entire contents of a file.
+         * @param filename 文件名
+         */
+        read(filename: string): Promise<string>;
+
+        /** 读取符号链接所指向的位置 */
+        readlink(path: string): Promise<string>;
+
+        /** 返回真实路径 */
+        realpath(path: string): Promise<string>;
+
+        /** 重启设备 */
+        reboot(): number;
+
+        /** 重命名或者移动文件 */
+        mv(oldPath: string, newPath: string): Promise<void>;
+
+        /** 删除文件 */
+        rm(path: string, options?: { force?: boolean, recursive?: boolean }): Promise<void>;
+
+        /** 删除目录 */
+        rmdir(path: string): Promise<void>;
+
+        /** 
+         * Set the value of an environment variable.
+         * 设置环境变量 
+         */
+        setenv(name: string, value: string): void
+
+        /** 计算文件 Hash 值 */
+        sha1sum(path: string): Promise<string>;
+
+        /** 
+         * 休眠 
+         * @param time 单位为毫秒
+         */
+        sleep(time: number): Promise<void>;
+
+        /** stat */
+        stat(path: string): Promise<fs.Stats>;
+
+        /** 临时文件目录 */
+        tmpdir(): string;
+
+        /** 截断文件 */
+        truncate(path: string, len: number): Promise<void>;
+
+        /** 操作系统信息 */
+        uname(): { sysname: string, release: string, version: string, machine: string };
+
+        /** 删除文件 */
+        unlink(path: string): Promise<void>;
+
+        /** 
+         * Delete the value of an environment variable.
+         * 删除环境变量 
+         */
+        unsetenv(name: string): void
+
+        /** 系统启动时间, 单位为秒 */
+        uptime(): number;
+
+        /** 修改文件时间 */
+        utimes(path: string, atime: number | Date, mtime: number | Date): Promise<void>;
+
+        /** 查找可执行文件所在的目录 */
+        which(command: string): Promise<string>;
+
+        /**
+         * Asynchronously writes data to a file, replacing the file if it already exists. 
+         * @param filename 文件名
+         * @param data 要写入的数据
+         */
+        write(filename: string, data: string | ArrayBuffer | ArrayBufferView): Promise<void>;
     }
 
     /**
-     * 返回所有设备
-     * @returns 设备列表
+     * 创建一个新的 Shell 实例
      */
-    export function getDevices(): Promise<MediaDevice[]>
+    export function shell(): Shell;
 
     /**
-     * 请求指定的设备
-     * @param options 设备名称或索引
+     * 默认的 Shell 实例
      */
-    export function requestDevice(options: string | number): Promise<MediaDevice>
-
-    export function decodingInfo(mediaConfig): any;
-
-    export function encodingInfo(mediaConfig): any;
+    const defaultShell: Shell;
+    export default defaultShell;
 }
 
+/**
+ * 提供串口设备访问接口
+ */
 declare module '@tjs/serial' {
     /**
      * UART options
@@ -538,19 +766,52 @@ declare module '@tjs/serial' {
         /** Baud rate, defaults to 9600 */
         baudRate: number;
 
+        /** 
+         * An unsigned long integer indicating the size of the read and write buffers that are to be established. 
+         * If not passed, defaults to 255. 
+         */
+        bufferSize?: number;
+
         /** Data bits, defaults to 8. */
-        dataBits: number;
+        dataBits?: number;
 
         /** Stop bits, defaults to 1 */
-        stopBits: number;
+        stopBits?: number;
 
         /** Parity, defaults to "none", could be either of "none", "odd" or "even". */
-        parity: string,
+        parity?: string,
 
         /** Flow control, defaults to "none", could be either of "none", "hardware" or "software". */
-        flowControl: string;
+        flowControl?: string;
+
+        /** 串口的名称 */
+        name?: string;
+
+        /** 串口设备的名称，如 `/dev/ttyS0` */
+        device?: string;
     }
 
+    export interface SerialPortSignals {
+        /** A boolean indicating to the other end of a serial connection that is is clear to send data. */
+        clearToSend?: boolean,
+
+        /** A boolean that toggles the control signal needed to communicate over a serial connection. */
+        dataCarrierDetect?: boolean,
+
+        /** A boolean indicating whether the device is ready to send and receive data. */
+        dataSetReady?: boolean,
+
+        /** A boolean indicating whether a ring signal should be sent down the serial connection. */
+        ringIndicator?: boolean,
+
+        dataTerminalReady?: boolean,
+
+        requestToSend?: boolean,
+    }
+
+    /**
+     * 串口设备句柄
+     */
     export interface SerialPortHandle {
         close(): Promise<void>;
         flush(): void;
@@ -570,24 +831,28 @@ declare module '@tjs/serial' {
     /** 串口设备信息 */
     export interface SerialPortInfo {
         /** 串口设备文件名 */
-        device: string,
+        device?: string,
 
         /** 串口设备索引 */
-        index: number,
+        index?: number,
 
         /** 串口名称 */
-        name: string
+        name?: string
     }
 
     /**
      * 串口设备
      */
     export class SerialPort extends EventTarget {
+        constructor(info: SerialPortInfo);
+
+        readonly handle: any;
+
         /** 关闭这个串口设备 */
-        close(): Promise<void>
+        close(): void
 
         /** 返回当前串口设备信息 */
-        getInfo(): any
+        getInfo(): Promise<SerialPortInfo>
 
         /**
          * 打开当前串口
@@ -605,35 +870,88 @@ declare module '@tjs/serial' {
          * 发送数据
          * @param data 要发送的数据
          */
-        write(data: ArrayBuffer | Uint8Array | string): Promise<void>
+        write(data: ArrayBuffer | Uint8Array | string): Promise<number>
 
-        onconnect(): void
-        
-        ondisconnect(): void
+        /** 
+         * Sets control signals on the port and returns a Promise that resolves when they are set. 
+         */
+        setSignals(signals?: SerialPortSignals): Promise<void>
 
-        onend(): void
+        /** 
+         * Returns a Promise that resolves with an object containing the current state of the port's control signals. 
+         */
+        getSignals(): Promise<SerialPortSignals>
+
+        /**
+         * An event handler called when the port has connected to the device.
+         */
+        onconnect?(event: Event): void
+
+        /**
+         * An event handler called when the port has disconnected from the device.
+         */
+        ondisconnect?(event: Event): void
 
         /**
          * 当收到新数据
-         * @param data 数据
+         * @param event 数据数据
          */
-        onmessage(data: ArrayBuffer): void
+        onmessage?(event: MessageEvent): void
     }
 
-    export function open(device: string, options: number | SerialPortOptions): SerialPortHandle;
-
-    export function setRTS(fd: number, flags?: number): Promise<void>
-    export function setDTR(fd: number, flags?: number): Promise<void>
+    /**
+     * 关闭所有已经打开的串口设备
+     */
+    export function closePorts(): Promise<void>
 
     /**
      * 返回所有串口设备
      * @returns 设备列表
      */
-    export function getDevices(): Promise<SerialPort[]>
+    export function getPorts(): Promise<SerialPort[]>
+
+    /** 
+     * Returns a Promise that resolves when the port is opened. 
+     * By default the port is opened with 8 data bits, 1 stop bit and no parity checking. 
+     */
+    export function open(device: string, options: number | SerialPortOptions): SerialPortHandle;
 
     /**
      * 请求指定的串口设备
      * @param options 串口名称或索引
      */
-    export function requestDevice(options: string | number): Promise<SerialPort>;
+    export function requestPort(options?: { [key: string]: any }): Promise<SerialPort>;
+
+    /**
+     * 初始化设备列表
+     * @param options 
+     */
+    export function setDeviceInfos(options?: { [key: string]: any }): void;
+}
+
+/**
+ * 单元测试框架
+ */
+declare module '@tjs/test' {
+    /**
+     * 加载测试套件
+     * @param meta 
+     */
+    export function loadAll(meta: string | object): Promise<void>;
+
+    /** 运行所有加载的测试套件和测试用例 */
+    export function runAll(): Promise<void>;
+
+    /** 
+     * Register a test which will be run when test is used on the command 
+     * line and the containing module looks like a test module.
+     * 添加一个测试用例 
+     */
+    export function test(description: string, fn: Function): void;
+
+    /** 
+     * 休眠并等待一段时间
+     * @param timeout
+     */
+    export function sleep(timeout: number): Promise<void>;
 }

@@ -3,31 +3,55 @@
 import * as assert from '@tjs/assert';
 import * as native from '@tjs/native';
 
-const test = assert.test;
+import { test } from '@tjs/test';
 
 test('native.tcp', async () => {
-
     const result = {};
     const output = [];
     const $context = {};
 
-    async function createEchoServer() {
-        async function onServerConnection(server) {
-            const connection = server.accept();
-            output.push('connection');
+    const promise = new Promise((resolve, reject) => {
+        $context.callback = () => {
+            clearTimeout($context.timer);
+            resolve(0);
+        };
 
-            connection.onerror = function () {
+        $context.timer = setTimeout(() => {
+            $context.callback = null;
+            resolve(0);
+        }, 1000);
+    });
+
+    async function createEchoServer() {
+        /**
+         * 
+         * @param {native.TCP} server 
+         */
+        async function onServerConnection(server) {
+            /** @type native.TCP | null */
+            let connection = server.accept();
+            // connection.setDebug(true);
+
+            output.push('connection');
+            // console.log('server:', 'connection:', connection);
+
+            connection.onerror = function (error) {
+                console.log('connection:', 'error:', error);
                 output.push('pong-error');
             };
 
             connection.onmessage = function (data) {
+                // console.log('connection:', 'message:', data);
+
                 if (data) {
                     // echo
                     output.push('pong');
-                    connection.write('PONG');
+                    connection?.write('PONG');
 
                 } else {
                     output.push('pong-end');
+                    $context.connection = null;
+                    connection = null;
                 }
             };
 
@@ -49,14 +73,17 @@ test('native.tcp', async () => {
         const textDecoder = new TextDecoder();
 
         const client = new native.TCP();
+        // client.setDebug(true);
 
         client.onerror = function (err) {
-            console.log('client error', err);
+            console.log('client:', 'error:', err);
             result.hasError = true;
             output.push('ping-error');
         };
 
         client.onmessage = async function (data) {
+            // console.log('client:', 'message:', data);
+
             if (!data) {
                 output.push('ping-end');
                 result.isEndOfFile = true;
@@ -81,7 +108,9 @@ test('native.tcp', async () => {
                 const text = textDecoder.decode(data);
                 assert.equal(text, 'PONG', 'sending buffer works');
 
-                onClose();
+                if ($context.callback) {
+                    $context.callback();
+                }
             }
         };
 
@@ -92,26 +121,22 @@ test('native.tcp', async () => {
     }
 
     const server = await createEchoServer();
+    $context.server = server;
 
     // connect
     const address = server.address();
     const client = await createEchoClient(address);
     result.conncted = true;
 
+    $context.client = client;
+
     // send
     output.push('ping1');
     await client.write('PING');
 
-    assert.startTimeout(10000, () => {
-        client.close();
-        server.close();
-    });
-
-    function onClose() {
-        assert.stopTimeout();
-    }
-
-    await assert.waitTimeout();
+    // console.log('await: promise');
+    await promise;
+    // console.log('await: end', output.join('->'));
 
     assert.equal(output.join('->'), 'connect->connection->connected->ping1->pong->ping2->pong->exit');
 });

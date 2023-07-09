@@ -3,8 +3,7 @@
 import * as fs from '@tjs/fs';
 import * as net from '@tjs/net';
 
-import * as assert from '@tjs/assert';
-const test = assert.test;
+import { test } from '@tjs/test';
 
 test('net.pipe.bad', async () => {
     const path = '/tmp/test-pipe';
@@ -15,6 +14,19 @@ test('net.pipe.bad', async () => {
     }
 
     const result = {};
+    const $context = {};
+    
+    const promise = new Promise((resolve, reject) => {
+        $context.callback = () => {
+            clearTimeout($context.timer);
+            resolve(0);
+        };
+
+        $context.timer = setTimeout(() => {
+            $context.callback = null;
+            resolve(0);
+        }, 1000);
+    });
 
     async function createEchoClient(serverAddress) {
         const client = net.connect(serverAddress);
@@ -27,12 +39,15 @@ test('net.pipe.bad', async () => {
         };
 
         client.onclose = function (event) {
-            console.log('onclose');
-            onClose();
+            // console.log('onclose');
+            
+            if ($context.callback) {
+                $context.callback();
+            }
         };
     
         client.onerror = function (event) {
-            console.log('onerror', event.error);
+            // console.log('onerror', event.error);
             result.error = event.error;
         };
 
@@ -44,15 +59,7 @@ test('net.pipe.bad', async () => {
         return client;
     }
     
-    const client = await createEchoClient({ path });
+    await createEchoClient({ path });
 
-    assert.startTimeout(10000, () => {
-        client.close();
-    });
-
-    function onClose() {
-        assert.stopTimeout();
-    }
-
-    await assert.waitTimeout();
+    await promise;
 });

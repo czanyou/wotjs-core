@@ -1,0 +1,8 @@
+{
+	"arch": "@TJS_ARCH@",
+	"board": "@TJS_BOARD@",
+	"platform": "@TJS_PLATFORM@",
+	"qjs": "@QJS_VERSION_STR@",
+	"root": "@TJS_ROOT@",
+	"version": "@TJS_VERSION_MAJOR@.@TJS_VERSION_MINOR@.@TJS_VERSION_PATCH@"
+}

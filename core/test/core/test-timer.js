@@ -1,6 +1,8 @@
 // @ts-check
 /// <reference path ="../../types/index.d.ts" />
-import { assert, test } from '@tjs/assert';
+
+import * as assert from '@tjs/assert';
+import { test } from '@tjs/test';
 
 test('timer.Promise', async () => {
     // promise
@@ -14,7 +16,7 @@ test('timer.setTimeout', async () => {
     const runner2 = () => {
         return new Promise((resolve, reject) => {
             setTimeout(() => {
-                resolve();
+                resolve(undefined);
             }, 100);
         });
     };

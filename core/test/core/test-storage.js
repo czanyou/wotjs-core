@@ -1,49 +1,58 @@
 // @ts-check
 /// <reference path ="../../types/index.d.ts" />
-import { assert, test } from '@tjs/assert';
 
-test('sessionStorage', () => {
-    const storage = window.sessionStorage;
+import * as assert from '@tjs/assert';
+import * as storage from '@tjs/storage';
+import { test } from '@tjs/test';
+
+test('sessionStorage', async () => {
+    await storage.loadStorages('test');
+
+    const sessionStorage = window.sessionStorage;
+    sessionStorage.clear();
 
     // setItem
-    storage.setItem('test', '100');
+    sessionStorage.setItem('test', '100');
 
     // getItem
-    const value = storage.getItem('test');
+    const value = sessionStorage.getItem('test');
     assert.equal(value, '100');
-    assert.equal(storage.test, '100');
-    assert.equal(storage.length, 1);
-    assert.equal(storage.key(0), 'test');
+    assert.equal(sessionStorage.test, '100');
+    assert.equal(sessionStorage.length, 1);
+    assert.equal(sessionStorage.key(0), 'test');
 
     // update
-    storage.test = 200;
-    assert.equal(storage.getItem('test'), '200');
+    sessionStorage.test = 200;
+    assert.equal(sessionStorage.getItem('test'), '200');
 
     // clear
-    storage.clear();
-    assert.equal(storage.length, 0);
-    assert.equal(storage.key(0), undefined);
+    sessionStorage.clear();
+    assert.equal(sessionStorage.length, 0);
+    assert.equal(sessionStorage.key(0), null);
 });
 
-test('localStorage', () => {
-    const storage = window.localStorage;
+test('localStorage', async () => {
+    await storage.loadStorages('test');
+
+    const localStorage = window.localStorage;
+    localStorage.clear();
 
     // setItem
-    storage.setItem('test', '100');
+    localStorage.setItem('test', '100');
 
     // getItem
-    const value = storage.getItem('test');
+    const value = localStorage.getItem('test');
     assert.equal(value, '100');
-    assert.equal(storage.test, '100');
-    assert.equal(storage.length, 1);
-    assert.equal(storage.key(0), 'test');
+    assert.equal(localStorage.test, '100');
+    assert.equal(localStorage.length, 1);
+    assert.equal(localStorage.key(0), 'test');
 
     // update
-    storage.test = 200;
-    assert.equal(storage.getItem('test'), '200');
+    localStorage.test = 200;
+    assert.equal(localStorage.getItem('test'), '200');
 
     // clear
-    storage.clear();
-    assert.equal(storage.length, 0);
-    assert.equal(storage.key(0), undefined);
+    localStorage.clear();
+    assert.equal(localStorage.length, 0);
+    assert.equal(localStorage.key(0), null);
 });

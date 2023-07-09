@@ -1,0 +1,24 @@
+{
+    "name": "wot.js",
+    "version": "23.1.15",
+    "description": "Platform for Web of Things with JavaScript",
+    "scripts": {
+        "local": "make local",
+        "linux": "make linux",
+        "pack": "make pack",
+        "build": "esbuild app.js --bundle --external:@tjs/* --platform=neutral --outfile=outout.js"
+    },
+    "type": "module",
+    "author": "anyou",
+    "devDependencies": {
+        "esbuild": "^0.17.0",
+        "eslint": "^8.34.0",
+        "eslint-config-standard": "^17.0.0",
+        "eslint-plugin-import": "^2.27.0",
+        "eslint-plugin-node": "^11.1.0",
+        "typescript": "^4.9.0"
+    },
+    "typeScriptVersion": "4.9",
+    "dependencies": {
+    }
+}

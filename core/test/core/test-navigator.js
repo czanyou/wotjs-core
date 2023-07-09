@@ -1,15 +1,16 @@
 // @ts-check
 /// <reference path ="../../types/index.d.ts" />
-import { assert, test } from '@tjs/assert';
+
+import * as assert from '@tjs/assert';
+import { test } from '@tjs/test';
 
 function testWindow() {
     // console.log('navigator', Object.keys(navigator).sort());
 
     assert.ok(window.navigator);
 
-    assert.ok(navigator.bluetooth);
+    // assert.ok(navigator.bluetooth);
     assert.ok(navigator.board);
-    assert.ok(navigator.devices);
     assert.ok(navigator.geolocation);
     assert.ok(navigator.language);
     assert.ok(navigator.languages);

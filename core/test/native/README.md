@@ -11,7 +11,7 @@
 
 ## 属性
 
-- applet
+- command
 - arch
 - arg0
 - args
@@ -111,7 +111,7 @@
 - chown
 - copyFile
 - file
-- hashFile
+- filesum
 - mkdir
 - mkdtemp
 - mkstemp
@@ -180,6 +180,8 @@
 - open
 - setDTR
 - setRTS
+- getSignals
+- setSignals
 - setOptions
 - UART
 
@@ -190,5 +192,5 @@
 - hash
 - decode
 - encode
-- textDecode
-- textEncode
+- toString
+- toBuffer

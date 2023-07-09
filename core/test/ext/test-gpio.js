@@ -4,12 +4,12 @@
 import * as assert from '@tjs/assert';
 import * as gpio from '@tjs/gpio';
 
-const test = assert.test;
+import { test } from '@tjs/test';
 
 test('gpio', async () => {
     assert.ok(gpio != null);
     
-    const port = await gpio.requestDevice(0);
+    const port = await gpio.requestPort(0);
     // assert.ok(port);
     // console.log(port);
 });

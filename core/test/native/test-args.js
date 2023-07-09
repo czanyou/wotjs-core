@@ -1,12 +1,14 @@
 // @ts-check
 /// <reference path ="../../types/index.d.ts" />
 
-import { assert, test } from '@tjs/assert';
+import * as assert from '@tjs/assert';
+import { test } from '@tjs/test';
+
 import * as native from '@tjs/native';
 
 test('native.args', () => {
     assert.equal(native.arg0, 1);
-    assert.equal(native.applet, undefined);
+    assert.equal(native.command, undefined);
 
     assert.ok(native.args);
     assert.ok(native.arch, 'native.arch is defined');

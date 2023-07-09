@@ -1,6 +1,9 @@
 // @ts-check
 /// <reference path ="../../types/index.d.ts" />
-import { assert, test } from '@tjs/assert';
+
+import * as assert from '@tjs/assert';
+import { test } from '@tjs/test';
+
 import * as util from '@tjs/util';
 
 const text = 'abc';
@@ -41,9 +44,16 @@ test('crypto.subtle.digest.SHA512', async () => {
     assert.equal(value, 'ddaf35a193617abacc417349ae20413112e6fa4e89a97ea20a9eeee64b55d39a2192992a274fc1a836ba3c23a3feebbd454d4423643ce80e2a9ac94fa54ca49f');
 });
 
+test('crypto.subtle.hmac', async () => {
+    const textEncoder = new TextEncoder();
+    const subtle = window.crypto.subtle;
+    
+    
+});
+
 test('crypto.getRandomValues', () => {
     const TypedArrayPrototype = Object.getPrototypeOf(Uint8Array.prototype);
-    const TypedArrayPrototypetoStringTag = Object.getOwnPropertyDescriptor(TypedArrayPrototype, Symbol.toStringTag).get;
+    const TypedArrayPrototypetoStringTag = Object.getOwnPropertyDescriptor(TypedArrayPrototype, Symbol.toStringTag)?.get;
 
     const types = [Int8Array, Uint8Array, Int16Array, Uint16Array, Int32Array, Uint32Array];
     const arrayBuffer = new ArrayBuffer(256);
@@ -51,7 +61,7 @@ test('crypto.getRandomValues', () => {
     for (const Type of types) {
         const typedArray = new Type(arrayBuffer);
         window.crypto.getRandomValues(typedArray);
-        const arrayString = TypedArrayPrototypetoStringTag.call(typedArray);
+        const arrayString = TypedArrayPrototypetoStringTag?.call(typedArray);
         assert.ok(typedArray, `getRandomValues works for ${arrayString}`);
     }
 

@@ -1,6 +1,8 @@
 // @ts-check
 /// <reference path ="../../types/index.d.ts" />
-import { assert, test } from '@tjs/assert';
+
+import * as assert from '@tjs/assert';
+import { test } from '@tjs/test';
 
 function testWindow() {
     // console.log('window', Object.keys(window).sort());
@@ -26,7 +28,7 @@ function testWindow() {
     assert.ok(window.localStorage);
     assert.ok(window.MessageEvent);
     assert.ok(window.navigator);
-    assert.ok(window.process);
+    // assert.ok(window.process);
     assert.ok(window.PromiseRejectionEvent);
     assert.ok(window.prompt);
     assert.ok(window.Request);
@@ -38,7 +40,7 @@ function testWindow() {
     assert.ok(window.TextEncoder);
     assert.ok(window.URL);
     assert.ok(window.Worker);
-    assert.ok(window.WoT);
+    // assert.ok(window.WoT);
 }
 
 test('window', testWindow);

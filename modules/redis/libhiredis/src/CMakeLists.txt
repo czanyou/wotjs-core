@@ -1,0 +1,79 @@
+CMAKE_MINIMUM_REQUIRED(VERSION 3.4.0)
+
+OPTION(ENABLE_SSL "Build hiredis_ssl for SSL support" OFF)
+OPTION(DISABLE_TESTS "If tests should be compiled or not" ON)
+OPTION(ENABLE_SSL_TESTS "Should we test SSL connections" OFF)
+OPTION(ENABLE_ASYNC_TESTS "Should we run all asynchronous API tests" OFF)
+
+MACRO(getVersionBit name)
+  SET(VERSION_REGEX "^#define ${name} (.+)$")
+  FILE(STRINGS "${CMAKE_CURRENT_SOURCE_DIR}/hiredis.h"
+    VERSION_BIT REGEX ${VERSION_REGEX})
+  STRING(REGEX REPLACE ${VERSION_REGEX} "\\1" ${name} "${VERSION_BIT}")
+ENDMACRO(getVersionBit)
+
+getVersionBit(HIREDIS_MAJOR)
+getVersionBit(HIREDIS_MINOR)
+getVersionBit(HIREDIS_PATCH)
+getVersionBit(HIREDIS_SONAME)
+SET(VERSION "${HIREDIS_MAJOR}.${HIREDIS_MINOR}.${HIREDIS_PATCH}")
+MESSAGE("Detected version: ${VERSION}")
+
+PROJECT(hiredis LANGUAGES "C" VERSION "${VERSION}")
+INCLUDE(GNUInstallDirs)
+
+# Hiredis requires C99
+SET(CMAKE_C_STANDARD 99)
+SET(CMAKE_POSITION_INDEPENDENT_CODE ON)
+SET(CMAKE_DEBUG_POSTFIX d)
+
+SET(ENABLE_EXAMPLES OFF CACHE BOOL "Enable building hiredis examples")
+
+SET(hiredis_sources
+    alloc.c
+    async.c
+    dict.c
+    hiredis.c
+    net.c
+    read.c
+    sds.c
+    sockcompat.c)
+
+SET(hiredis_sources ${hiredis_sources})
+
+IF(WIN32)
+    ADD_COMPILE_DEFINITIONS(_CRT_SECURE_NO_WARNINGS WIN32_LEAN_AND_MEAN)
+ENDIF()
+
+ADD_LIBRARY(hiredis SHARED ${hiredis_sources})
+ADD_LIBRARY(hiredis_static STATIC ${hiredis_sources})
+ADD_LIBRARY(hiredis::hiredis ALIAS hiredis)
+ADD_LIBRARY(hiredis::hiredis_static ALIAS hiredis_static)
+
+SET_TARGET_PROPERTIES(hiredis
+    PROPERTIES WINDOWS_EXPORT_ALL_SYMBOLS TRUE
+    VERSION "${HIREDIS_SONAME}")
+SET_TARGET_PROPERTIES(hiredis_static
+    PROPERTIES COMPILE_PDB_NAME hiredis_static)
+SET_TARGET_PROPERTIES(hiredis_static
+    PROPERTIES COMPILE_PDB_NAME_DEBUG hiredis_static${CMAKE_DEBUG_POSTFIX})
+IF(WIN32 OR MINGW)
+    TARGET_LINK_LIBRARIES(hiredis PUBLIC ws2_32 crypt32)
+    TARGET_LINK_LIBRARIES(hiredis_static PUBLIC ws2_32 crypt32)
+ELSEIF(CMAKE_SYSTEM_NAME MATCHES "FreeBSD")
+    TARGET_LINK_LIBRARIES(hiredis PUBLIC m)
+    TARGET_LINK_LIBRARIES(hiredis_static PUBLIC m)
+ELSEIF(CMAKE_SYSTEM_NAME MATCHES "SunOS")
+    TARGET_LINK_LIBRARIES(hiredis PUBLIC socket)
+    TARGET_LINK_LIBRARIES(hiredis_static PUBLIC socket)
+ENDIF()
+
+TARGET_INCLUDE_DIRECTORIES(hiredis PUBLIC $<INSTALL_INTERFACE:include> $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>)
+TARGET_INCLUDE_DIRECTORIES(hiredis_static PUBLIC $<INSTALL_INTERFACE:include> $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>)
+
+CONFIGURE_FILE(hiredis.pc.in hiredis.pc @ONLY)
+
+# Add examples
+IF(ENABLE_EXAMPLES)
+  ADD_SUBDIRECTORY(examples)
+ENDIF(ENABLE_EXAMPLES)

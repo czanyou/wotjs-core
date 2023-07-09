@@ -1,0 +1,48 @@
+/*
+ * QuickJS libuv bindings
+ *
+ * Copyright (c) 2019-present Saúl Ibarra Corretgé <s@saghul.net>
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
+ * THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+ * THE SOFTWARE.
+ */
+
+#ifndef TJS_VERSION_H
+#define TJS_VERSION_H
+
+#define TJS_VERSION_MAJOR @TJS_VERSION_MAJOR@
+#define TJS_VERSION_MINOR @TJS_VERSION_MINOR@
+#define TJS_VERSION_PATCH @TJS_VERSION_PATCH@
+#define TJS_VERSION_SUFFIX "-dev"
+#define TJS_VERSION_STRING "@TJS_VERSION_MAJOR@.@TJS_VERSION_MINOR@.@TJS_VERSION_PATCH@"
+
+#define QJS_VERSION_STR "@QJS_VERSION_STR@"
+#define TJS_PLATFORM "@TJS_PLATFORM@"
+#define TJS_ARCH "@TJS_ARCH@"
+#define TJS_BOARD "@TJS_BOARD@"
+#define TJS_ROOT "@TJS_ROOT@"
+#define GIT_VERSION "@COMMIT_HASH@"
+
+const char* tjs_board(void);
+const char* tjs_build(void);
+const char* tjs_version(void);
+const char* tjs_core_board(void);
+const char* tjs_core_build(void);
+const char* tjs_core_version(void);
+
+#endif
