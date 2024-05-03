@@ -229,7 +229,7 @@ test('native.tls.http:get', async () => {
         onResolve(undefined);
     }
 
-    const host = 'localhost'; // 'www.baidu.com';
+    const host = 'iot.wotcloud.cn'; // 'www.baidu.com';
     const addressInfo = await dns.lookup(host, { family: 4 });
 
     const address = {};
@@ -306,7 +306,7 @@ test('native.tls.http:post', async () => {
         onResolve(undefined);
     }
 
-    const host = 'localhost'; // 'www.baidu.com';
+    const host = 'iot.wotcloud.cn'; // 'www.baidu.com';
     const addressInfo = await dns.lookup(host, { family: 4 });
 
     const address = {};

@@ -6,10 +6,14 @@ import { test } from '@tjs/test';
 // @ts-ignore
 import * as streams from '@tjs/streams';
 
+function state(stream) {
+    return stream._state;
+}
+
 test('fetch - streams - close', async () => {
     /** @type ReadableStreamDefaultController | null */
     let readController = null;
-    const stream = new streams.ReadableStream({
+    const stream = streams.createReadableStream({
         start(controller) {
             readController = controller;
         }
@@ -19,7 +23,7 @@ test('fetch - streams - close', async () => {
         return;
     }
 
-    assert.equal(stream._state, 'readable');
+    assert.equal(state(stream), 'readable');
 
     setTimeout(() => {
         if (readController) {
@@ -36,7 +40,7 @@ test('fetch - streams - close', async () => {
 
     await reader.closed;
 
-    assert.equal(stream._state, 'closed');
+    assert.equal(state(stream), 'closed');
 
     result = await reader.read(); // 2
     assert.equal(result.done, false);
@@ -53,7 +57,7 @@ test('fetch - streams - cancel', async () => {
 
     /** @type ReadableStreamDefaultController | null */
     let readController = null;
-    const stream = new streams.ReadableStream({
+    const stream = streams.createReadableStream({
         start(controller) {
             readController = controller;
 
@@ -61,7 +65,7 @@ test('fetch - streams - cancel', async () => {
         }
     });
 
-    assert.equal(stream._state, 'readable');
+    assert.equal(state(stream), 'readable');
 
     const reader = stream.getReader();
 

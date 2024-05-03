@@ -5,14 +5,14 @@ import * as native from '@tjs/native';
 /**
  * Syslog 日志优先级别
  */
-const SYSLOG_LEVELS = {
+export const SYSLOG_LEVELS = {
     debug: 7, // 调试信息
     d: 7,
     l: 7,
     info: 6, // 有用的信息
     i: 6,
     notice: 5, // 普通但重要的事件
-    assert: 5, 
+    assert: 5,
     a: 5,
     warn: 4, // 警告事件
     w: 4,
@@ -52,6 +52,10 @@ export function printSyslog(level, line, ...args) {
     const syslogLevel = SYSLOG_LEVELS[level] || 7;
     // console.print('printSyslog:', syslogLevel, message, line);
     native.syslog(syslogLevel, message);
+
+    // @ts-ignore
+    console.printConsole(level, line, ...args);
+    return true;
 }
 
 /**
@@ -63,6 +67,11 @@ export function openSyslog() {
 
     // @ts-ignore 注入 syslog 到 console 对象
     window.console.onPrintLog = printSyslog;
+}
+
+export function openConsole() {
+    // @ts-ignore 注入 syslog 到 console 对象
+    window.console.onPrintLog = console.printConsole;
 }
 
 /** 
@@ -90,6 +99,9 @@ export function config(config) {
 
     if ($context.options.type == 'syslog') {
         openSyslog();
+
+    } else if ($context.options.type == 'console') {
+        openConsole();
     }
 
     return { ...$context.options };

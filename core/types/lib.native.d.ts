@@ -655,6 +655,8 @@ declare module '@tjs/native' {
         recv(): Promise<UDPMessage>;
         ref(): void;
         remoteAddress(): SocketAddress;
+        setBroadcast(broadcast: boolean): void;
+        setTTL(ttl:number): number;
         send(data: string | ArrayBuffer | ArrayBufferView, socket: SocketAddress): Promise<void>;
         unref(): void;
 

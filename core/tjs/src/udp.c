@@ -25,20 +25,18 @@
 #include "private.h"
 #include "tjs-utils.h"
 
-
-#define TJS_CheckNumber(ctx, index, value) \
+#define TJS_CheckNumber(ctx, index, value)                                                                \
     if ((argc > (index)) && !JS_IsUndefined(argv[(index)]) && JS_ToInt32(ctx, &(value), argv[(index)])) { \
-        return JS_ThrowTypeError(ctx, #value " must be a number"); \
+        return JS_ThrowTypeError(ctx, #value " must be a number");                                        \
     }
 
-#define TJS_CheckSocketAddress(ctx, index, value) \
-    if (TJS_ToSocketAddress(ctx, argv[index], &(value)) != 0) { \
+#define TJS_CheckSocketAddress(ctx, index, value)                                \
+    if (TJS_ToSocketAddress(ctx, argv[index], &(value)) != 0) {                  \
         return JS_ThrowTypeError(ctx, #value "must be a socket address object"); \
     }
 
 #define TJS_GetResult(ctx, ret) \
     (((ret) != 0) ? tjs_throw_uv_error(ctx, (ret)) : JS_UNDEFINED);
-
 
 /* UDP */
 enum tjs_udp_event_s {
@@ -104,7 +102,7 @@ static void tjs_udp_close_callback(uv_handle_t* handle)
 {
     TJSUdp* udp = handle->data;
     CHECK_NOT_NULL(udp);
-    
+
     udp->closed = 1;
     if (udp->finalized) {
         free(udp);
@@ -269,7 +267,7 @@ static JSValue tjs_udp_has_ref(JSContext* ctx, JSValueConst this_val, int argc, 
 {
     TJSUdp* udp = tjs_udp_get(ctx, this_val);
     CHECK_NOT_NULL(udp);
-    
+
     int result = uv_has_ref((uv_handle_t*)&udp->udp);
     return JS_NewInt32(ctx, result);
 }
@@ -428,7 +426,38 @@ static JSValue tjs_udp_ref(JSContext* ctx, JSValueConst this_val, int argc, JSVa
     TJSUdp* udp = tjs_udp_get(ctx, this_val);
     CHECK_NOT_NULL(udp);
     uv_ref((uv_handle_t*)&udp->udp);
-    
+
+    return JS_UNDEFINED;
+}
+
+static JSValue tjs_udp_set_broadcast(JSContext* ctx, JSValueConst this_val, int argc, JSValueConst* argv)
+{
+    TJSUdp* udp = tjs_udp_get(ctx, this_val);
+    CHECK_NOT_NULL(udp);
+
+    int32_t enabled = -1;
+    if (argc > 0 && JS_IsBool(argv[0])) {
+        enabled = JS_ToBool(ctx, argv[0]);
+        uv_udp_set_broadcast(&udp->udp, enabled);
+    }
+
+    return JS_UNDEFINED;
+}
+
+static JSValue tjs_udp_set_ttl(JSContext* ctx, JSValueConst this_val, int argc, JSValueConst* argv)
+{
+    TJSUdp* udp = tjs_udp_get(ctx, this_val);
+    CHECK_NOT_NULL(udp);
+
+    int32_t ttl = 0;
+    if (argc > 1) {
+        if (!JS_IsUndefined(argv[1])) {
+            JS_ToInt32(ctx, &ttl, argv[1]);
+            int ret = uv_udp_set_ttl(&udp->udp, ttl);
+            return JS_NewInt32(ctx, ret);
+        }
+    }
+
     return JS_UNDEFINED;
 }
 
@@ -476,7 +505,7 @@ static JSValue tjs_udp_send(JSContext* ctx, JSValueConst this_val, int argc, JSV
     if (JS_IsException(data.error)) {
         return data.error;
     }
-    
+
     /* First try to do the write inline */
     uv_buf_t b;
     uint8_t* buf = data.data;
@@ -530,7 +559,7 @@ static JSValue tjs_udp_unref(JSContext* ctx, JSValueConst this_val, int argc, JS
     TJSUdp* udp = tjs_udp_get(ctx, this_val);
     CHECK_NOT_NULL(udp);
     uv_unref((uv_handle_t*)&udp->udp);
-    
+
     return JS_UNDEFINED;
 }
 
@@ -550,6 +579,8 @@ static const JSCFunctionListEntry tjs_udp_proto_funcs[] = {
     TJS_CFUNC_DEF("hasRef", 0, tjs_udp_has_ref),
     TJS_CFUNC_DEF("recv", 1, tjs_udp_recv),
     TJS_CFUNC_DEF("ref", 0, tjs_udp_ref),
+    TJS_CFUNC_DEF("setBroadcast", 1, tjs_udp_set_broadcast),
+    TJS_CFUNC_DEF("setTTL", 1, tjs_udp_set_ttl),
     TJS_CFUNC_DEF("send", 2, tjs_udp_send),
     TJS_CFUNC_DEF("unref", 0, tjs_udp_unref),
 

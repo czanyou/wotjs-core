@@ -107,7 +107,7 @@ export class Shell {
     async chmod(path, mode) {
         return await this.call(fs.chmod, path, mode);
     }
-    
+
     /**
      * @param {string} path 
      * @param {number} uid
@@ -475,7 +475,43 @@ export class Shell {
      * @return {Promise<void>}
      */
     async write(filename, data) {
-        return await this.call(fs.writeFile, filename, data);
+        if (data == null) {
+            return;
+        }
+
+        const self = this;
+
+        /**
+         * @param {string} filename 
+         * @param {string | ArrayBuffer | ArrayBufferView} data 
+         */
+        async function writeFile(filename, data) {
+            /** @type {Uint8Array=} */
+            let buffer;
+            if (typeof data == 'string') {
+                buffer = new TextEncoder().encode(data);
+
+            } else if (ArrayBuffer.isView(data)) {
+                buffer = new Uint8Array(data.buffer);
+
+            } else {
+                buffer = new Uint8Array(data);
+            }
+
+            const tempfile = filename + '~';
+            await fs.writeFile(tempfile, buffer);
+
+            const md5sum1 = util.hash(buffer, 'md5');
+            const md5sum2 = await self.md5sum(tempfile);
+            if (md5sum1 != md5sum2) {
+                throw new Error('md5sum does not match');
+            }
+
+            await self.rm(filename, {});
+            await self.mv(tempfile, filename);
+        }
+
+        return await this.call(writeFile, filename, data);
     }
 }
 

@@ -130,7 +130,7 @@ static JSValue tjs_interfaces(JSContext* ctx, JSValueConst this_val, int argc, J
 {
     uv_interface_address_t* interfaces;
     int count, i;
-    char ip[INET6_ADDRSTRLEN];
+    char address[INET6_ADDRSTRLEN];
     char netmask[INET6_ADDRSTRLEN];
     char mac[64];
 
@@ -145,26 +145,26 @@ static JSValue tjs_interfaces(JSContext* ctx, JSValueConst this_val, int argc, J
         JS_DefinePropertyValueStr(ctx, item, "mac", JS_NewString(ctx, mac), JS_PROP_C_W_E);
 
         JS_DefinePropertyValueStr(ctx, item, "name", JS_NewString(ctx, interfaces[i].name), JS_PROP_C_W_E);
-        JS_DefinePropertyValueStr(ctx, item, "internal", JS_NewUint32(ctx, interfaces[i].is_internal), JS_PROP_C_W_E);
+        JS_DefinePropertyValueStr(ctx, item, "internal", JS_NewBool(ctx, interfaces[i].is_internal), JS_PROP_C_W_E);
 
         if (interfaces[i].address.address4.sin_family == AF_INET) {
-            uv_ip4_name(&interfaces[i].address.address4, ip, sizeof(ip));
+            uv_ip4_name(&interfaces[i].address.address4, address, sizeof(address));
             uv_ip4_name(&interfaces[i].netmask.netmask4, netmask, sizeof(netmask));
-            JS_DefinePropertyValueStr(ctx, item, "family", JS_NewString(ctx, "inet"), JS_PROP_C_W_E);
+            JS_DefinePropertyValueStr(ctx, item, "family", JS_NewString(ctx, "IPv4"), JS_PROP_C_W_E);
 
         } else if (interfaces[i].address.address4.sin_family == AF_INET6) {
-            uv_ip6_name(&interfaces[i].address.address6, ip, sizeof(ip));
+            uv_ip6_name(&interfaces[i].address.address6, address, sizeof(address));
             uv_ip6_name(&interfaces[i].netmask.netmask6, netmask, sizeof(netmask));
-            JS_DefinePropertyValueStr(ctx, item, "family", JS_NewString(ctx, "inet6"), JS_PROP_C_W_E);
+            JS_DefinePropertyValueStr(ctx, item, "family", JS_NewString(ctx, "IPv6"), JS_PROP_C_W_E);
 
         } else {
-            strncpy(ip, "<unknown sa family>", INET6_ADDRSTRLEN);
+            strncpy(address, "<unknown sa family>", INET6_ADDRSTRLEN);
             strncpy(netmask, "<unknown sa family>", INET6_ADDRSTRLEN);
         }
 
         int flags = tjs_interface_flags(interfaces[i].name);
 
-        JS_DefinePropertyValueStr(ctx, item, "ip", JS_NewString(ctx, ip), JS_PROP_C_W_E);
+        JS_DefinePropertyValueStr(ctx, item, "address", JS_NewString(ctx, address), JS_PROP_C_W_E);
         JS_DefinePropertyValueStr(ctx, item, "netmask", JS_NewString(ctx, netmask), JS_PROP_C_W_E);
         JS_DefinePropertyValueStr(ctx, item, "flags", JS_NewUint32(ctx, flags), JS_PROP_C_W_E);
 

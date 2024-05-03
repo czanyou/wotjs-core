@@ -15,10 +15,10 @@ async function main() {
             result.headers[key] = value;
         });
 
-        const body = req.body;
+        const body = await req.arrayBuffer();
         console.log('body:', body);
 
-        result.total = body.byteLength;
+        result.total = body?.byteLength;
         await res.send(result);
     });
 
@@ -35,7 +35,7 @@ async function main() {
     const BUFFER_SIZE = 32 * 1024;
 
     /** @type ReadableStream<Uint8Array> */
-    const body = new streams.ReadableStream({
+    const body = streams.createReadableStream({
         pull(controller) {
             async function readChunk() {
                 const filedata = await file.read(BUFFER_SIZE);

@@ -2,7 +2,6 @@
 /// <reference path ="../../modules/types/index.d.ts" />
 import * as fs from '@tjs/fs';
 import * as os from '@tjs/os';
-import * as util from '@tjs/util';
 
 /**
  * 安全读取文件内容
@@ -117,44 +116,6 @@ export const services = {
         async stop() {
             const command = 'killall -q tcd';
             await stopProcess('tcd', command);
-        }
-    },
-
-    ipcd: {
-        title: 'Network camera & P2P protocol daemon',
-        async start() {
-            const filename = '/var/run/ipcd.token';
-            const token = await readTextFile(filename);
-
-            let command = 'ipcd run';
-            if (token) {
-                command += ' -t ' + token;
-            }
-
-            command += ' > /dev/null';
-            await startProcess('ipcd', command);
-        },
-        async stop(timeout = 5000) {
-            const command = 'killall -q ipcd';
-            await stopProcess('ipcd', command);
-
-            const start = Date.now();
-            for (let i = 0; i < 100; i++) {
-                const span = Date.now() - start;
-
-                const pid = await pidof('ipcd');
-                if (pid == null) {
-                    console.info('Tuyad stoped', span);
-                    break;
-
-                } else if (span > timeout) {
-                    const command = 'killall -9 -q ipcd';
-                    await stopProcess('ipcd', command);
-                    break;
-                }
-                
-                await util.sleep(100);
-            }
         }
     },
 

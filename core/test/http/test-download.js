@@ -7,24 +7,30 @@ import { test } from '@tjs/test';
 import * as http from '@tjs/http';
 import * as util from '@tjs/util';
 
+/**
+ * 测试文件下载
+ */
 test('http - download', async () => {
-    const options = { port: 38088 };
-    const server = http.createServer(options, async (req, res) => {
-        res.headers.set('Content-Length', '100');
-        await res.writeHead();
-
-        for (let i = 0; i < 10; i++) {
-            await res.write('1234567890');
-            await util.sleep(10);
-        }
-
-        await res.end();
-    });
-
+    let server;
     try {
+        // create a HTTP server
+        const options = { port: 38088 };
+        server = http.createServer(options, async (req, res) => {
+            res.headers.set('Content-Length', '100');
+            await res.writeHead();
+
+            // 模拟发送长为 100 的文件内容
+            for (let i = 0; i < 10; i++) {
+                await res.write('1234567890');
+                await util.sleep(10);
+            }
+
+            await res.end();
+        });
 
         await server.start();
 
+        // fetch
         const url = 'http://localhost:38088/get?foo=100&bar=test';
         const init = { debug: true, headers: { 'X-Test': 'http:get' } };
         const response = await fetch(url, init);
@@ -32,9 +38,9 @@ test('http - download', async () => {
         assert.ok(response);
         assert.equal(response.status, 200);
         assert.ok(response.statusText);
-
         // console.log(response.statusText);
 
+        // read response body
         const body = response.body;
         const reader = body?.getReader();
 
@@ -56,10 +62,11 @@ test('http - download', async () => {
         // console.log('total', total);
         assert.equal(total, 100);
 
+        // close the HTTP server
+        server.close();
+
     } catch (e) {
         console.log('error:', e);
-
-    } finally {
-        server.close();
+        server?.close();
     }
 });

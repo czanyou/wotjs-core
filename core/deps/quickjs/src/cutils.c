@@ -628,18 +628,4 @@ void rqsort(void *base, size_t nmemb, size_t size, cmp_f cmp, void *opaque)
     }
 }
 
-#ifdef CONFIG_FENV_MOCK
-
-size_t malloc_usable_size (void *__ptr)
-{
-    return 0;
-}
-
-int fesetround(int rdir)
-{
-    return 0;
-}
-
-#endif
-
 #endif

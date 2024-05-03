@@ -171,7 +171,7 @@ export class JsonrpcSession extends EventTarget {
         timeout = timeout || JsonrpcClient.DEFAULT_REQUEST_TIMEOUT;
         const queue = this._requestQueue;
         if (queue.length > 100) {
-            console.log(TAG, 'Request queue is busy:', queue.length);
+            // console.log(TAG, 'Request queue is busy:', queue.length);
             return Promise.reject(new Error('Request queue is busy'));
         }
 
@@ -217,7 +217,7 @@ export class JsonrpcSession extends EventTarget {
      * 主动关闭这个连接
      */
     close() {
-        console.log(TAG, 'close');
+        // console.log(TAG, 'close');
 
         this.connected = undefined;
         this._readBuffer = undefined;
@@ -320,7 +320,7 @@ export class JsonrpcSession extends EventTarget {
             }
 
             if (requestMap.size >= MAX_WAIT_REQUESTS) {
-                console.log(TAG, 'Request map is busy:', requestMap.size);
+                // console.log(TAG, 'Request map is busy:', requestMap.size);
                 break; // 请求并发数超过 5
             }
 
@@ -423,7 +423,8 @@ export class JsonrpcSession extends EventTarget {
             }
 
         } catch (error) {
-            console.log(TAG, 'onmessage error:', error);
+            console.log(TAG, 'processMessage error:', error);
+            this.close();
         }
     }
 
@@ -588,7 +589,7 @@ export class JsonrpcSession extends EventTarget {
         this.readyState = state;
 
         if (this.name) {
-            console.log(TAG, 'setReadyState:', state, 'name:', this.name);
+            //  console.log(TAG, 'setReadyState:', state, 'name:', this.name);
         }
 
         if (state == JsonrpcClient.OPEN) {
@@ -723,7 +724,7 @@ export class JsonrpcSession extends EventTarget {
      * 当网络连接断开
      */
     _onSocketClose() {
-        console.log(TAG, '_onSocketClose');
+        // console.log(TAG, '_onSocketClose');
 
         const lastState = this.readyState;
         this.setReadyState(JsonrpcClient.CLOSED);
@@ -927,7 +928,7 @@ export class JsonrpcClient extends JsonrpcSession {
      * - 只有处于连接关闭状态时才能重新建立连接
      */
     async _onSocketConnect() {
-        console.log(TAG, '_onSocketConnect');
+        // console.log(TAG, '_onSocketConnect');
 
         const readyState = this.readyState;
         if (readyState != JsonrpcClient.INIT && readyState != JsonrpcClient.CLOSED) {
@@ -1215,8 +1216,8 @@ export class JsonrpcServer extends EventTarget {
         };
 
         server.onlistening = (event) => {
-            const address = server.address();
-            console.info(TAG, 'Listening at:', address.address + ':' + address.port);
+            // const address = server.address();
+            // console.info(TAG, 'Listening at:', address.address + ':' + address.port);
             this.dispatchEvent(new Event('open'));
         };
 

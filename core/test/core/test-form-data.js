@@ -2,6 +2,7 @@
 /// <reference path ="../../types/index.d.ts" />
 
 import * as assert from '@tjs/assert';
+import * as formdata from '@tjs/form-data';
 import { test } from '@tjs/test';
 
 test('Blob', async () => {
@@ -52,7 +53,7 @@ test('FileReader', async () => {
     });
 
     reader.readAsArrayBuffer(blob);
-    
+
     await promise;
 
     // console.log('reader', reader);
@@ -62,12 +63,41 @@ test('FormData', async () => {
     const formData = new FormData();
 
     const blob = new Blob(['test blob'], { type: 'text/plain' });
-    const file = new Blob(['test file'], { type: 'text/plain' });
+    const file = new File(['test file'], 'test', { type: 'text/plain' });
 
     formData.append('test', 'value');
     formData.append('blob', blob);
-    formData.append('file', file, 'testfile');
-    // console.log(formData);
+    formData.append('file', file, 'test-file');
+    console.log('formData:', formData);
+
+    assert.equal(formData.get('test'), 'value');
+
+    {
+        const blob = formData.get('blob');
+        assert.ok(blob instanceof Blob);
+
+        if (blob instanceof Blob) {
+            assert.equal(blob.type, 'text/plain');
+            assert.equal(await blob.text(), 'test blob');
+            assert.equal(blob.name, 'blob');
+            // console.log('blob:', blob);
+        }
+    }
+
+    {
+        const file = formData.get('file');
+        assert.ok(file instanceof File);
+
+        if (file instanceof File) {
+            assert.equal(file.type, 'text/plain');
+            assert.equal(await file.text(), 'test file');
+            assert.equal(file.name, 'test-file');
+        }
+    }
+
+    // test
+    formData.set('test', 'value2');
+    assert.equal(formData.get('test'), 'value2');
 
     // @ts-ignore
     const formBlob = formData.toBlob();
@@ -75,4 +105,30 @@ test('FormData', async () => {
 
     const text = await formBlob.text();
     assert.ok(text);
+    // console.print(text);
+
+    const textEncoder = new TextEncoder();
+    const result = formdata.parse(textEncoder.encode(text));
+    // console.log(result._rawData);
+
+    {
+        const blob = result.get('blob');
+        assert.ok(blob instanceof Blob);
+
+        if (blob instanceof Blob) {
+            assert.equal(blob.type, 'text/plain');
+            assert.equal(await blob.text(), 'test blob');
+        }
+    }
+
+    {
+        const file = result.get('file');
+        assert.ok(file instanceof File);
+
+        if (file instanceof File) {
+            assert.equal(file.type, 'text/plain');
+            assert.equal(await file.text(), 'test file');
+            assert.equal(file.name, 'test-file');
+        }
+    }
 });

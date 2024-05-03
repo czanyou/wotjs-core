@@ -82,15 +82,11 @@ endif ()
 ## Linux
 if (CMAKE_SYSTEM_NAME STREQUAL "Linux")
     set(SOURCES ${SOURCES}
-        ${LIBUV_DIR}/src/unix/linux-core.c
-        ${LIBUV_DIR}/src/unix/linux-inotify.c
-        ${LIBUV_DIR}/src/unix/linux-syscalls.c
+        ${LIBUV_DIR}/src/unix/linux.c
         ${LIBUV_DIR}/src/unix/procfs-exepath.c
-        ${LIBUV_DIR}/src/unix/epoll.c
         ${LIBUV_DIR}/src/unix/proctitle.c
         ${LIBUV_DIR}/src/unix/sysinfo-loadavg.c
         ${LIBUV_DIR}/src/unix/sysinfo-memory.c
-        ${LIBUV_DIR}/src/unix/pthread-fixes.c
         ${LIBUV_DIR}/src/unix/random-sysctl-linux.c
     )
 endif ()

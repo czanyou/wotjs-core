@@ -271,7 +271,7 @@ exit:
 /**
  * @brief 返回指定名称的插件的入口脚本的路径和文件名
  * - $path/app/${name}/app.js
- * - $path/app/modules/bin/${name}.js
+ * - $path/app/bin/${name}.js
  *
  * @param filename 用于保存文件名的缓存区
  * @param size 文件缓存区大小
@@ -305,10 +305,9 @@ static char* tjs_cli_get_exepath_command_filename(char* buffer, size_t buffer_si
             return buffer;
         }
 
-        // $path/app/modules/bin/:name.js
+        // $path/app/bin/:name.js
         *p = '\0';
         path_join(buffer, "app", buffer_size);
-        path_join(buffer, "modules", buffer_size);
         path_join(buffer, "bin", buffer_size);
         path_join(buffer, name, buffer_size);
         strncat(buffer, ".js", buffer_size);
@@ -326,7 +325,7 @@ static char* tjs_cli_get_exepath_command_filename(char* buffer, size_t buffer_si
 /**
  * @brief 返回指定名称的插件的入口脚本的路径和文件名
  * - ${root}/app/${name}/app.js
- * - ${root}/app/modules/bin/${name}.js
+ * - ${root}/app/bin/${name}.js
  *
  * @param filename 用于保存文件名的缓存区
  * @param size 文件缓存区大小
@@ -349,10 +348,9 @@ static char* tjs_cli_get_root_command_filename(char* buffer, size_t buffer_size,
         return buffer;
     }
 
-    // 2. ${root}/app/modules/bin/${name}.js
+    // 2. ${root}/app/bin/${name}.js
     strncpy(buffer, TJS_ROOT, buffer_size);
     path_join(buffer, "app", buffer_size);
-    path_join(buffer, "modules", buffer_size);
     path_join(buffer, "bin", buffer_size);
     path_join(buffer, name, buffer_size);
     strncat(buffer, ".js", buffer_size);
@@ -486,7 +484,7 @@ static int tjs_cli_eval_string(JSContext* ctx, const char* expression, const cha
  * - 2. exec command: $exepath/app/:name/app.js
  * - 3. internal command: @app/:name/app.js
  * - 4. root command: $root/app/:name/app.js
- * - 5. applet command: @app/modules/bin/:name.js
+ * - 5. applet command: @app/bin/:name.js
  * @param ctx 上下文
  * @param filename 要执行的文件或应用的名称
  * @param load_as_module
@@ -502,8 +500,8 @@ static int tjs_cli_eval(JSContext* ctx, const char* filename, int load_as_module
         return tjs_cli_eval_file(ctx, filename, load_as_module);
     }
 
-    // 2. `tjs $exepath/app/name/app.js`
-    // 检查 ${exepath}/app/${app_name}/app.js 是否存在
+    // 2. `tjs $exepath/app/:name/app.js`
+    // 检查 ${exepath}/app/:name/app.js 是否存在
     const char* script_name = NULL;
     script_name = tjs_cli_get_exepath_command_filename(buffer, size, filename);
     if (script_name) {
@@ -511,7 +509,7 @@ static int tjs_cli_eval(JSContext* ctx, const char* filename, int load_as_module
     }
 
 #ifdef BUILD_APP_JS
-    // 3. `tjs @app/name/app.js`
+    // 3. `tjs @app/:name/app.js`
     script_name = tjs_module_get_command_filename(buffer, size, filename);
     if (script_name) {
         // 执行内置在主程序中的命令： @app/${app_name}/app.js
@@ -519,7 +517,7 @@ static int tjs_cli_eval(JSContext* ctx, const char* filename, int load_as_module
     }
 #endif
 
-    // 4. `tjs $root/app/name/app.js`
+    // 4. `tjs $root/app/:name/app.js`
     script_name = tjs_cli_get_root_command_filename(buffer, size, filename);
     if (script_name) {
         return tjs_cli_eval_file(ctx, script_name, load_as_module);
@@ -532,7 +530,7 @@ static int tjs_cli_eval(JSContext* ctx, const char* filename, int load_as_module
 /**
  * 指出是否存在指定名称的命令
  * - `@app/:name/app.js`
- * - `@app/modules/bin/:name.js`
+ * - `@app/bin/:name.js`
  * - `${root}/app/${name}/app.js`
  * @param name 应用的名称
  */

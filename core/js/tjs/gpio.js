@@ -446,7 +446,7 @@ async function initGpioPorts() {
     try {
         if (!$context.options) {
             const config = await import('@tjs/config');
-            const deviceConfig = await config.load('device');
+            const deviceConfig = await config.load('product');
             setPortInfos(deviceConfig.data);
         }
 

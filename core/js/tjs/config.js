@@ -246,6 +246,23 @@ export class Config {
         }
     }
 
+    /**
+     * 
+     * @param {string[]} sections 
+     */
+    addSections(sections) {
+        if (sections == null) {
+            return;
+        }
+
+        const result = new Set(this.sections);
+        for (const section of sections) {
+            result.add(section);
+        }
+
+        this.sections = Array.from(result);
+    }
+
     clear() {
         this.values.clear();
     }
@@ -852,35 +869,35 @@ export class Config {
             return value.substring(1, value.length - 1);
         }
 
-        // group keys
-        const sections = [''];
-        sections.push(...this.sections);
-        sections.sort();
+        // section names
+        const sectionNames = [''];
+        sectionNames.push(...this.sections);
+        sectionNames.sort();
 
         // console.log('this.sections', this.sections, groupKeys);
         const values = this.values;
 
-        // groups
+        // sections
         /** @type {Object<string,Object<string,ConfigItem>>} */
-        const groups = { '': {} };
+        const sections = { '': {} };
         for (const key of values.keys()) {
             let base = '';
             let name = key;
 
-            for (const groupName of sections) {
-                if (key.startsWith(groupName + '.')) {
-                    base = groupName;
-                    name = key.substring(groupName.length + 1);
+            for (const sectionName of sectionNames) {
+                if (key.startsWith(sectionName + '.')) {
+                    base = sectionName;
+                    name = key.substring(sectionName.length + 1);
                 }
 
                 // console.log('base', base, name);
             }
 
-            if (groups[base] == null) {
-                groups[base] = {};
+            if (sections[base] == null) {
+                sections[base] = {};
             }
 
-            const section = groups[base];
+            const section = sections[base];
             const item = values.get(key);
             if (item) {
                 section[name] = item;
@@ -890,15 +907,19 @@ export class Config {
         const outputs = [];
         // console.log('groups', groupKeys);
 
-        for (let i = 0; i < sections.length; i++) {
+        for (let i = 0; i < sectionNames.length; i++) {
             const lines = [];
 
-            const base = sections[i];
+            const base = sectionNames[i];
+            const section = sections[base];
+            if (section == null || Object.keys(section).length == 0) {
+                continue;
+            }
+
             if (base) {
                 lines.push(`\n[${base}]\n`);
             }
 
-            const section = groups[base];
             for (const key in section) {
                 const item = section[key];
 

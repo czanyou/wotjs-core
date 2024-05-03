@@ -124,7 +124,7 @@ const char* tjs_module_get_command_filename(char* filename, size_t buffer_size, 
     }
 
     {
-        // 1. @app/name/app.js
+        // 1. @app/:name/app.js
         const char* prefix = "@app/";
         strncpy(filename, prefix, buffer_size);
         path_join(filename, name, buffer_size);
@@ -138,8 +138,8 @@ const char* tjs_module_get_command_filename(char* filename, size_t buffer_size, 
     }
 
     {
-        // 2. @app/applets/src/name.js
-        const char* prefix = "@app/modules/bin/";
+        // 2. @app/bin/:name.js
+        const char* prefix = "@app/bin/";
         strncpy(filename, prefix, buffer_size);
         path_join(filename, name, buffer_size);
         strcat(filename, ".js");
@@ -213,7 +213,17 @@ static JSModuleDef* tjs_module_bytecode_loader(JSContext* ctx, const char* name)
     const uint8_t* buf = tjs_get_tjs_module_data(name, &buf_len);
     if (buf == NULL) {
 #ifdef BUILD_APP_JS
-        buf = tjs_get_app_module_data(name, &buf_len);
+        if (has_suffix(name, ".js")) {
+            buf = tjs_get_app_module_data(name, &buf_len);
+
+        } else {
+            char module_name[PATH_MAX];
+            memset(module_name, 0, sizeof(module_name));
+            strncat(module_name, name, PATH_MAX - 1);
+            strncat(module_name, ".js", PATH_MAX - 1);
+            buf = tjs_get_app_module_data(module_name, &buf_len);
+        }
+
 #endif
         if (buf == NULL) {
             JS_ThrowReferenceError(ctx, "could not load module filename '%s' as library", name);
@@ -386,9 +396,22 @@ JSModuleDef* tjs_module_loader(JSContext* ctx, const char* module_name, void* op
         // so 二进制模块
         return tjs_module_so_loader(ctx, module_name);
 
+    } else if (has_suffix(module_name, ".js")) {
+        return tjs_module_js_loader(ctx, module_name, module_name);
+
+    } else if (has_suffix(module_name, ".json")) {
+        return tjs_module_js_loader(ctx, module_name, module_name);
+
+    } else if (has_suffix(module_name, ".mjs")) {
+        return tjs_module_js_loader(ctx, module_name, module_name);
+
     } else {
         // 外部 js/mjs/json 脚本文件
-        return tjs_module_js_loader(ctx, module_name, module_name);
+        char name[PATH_MAX];
+        memset(name, 0, sizeof(name));
+        strncat(name, module_name, PATH_MAX - 1);
+        strncat(name, ".js", PATH_MAX - 1);
+        return tjs_module_js_loader(ctx, name, name);
     }
 }
 
@@ -470,9 +493,9 @@ char* tjs_module_normalizer(JSContext* ctx, const char* base_name, const char* n
     static char* internal_modules[] = {
         "@tjs/abort-controller",
         "@tjs/bootstrap",
-        "@tjs/console",
+        // "@tjs/console",
         // "@tjs/crypto",
-        "@tjs/encoding",
+        // "@tjs/encoding",
         // "@tjs/event-target", // for defineEventAttribute
         // "@tjs/form-data",
         "@tjs/native-bootstrap",

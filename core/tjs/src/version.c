@@ -61,6 +61,11 @@ const char* tjs_core_version(void)
     return TJS_VERSION_STRING;
 }
 
+const int tjs_core_code(void)
+{
+    return TJS_VERSION_TWEAK;
+}
+
 const char* tjs_core_board(void)
 {
     return TJS_BOARD;

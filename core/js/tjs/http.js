@@ -1,6 +1,7 @@
 // @ts-check
 /// <reference path ="../../types/index.d.ts" />
 import * as native from '@tjs/native';
+import * as formdata from '@tjs/form-data';
 
 import { defineEventAttribute } from '@tjs/event-target';
 
@@ -110,23 +111,27 @@ export class IncomingMessage {
         /** @type Object<string,any> */
         this.locals = {};
 
+        /** @type {ReadableStream<Uint8Array>=} */
+        this._body = undefined;
+
         /** @type {ArrayBufferLike=} */
         this._rawBody = undefined;
 
-        /** @type any */
-        this._body = undefined;
+        /** @type boolean 指出 body 内容是否已经读取过了 */
+        this._bodyUsed = false;
     }
 
     get [Symbol.toStringTag]() {
         return 'IncomingMessage';
     }
 
+    /** @type {ReadableStream=} */
     get body() {
-        if (this._body != null) {
-            return this._body;
-        }
+        return this._body;
+    }
 
-        return this._rawBody;
+    get bodyUsed() {
+        return this._bodyUsed;
     }
 
     /** @returns {string} */
@@ -167,6 +172,12 @@ export class IncomingMessage {
      * @returns {Promise<ArrayBufferLike|undefined>}
      */
     async arrayBuffer() {
+        if (this._bodyUsed) {
+            // 不能重复读取
+            return Promise.reject(new TypeError('Already read'));
+        }
+
+        this._bodyUsed = true;
         return this._rawBody;
     }
 
@@ -197,34 +208,14 @@ export class IncomingMessage {
         return params;
     }
 
-    async parseBody() {
-        if (this._body != null) {
-            return this._body;
+    async formData() {
+        const data = await this.arrayBuffer();
+        if (!data) {
+            return;
         }
 
-        const type = this.headers.get('Content-Type');
-        // console.log('type', type);
-
-        if (!type) {
-            this._body = await this.arrayBuffer();
-
-        } else if (type?.startsWith('application/json')) {
-            this._body = await this.json();
-
-        } else if (type?.startsWith('application/x-www-form-urlencoded')) {
-            this._body = await this.form();
-
-        } else if (type?.startsWith('multipart/form-data')) {
-            this._body = await this.text();
-
-        } else if (type?.startsWith('text/')) {
-            this._body = await this.text();
-
-        } else {
-            this._body = await this.arrayBuffer();
-        }
-
-        return this._body;
+        const formData = formdata.parse(new Uint8Array(data));
+        return formData;
     }
 
     /**
@@ -245,7 +236,6 @@ export class IncomingMessage {
 
 export class ServerResponse extends EventTarget {
     /**
-     * 
      * @param {IncomingMessage} request 
      */
     constructor(request) {
@@ -260,10 +250,10 @@ export class ServerResponse extends EventTarget {
         /** @type Headers */
         this.headers = new Headers();
 
-        /** @type boolean */
+        /** @type boolean 消息头是否已发送到网络层 */
         this.isHeadersSent = false;
 
-        /** @type {native.TCP=} */
+        /** @type {native.TCP=} 相关的 Socket */
         this.socket = undefined;
 
         /** @type any */
@@ -300,7 +290,7 @@ export class ServerResponse extends EventTarget {
         return 'ServerResponse';
     }
 
-    /** @param {*} [data] */
+    /** @param {*=} data */
     async end(data) {
         /** @type {native.TCP=} */
         const socket = this.socket;
@@ -325,7 +315,8 @@ export class ServerResponse extends EventTarget {
 
         try {
             if (this.bodyUsed && options.hasTransferEncoding) {
-                await socket.write('0\r\n\r\n');
+                const data = '0\r\n\r\n';
+                await socket.write(data);
             }
 
             if (options.keepAlive) {
@@ -431,6 +422,7 @@ export class ServerResponse extends EventTarget {
         }
 
         this.bodyUsed = true;
+
         if (!this.isHeadersSent) {
             await this.writeHead();
         }
@@ -477,7 +469,7 @@ export class ServerResponse extends EventTarget {
         const headers = this.headers;
         const hasContentLength = headers.has('content-length');
 
-        // Date
+        // 'date' header
         if (options.sendDate) {
             if (!headers.has('Date')) {
                 const now = new Date();
@@ -485,7 +477,7 @@ export class ServerResponse extends EventTarget {
             }
         }
 
-        // Transfer encoding
+        // 'Transfer-Encoding' header
         if (this.bodyUsed && !hasContentLength) {
             if (!headers.has('Transfer-Encoding')) {
                 headers.set('Transfer-Encoding', 'chunked');
@@ -493,7 +485,7 @@ export class ServerResponse extends EventTarget {
             }
         }
 
-        // Connection
+        // 'Connection' header
         if (!headers.has('connection')) {
             if (options.keepAlive) {
                 if (this.bodyUsed) {
@@ -522,6 +514,7 @@ export class ServerResponse extends EventTarget {
             }
         }
 
+        // encode as string
         const lines = [];
         lines.push(startLine);
         headers.forEach(function (value, name) {
@@ -530,6 +523,7 @@ export class ServerResponse extends EventTarget {
         lines.push('\r\n');
         const message = lines.join('\r\n');
 
+        // write to network
         await socket.write(message);
         this.isHeadersSent = true;
     }
@@ -542,41 +536,64 @@ defineEventAttribute(ServerResponse.prototype, 'finish');
 // Server
 
 /**
- * 
+ * @typedef {(req: IncomingMessage, res: ServerResponse) => any} RequestListener
+ */
+
+/**
+ * HTTP Server
  */
 export class Server extends EventTarget {
     /**
      * 
      * @param {*} options 
-     * @param {*} requestListener 
+     * @param {RequestListener=} requestListener 
      */
     constructor(options, requestListener) {
         super();
 
+        /** @type Set<native.TCP> HTTP 连接列表 */
+        this.connections = new Set();
+
+        /** @type number */
+        this.nextConnectionId = 0;
+
         /** @type any */
         this.options = options;
 
-        /** @type any */
+        /** @type {RequestListener=} */
         this.requestListener = requestListener;
 
-        /** @type native.TCP | null */
-        this.server = null;
-
-        /** @type number */
-        this.nextRequestId = 0;
-
-        /** @type Set<native.TCP> */
-        this.connections = new Set();
+        /** @type {native.TCP=} */
+        this.server = undefined;
     }
 
     get [Symbol.toStringTag]() {
         return 'Server';
     }
 
-    /** @param {native.TCP} connection */
-    async handleConnection(connection) {
-        // console.log(this.nextRequestId++, 'accept');
+    /**
+     * 关闭这个服务
+     */
+    close() {
+        const socket = this.server;
+        if (socket) {
+            this.server = undefined;
 
+            socket.onclose = undefined;
+            socket.onerror = undefined;
+            socket.onconnection = undefined;
+            socket.close();
+        }
+
+        this.removeAllEventListeners();
+        // console.log('close', this.connections);
+    }
+
+    /** 
+     * 处理连接
+     * @param {native.TCP} connection 
+     */
+    async handleConnection(connection) {
         const requestListener = this.requestListener;
 
         const type = http.REQUEST;
@@ -717,21 +734,10 @@ export class Server extends EventTarget {
         this.connections.add(connection);
     }
 
-    close() {
-        const socket = this.server;
-        if (socket) {
-            this.server = null;
-
-            socket.onclose = undefined;
-            socket.onerror = undefined;
-            socket.onconnection = undefined;
-            socket.close();
-        }
-
-        this.removeAllEventListeners();
-        // console.log('close', this.connections);
-    }
-
+    /**
+     * 开始这个服务
+     * @returns {Promise<this>}
+     */
     async start() {
         const options = this.options || {};
         const address = { address: '0.0.0.0', port: 80, family: 4 };

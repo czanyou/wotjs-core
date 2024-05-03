@@ -115,11 +115,23 @@ declare module '@tjs/config' {
         sections: string[];
 
         /**
-         * 
+         * constructor
          * @param name 
          * @param basepath 
          */
         constructor(name: string, basepath?: string);
+
+        /**
+         * Add a section
+         * @param section 
+         */
+        addSection(section: string): void;
+
+        /**
+         * Add sections
+         * @param sections 
+         */
+        addSections(sections: string[]): void;
 
         /**
          * Removes all key/value pairs, if there are any.
@@ -253,7 +265,7 @@ declare module '@tjs/config' {
 }
 
 /**
- * 提供 Watchdog 等设备访问接口
+ * Watchdog 等设备访问接口
  */
 declare module '@tjs/devices' {
 
@@ -264,8 +276,10 @@ declare module '@tjs/devices' {
 
     /** 代表一个硬件看门狗设备 */
     export interface Watchdog {
+        /** 设备文件描述符 */
         fileno?: number
 
+        /** 设备文件名称 */
         device?: string
 
         /** 关闭这个设备 */
@@ -293,11 +307,25 @@ declare module '@tjs/devices' {
         /** 指出是否开启了看门狗 */
         isEnabled(): boolean
 
+        /** 复位 */
         reset(): any;
 
         /** 设置新的超时时间，一般建议为 60s，单位为秒. */
         setTimeout(timeout: number): void
     }
+
+    /**
+     * 选项
+     */
+    export interface WatchdogOptions {
+        /** 设备名称，如 watchdog */
+        name?: string;
+    }
+
+    /**
+     * 关闭所有打开的设备
+     */
+    export function close(): void;
 
     /**
      * 返回所有设备
@@ -309,11 +337,11 @@ declare module '@tjs/devices' {
      * 请求指定的设备
      * @param options 设备名称或索引
      */
-    export function requestWatchdog(options: { name?: string }): Promise<Watchdog>
+    export function requestWatchdog(options?: WatchdogOptions): Promise<Watchdog | undefined>
 }
 
 /**
- * 提供 GPIO 口设备访问接口
+ * GPIO 口设备访问接口
  */
 declare module '@tjs/gpio' {
     export interface GpioOptions {
@@ -468,6 +496,27 @@ declare module '@tjs/logs' {
         level?: string
     }
 
+    /**
+     * Syslog 日志优先级别
+     */
+    export const SYSLOG_LEVELS: {
+        d: 7,
+        l: 7,
+        i: 6,
+        a: 5,
+        w: 4,
+        e: 3,
+        debug: 7, // 调试信息
+        info: 6, // 有用的信息
+        notice: 5, // 普通但重要的事件
+        assert: 5,
+        warn: 4, // 警告事件
+        error: 3, // 错误事件
+        crit: 2, // 关键的事件
+        alert: 1, // 必须马上采取行动的事件
+        emerg: 0 // 系统不可用
+    };
+
     export namespace syslog {
 
         /**
@@ -491,6 +540,9 @@ declare module '@tjs/logs' {
     export function config(config?: LogConfig): LogConfig;
 }
 
+/**
+ * Shell 工具
+ */
 declare module '@tjs/shell' {
 
     import * as fs from '@tjs/fs';
@@ -519,6 +571,9 @@ declare module '@tjs/shell' {
         O_RDWR: 2
     };
 
+    /**
+     * 实现常用的 Shell 命令
+     */
     export interface Shell {
 
         readonly $0: number;
@@ -755,7 +810,7 @@ declare module '@tjs/shell' {
 }
 
 /**
- * 提供串口设备访问接口
+ * 串口设备访问接口
  */
 declare module '@tjs/serial' {
     /**
@@ -939,19 +994,25 @@ declare module '@tjs/test' {
      */
     export function loadAll(meta: string | object): Promise<void>;
 
-    /** 运行所有加载的测试套件和测试用例 */
+    /** 
+     * 运行所有加载的测试套件和测试用例 
+     */
     export function runAll(): Promise<void>;
 
     /** 
+     * 添加一个测试用例 
+     * 
      * Register a test which will be run when test is used on the command 
      * line and the containing module looks like a test module.
-     * 添加一个测试用例 
+     * 
+     * @param description 描述信息
+     * @param fn 测试用例方法
      */
     export function test(description: string, fn: Function): void;
 
     /** 
      * 休眠并等待一段时间
-     * @param timeout
+     * @param timeout 休眠时间，单位为毫秒
      */
     export function sleep(timeout: number): Promise<void>;
 }

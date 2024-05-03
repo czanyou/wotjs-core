@@ -24,7 +24,6 @@ export const hrtime = native.hrtime;
 export const isatty = native.isatty;
 export const kill = os.kill;
 export const loadavg = os.loadavg;
-export const networkInterfaces = os.interfaces;
 export const printHandles = os.printHandles;
 export const printMemoryUsage = os.printMemoryUsage;
 export const reboot = os.reboot;
@@ -35,6 +34,21 @@ export const tmpdir = native.tmpdir;
 export const totalmem = os.totalmem;
 export const uname = native.uname;
 export const uptime = os.uptime;
+
+export function networkInterfaces() {
+    const interfaces = os.interfaces() || [];
+    const result = {};
+    for (const iface of interfaces) {
+        const name = iface.name;
+        if (result[name] == null) {
+            result[name] = [];
+        }
+
+        result[name].push(iface);
+    }
+
+    return result;
+}
 
 /**
  * spawn

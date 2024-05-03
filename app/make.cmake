@@ -7,12 +7,12 @@ set(APP_JS_DIR ${CMAKE_CURRENT_LIST_DIR})
 # modules & tpm.app
 
 set(app_js_files
-    ${APP_JS_DIR}/modules/bin/*.js
+    ${APP_JS_DIR}/bin/*.js
     ${APP_JS_DIR}/modules/system/*.js
     ${APP_JS_DIR}/modules/utils/*.js
     ${APP_JS_DIR}/modules/vendor/*.js
-    ${APP_JS_DIR}/tpm/src/*.js
-    ${APP_JS_DIR}/tpm/*.js
+#   ${APP_JS_DIR}/tpm/src/*.js
+#   ${APP_JS_DIR}/tpm/*.js
 )
 
 ###############################################################

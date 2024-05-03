@@ -24,7 +24,7 @@ async function testAccess() {
 
     try {
         const result = await fs.access(cwd + 'test');
-        assert.fail(result);
+        assert.fail('result:' + result);
 
     } catch (e) {
         assert.equal(e.errno, -2);
@@ -51,20 +51,23 @@ async function testHashFile() {
     const hash1 = await fs.filesum(filename, 'SHA1');
 
     // readFile
-    let filedata = await fs.readFile(filename, 'utf-8');
-    filedata = filedata && String(filedata);
-    assert.ok(filedata.length >= 0);
-    // console.log('readFile', filedata.length);
-
-    filedata = await fs.readFile(filename);
-    if (filedata instanceof ArrayBuffer) {
-        assert.ok(filedata.byteLength >= 0);
+    {
+        const filedata = await fs.readFile(filename, 'utf-8');
+        assert.ok(filedata?.length >= 0);
+        // console.log('readFile', filedata.length);
     }
-    // console.log('readFile.byteLength:', filedata.length);
 
-    // hashFile
-    const hash2 = util.hash(filedata, 'sha1');
-    assert.equal(hash2, hash1);
+    {
+        const filedata = await fs.readFile(filename);
+        if (filedata instanceof ArrayBuffer) {
+            assert.ok(filedata.byteLength >= 0);
+        }
+        // console.log('readFile.byteLength:', filedata.length);
+
+        // hashFile
+        const hash2 = util.hash(filedata, 'sha1');
+        assert.equal(hash2, hash1);
+    }
 }
 
 async function testStat() {

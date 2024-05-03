@@ -8,6 +8,9 @@ import * as fetch from '@tjs/fetch';
 import * as streams from '@tjs/streams';
 import * as util from '@tjs/util';
 
+/**
+ * 测试 Body 类
+ */
 test('fetch - Body', async () => {
     // console.log(fetch);
 
@@ -18,7 +21,7 @@ test('fetch - Body', async () => {
 
     // 1. Body is null
 
-    const raw = await body.processBody();
+    const raw = await body._processBody();
     assert.equal(raw, undefined);
     // console.log(raw);
 
@@ -67,14 +70,17 @@ test('fetch - Body', async () => {
     assert.equal(data, 'test2');
 });
 
+/**
+ * 测试 Request 类
+ */
 test('fetch - Request', async () => {
     try {
         const body = '100';
         // @ts-ignore
         const request = new fetch.Request('', { method: 'POST', body });
 
+        // read as text
         const data = await request.text();
-        // console.log('data', data);
         assert.equal(data, '100');
 
     } catch (e) {
@@ -82,10 +88,14 @@ test('fetch - Request', async () => {
     }
 });
 
+/**
+ * 测试 Request 类
+ */
 test('fetch - Request - stream', async () => {
     try {
+        // send as stream
         let total = 0;
-        const stream = new streams.ReadableStream({
+        const stream = streams.createReadableStream({
             pull(controller) {
                 return new Promise((resolve, reject) => {
                     setTimeout(() => {
@@ -107,12 +117,9 @@ test('fetch - Request - stream', async () => {
         // @ts-ignore
         const request = new fetch.Request('', { method: 'POST', body: stream });
 
-        const body = request.body;
-        const reader = body.getReader();
-        // console.log('data', body);
-
+        // read as text
+        const reader = request.body.getReader();
         let data = '';
-
         while (true) {
             const result = await reader.read();
             if (result.done) {
@@ -121,8 +128,7 @@ test('fetch - Request - stream', async () => {
 
             data += util.toString(result.value);
         }
-        // const data = await request.text();
-        // console.log('data', data);
+        
         assert.equal(data, '000100200300400500600700800900');
 
     } catch (e) {
@@ -130,11 +136,14 @@ test('fetch - Request - stream', async () => {
     }
 });
 
-test('fetch - Response - stream', async () => {
+/**
+ * 测试 Response 类
+ */
+test('fetch - Response - stream - text()', async () => {
     try {
-        /** @type ReadableStreamDefaultController | null */
-        let readController = null;
-        const stream = new streams.ReadableStream({
+        /** @type {ReadableStreamDefaultController=} */
+        let readController;
+        const stream = streams.createReadableStream({
             start(controller) {
                 readController = controller;
             }
@@ -143,27 +152,32 @@ test('fetch - Response - stream', async () => {
         // @ts-ignore
         const response = new fetch.Response(stream);
 
+        // enqueue
         setTimeout(() => {
             readController?.enqueue(util.toBuffer('200'));
             readController?.close();
         }, 10);
 
-        // @ts-ignore
         readController?.enqueue(util.toBuffer('100'));
+
+        // read as text
         const data = await response.text();
-        // console.log('data', data);
         assert.equal(data, '100200');
 
     } catch (e) {
         console.log(e);
+        assert.fail(e);
     }
 });
 
-test('fetch - Response - stream', async () => {
+/**
+ * 测试 Response 类的 body.getReader 接口
+ */
+test('fetch - Response - stream - getReader', async () => {
     try {
-        /** @type ReadableStreamDefaultController | null */
-        let readController = null;
-        const stream = new streams.ReadableStream({
+        /** @type {ReadableStreamDefaultController=} */
+        let readController;
+        const stream = streams.createReadableStream({
             start(controller) {
                 readController = controller;
             }
@@ -173,6 +187,7 @@ test('fetch - Response - stream', async () => {
         const response = new fetch.Response(stream);
         let count = 0;
 
+        // enqueue
         function onEnqueue() {
             setTimeout(() => {
                 readController?.enqueue(util.toBuffer(count + '00'));
@@ -188,12 +203,10 @@ test('fetch - Response - stream', async () => {
 
         onEnqueue();
 
-        const body = response.body;
-        const reader = body.getReader();
-        // console.log('data', body);
+        // get reader
+        const reader = response.body.getReader();
 
         let data = '';
-
         while (true) {
             const result = await reader.read();
             if (result.done) {
@@ -208,5 +221,6 @@ test('fetch - Response - stream', async () => {
 
     } catch (e) {
         console.log(e);
+        assert.fail(e);
     }
 });

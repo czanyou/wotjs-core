@@ -7,12 +7,17 @@ import { test } from '@tjs/test';
 import * as http from '@tjs/http';
 const $textEncoder = new TextEncoder();
 
+/**
+ * 创建一个 HTTP 测试服务器
+ * - 这个服务器会返回客户端请求的内容
+ * @returns {Promise<http.Server>}
+ */
 async function startServer() {
     const options = { port: 18088 };
     const server = http.createServer(options, async (req, res) => {
         const result = { headers: {}, args: req.query };
         req.headers.forEach((value, key) => {
-            result.headers[key] = value;
+            result.headers[key.toLowerCase()] = value;
         });
 
         // console.log('headers', req.headers);
@@ -22,10 +27,10 @@ async function startServer() {
         if (!type) {
             result.data = await req.text();
 
-        } else if (type?.startsWith('application/json')) {
+        } else if (type.startsWith('application/json')) {
             result.json = await req.json();
 
-        } else if (type?.startsWith('application/x-www-form-urlencoded')) {
+        } else if (type.startsWith('application/x-www-form-urlencoded')) {
             const data = await req.text();
 
             const params = new URLSearchParams(data);
@@ -34,9 +39,16 @@ async function startServer() {
                 result.form[key] = value;
             });
 
-        } else if (type?.startsWith('multipart/form-data')) {
-            const data = await req.text();
+        } else if (type.startsWith('multipart/form-data')) {
+            const formdata = await req.formData();
+
+            const data = {};
+            for (const [key, value] of formdata) {
+                data[key] = value;
+            }
+
             result.formdata = data;
+            // console.log('formdata:', formdata);
 
         } else {
             const data = await req.text();
@@ -53,12 +65,15 @@ async function startServer() {
     return server;
 }
 
+/**
+ * 测试发送 JSON 内容
+ */
 test('http - post.json', async () => {
     const server = await startServer();
     try {
         const url = 'http://localhost:18088/post?foo=100&bar=test';
         const body = JSON.stringify({ test: 'post' });
-        const init = { debug: true, method: 'POST', headers: { 'X-Test': 'http:post', 'Content-Type': 'application/json', Connection: 'close' }, body };
+        const init = { debug: false, method: 'POST', headers: { 'X-Test': 'http:post', 'Content-Type': 'application/json', Connection: 'close' }, body };
         const response = await fetch(url, init);
         assert.ok(response);
         assert.equal(response.status, 200);
@@ -90,11 +105,14 @@ test('http - post.json', async () => {
     }
 });
 
+/**
+ * 测试发送纯文本内容
+ */
 test('http - post.text', async () => {
     const server = await startServer();
     try {
         const url = 'http://localhost:18088/post';
-        const init = { debug: true, method: 'POST', headers: {}, body: '<root>xml</root>' };
+        const init = { debug: false, method: 'POST', headers: {}, body: '<root>xml</root>' };
         const response = await fetch(url, init);
         assert.ok(response);
         assert.equal(response.status, 200);
@@ -116,12 +134,15 @@ test('http - post.text', async () => {
     }
 });
 
+/**
+ * 测试发送二进制内容
+ */
 test('http - post.buffer', async () => {
     const server = await startServer();
     try {
         const url = 'http://localhost:18088/post';
         const body = $textEncoder.encode('<root>xml</root>');
-        const init = { debug: true, method: 'POST', headers: {}, body };
+        const init = { debug: false, method: 'POST', headers: {}, body };
         const response = await fetch(url, init);
         assert.ok(response);
 
@@ -143,12 +164,15 @@ test('http - post.buffer', async () => {
     }
 });
 
+/**
+ * 测试发送 URL 参数
+ */
 test('http - post.urlencoded', async () => {
     const server = await startServer();
     try {
         const url = 'http://localhost:18088/post';
         const body = new URLSearchParams({ test: 'post', foo: '100', bar: 'test' });
-        const init = { debug: true, method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body };
+        const init = { debug: false, method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body };
         const response = await fetch(url, init);
         assert.ok(response);
         assert.equal(response.status, 200);
@@ -186,7 +210,7 @@ test('http - post.all', async () => {
         formdata.append('foo', '100');
         formdata.append('bar', 'test');
 
-        const init = { debug: true, method: 'POST', headers: {}, body: formdata };
+        const init = { debug: false, method: 'POST', headers: {}, body: formdata };
 
         const promises = [];
         promises.push(fetch(url, init));
@@ -199,6 +223,9 @@ test('http - post.all', async () => {
     }
 });
 
+/**
+ * 测试发送表格内容
+ */
 test('http - post.formdata', async () => {
     const server = await startServer();
     try {
@@ -208,7 +235,7 @@ test('http - post.formdata', async () => {
         formdata.append('foo', '100');
         formdata.append('bar', 'test');
 
-        const init = { debug: true, method: 'POST', headers: {}, body: formdata };
+        const init = { debug: false, method: 'POST', headers: {}, body: formdata };
         const response = await fetch(url, init);
         assert.ok(response);
 
@@ -234,6 +261,9 @@ test('http - post.formdata', async () => {
     }
 });
 
+/**
+ * 测试支持的特性
+ */
 test('http - support', async () => {
     const support = {
         arrayBuffer: 'ArrayBuffer' in globalThis,

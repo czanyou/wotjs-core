@@ -1,6 +1,6 @@
 // @ts-check
 /// <reference path ="../../modules/types/index.d.ts" />
-import * as build from '../../modules/vendor/build.js';
+import * as build from '../../modules/utils/build.js';
 
 /**
  * 

@@ -45,10 +45,12 @@
 #ifndef offsetof
 #define offsetof(type, field) ((size_t) &((type *)0)->field)
 #endif
-
 #ifndef countof
 #define countof(x) (sizeof(x) / sizeof((x)[0]))
 #endif
+
+/* return the pointer of type 'type *' containing 'ptr' as field 'member' */
+#define container_of(ptr, type, member) ((type *)((uint8_t *)(ptr) - offsetof(type, member)))
 
 typedef int BOOL;
 
@@ -294,13 +296,5 @@ static inline int from_hex(int c)
 void rqsort(void *base, size_t nmemb, size_t size,
             int (*cmp)(const void *, const void *, void *),
             void *arg);
-
-#ifdef CONFIG_FENV_MOCK
-
-extern size_t malloc_usable_size (void *__ptr);
-
-extern int fesetround(int rdir);
-
-#endif
 
 #endif  /* CUTILS_H */

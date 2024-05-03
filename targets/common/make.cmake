@@ -56,6 +56,8 @@ function(cmake_print_settings)
     message(STATUS ".. PROJECT_VERSION ............. [${PROJECT_VERSION}]")
     message(STATUS ".. PROJECT_VERSION_MAJOR ....... [${PROJECT_VERSION_MAJOR}]")
     message(STATUS ".. PROJECT_VERSION_MINOR ....... [${PROJECT_VERSION_MINOR}]")
+    message(STATUS ".. PROJECT_VERSION_PATCH ....... [${PROJECT_VERSION_PATCH}]")
+    message(STATUS ".. PROJECT_VERSION_TWEAK ....... [${PROJECT_VERSION_TWEAK}]")
     message(STATUS "==")
 
 endfunction()

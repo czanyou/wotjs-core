@@ -1,3 +1,40 @@
+
+/**
+ * 文本编解码
+ */
+declare module '@tjs/encoding' {
+    /**
+     * 解码
+     * @param text 要解码的数据
+     * @param format `hex`,`base64`
+     */
+    export function decode(text: string, format?: string): Uint8Array;
+
+    /**
+     * 编码
+     * @param data 要编码的数据
+     * @param format `hex`,`base64`
+     */
+    export function encode(data: string | Uint8Array | ArrayBuffer, format?: string): string;
+
+    /**
+     * UTF8 编码的二进制数据和字符串之间的转换
+     */
+    export namespace utf8 {
+        /**
+         * 解码
+         * @param data UTF8 二进制数据
+         */
+        function decode(data: BufferSource): string;
+
+        /**
+         * 编码
+         * @param data 字符串
+         */
+        function encode(data: string): Uint8Array;
+    }
+}
+
 /**
  * The fs module enables interacting with the file system in a way modeled on standard POSIX functions.
  */
@@ -212,6 +249,7 @@ declare module '@tjs/fs' {
      * @param encoding 编码格式, 只支持 `utf-8`
      */
     export function readFile(filename: string, encoding?: IReadFileOptions | string): Promise<string | ArrayBuffer>;
+    export function readFile(filename: string, encoding: "utf-8"): Promise<string>;
 
     /**
      * Asynchronously reads the entire contents of a file.
@@ -269,7 +307,7 @@ declare module '@tjs/fs' {
      * @param filename 文件名
      * @param options 选项
      */
-    export function readableStream(filename: string, options?: { chunkSize?: number, onprogress?: (event: {loaded: number, total: number}) => void}): Promise<ReadableStream>;
+    export function readableStream(filename: string, options?: { chunkSize?: number, onprogress?: (event: { loaded: number, total: number }) => void }): Promise<ReadableStream>;
 }
 
 /**
@@ -328,6 +366,9 @@ declare module '@tjs/os' {
         /** 退出代码 */
         code?: number;
 
+        /** 退出信号 */
+        signal?: number;
+
         /** 错误 */
         error?: Error;
     }
@@ -378,22 +419,22 @@ declare module '@tjs/os' {
      */
     export class NetworkInterface {
         /** IP 地址 */
-        ip?: string;
+        address?: string;
+
+        /** `IPv4` 或 `IPv6`  */
+        family?: string;
+
+        /** 是否是本地回环或类似的接口 */
+        internal?: boolean;
 
         /** 硬件地址 */
         mac?: string;
 
-        /** 子网掩码 */
-        netmask?: string;
-
-        /** IPv4 或 IPv6  */
-        family?: string;
-
-        /** 网络接口名称 */
-        interface?: string;
-
         /** 网络接口名称 */
         name?: string;
+
+        /** 子网掩码 */
+        netmask?: string;
 
         /**
          * - IFF_UP: 0x01
@@ -502,7 +543,7 @@ declare module '@tjs/os' {
     export function loadavg(): number[];
 
     /** 网络接口列表 */
-    export function networkInterfaces(): NetworkInterface[];
+    export function networkInterfaces(): { [key: string]: NetworkInterface[] };
 
     /** 重启设备 */
     export function reboot(): number;
@@ -765,7 +806,7 @@ declare module '@tjs/process' {
     export function stderr(): native.TTY;
 
     export function addEventListener(eventName: string, listener: Function, options?: boolean | { capture?: boolean, passive?: boolean, once?: boolean }): void;
-    export function removeEventListener(eventName: string, listener: Function, options:any): void;
+    export function removeEventListener(eventName: string, listener: Function, options: any): void;
 }
 
 /**

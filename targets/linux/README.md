@@ -23,9 +23,6 @@ make link
 ```shell
 cd /path/to/targets/linux/
 
-# 创建需要的目录和文件
-sh reset.sh
-
 # 设置设备出厂信息
 tpm factory init --did [did] --secret [secret] --sn [sn] --url [url]
 

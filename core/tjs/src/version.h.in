@@ -28,6 +28,7 @@
 #define TJS_VERSION_MAJOR @TJS_VERSION_MAJOR@
 #define TJS_VERSION_MINOR @TJS_VERSION_MINOR@
 #define TJS_VERSION_PATCH @TJS_VERSION_PATCH@
+#define TJS_VERSION_TWEAK @TJS_VERSION_TWEAK@
 #define TJS_VERSION_SUFFIX "-dev"
 #define TJS_VERSION_STRING "@TJS_VERSION_MAJOR@.@TJS_VERSION_MINOR@.@TJS_VERSION_PATCH@"
 
@@ -44,5 +45,7 @@ const char* tjs_version(void);
 const char* tjs_core_board(void);
 const char* tjs_core_build(void);
 const char* tjs_core_version(void);
+const int tjs_code(void);
+const int tjs_core_code(void);
 
 #endif

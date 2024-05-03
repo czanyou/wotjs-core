@@ -51,7 +51,14 @@ function _normalizeName(name) {
         throw new TypeError('Invalid character in header field name');
     }
 
-    return name.toLowerCase();
+    const tokens = name.split('-');
+    const result = [];
+    for (const token of tokens) {
+        const key = token.slice(0, 1).toUpperCase() + token.slice(1).toLowerCase();
+        result.push(key);
+    }
+
+    return result.join('-');
 }
 
 /** 
@@ -256,12 +263,8 @@ export class Body {
         return 'Body';
     }
 
-    /** @type {ReadableStream|undefined} */
+    /** @type {ReadableStream=} */
     get body() {
-        if (this._body) {
-            return this._body;
-        }
-
         return this._body;
     }
 
@@ -278,7 +281,7 @@ export class Body {
      * @private
      * @returns {Promise<RawBody>}
      */
-    async fullyReadBody() {
+    async _fullyReadBody() {
         if (this.bodyUsed) {
             // 不能重复读取
             return Promise.reject(new TypeError('Already read'));
@@ -286,48 +289,9 @@ export class Body {
 
         this._bodyUsed = true;
 
-        const body = await this.processBody();
+        const body = await this._processBody();
         delete this._rawBody;
         return this._getBodyType(body);
-    }
-
-    /**
-     * 初始化消息体内容
-     * @param {BodyInit=} body 
-     * @param {string=} encoding 
-     */
-    _initBody(body, encoding) {
-        if (body instanceof ReadableStream) {
-            this._body = body;
-            delete this._rawBody;
-
-        } else {
-            delete this._body;
-            this._rawBody = body;
-        }
-
-        if (encoding) {
-            this.encoding = encoding;
-        }
-    }
-
-    /**
-     * 返回消息内容
-     * - 可重载这个方法用来读取消息内容
-     * @returns {Promise<BodyInit|undefined>}
-     */
-    async processBody() {
-        if (this._rawBody != null) {
-            return this._rawBody;
-        }
-
-        const readStream = this._body;
-        if (readStream) {
-            delete this._body;
-            this._rawBody = await this.readFromStream(readStream);
-        }
-
-        return this._rawBody;
     }
 
     /**
@@ -400,6 +364,156 @@ export class Body {
     }
 
     /**
+     * 初始化消息体内容
+     * @param {BodyInit=} body 
+     * @param {string=} encoding 
+     */
+    _initBody(body, encoding) {
+        if (body instanceof ReadableStream) {
+            this._body = body;
+            delete this._rawBody;
+
+        } else {
+            delete this._body;
+            this._rawBody = body;
+        }
+
+        if (encoding) {
+            this.encoding = encoding;
+        }
+    }
+
+    /**
+     * 返回消息内容
+     * - 可重载这个方法用来读取消息内容
+     * @returns {Promise<BodyInit|undefined>}
+     */
+    async _processBody() {
+        if (this._rawBody != null) {
+            return this._rawBody;
+        }
+
+        const readStream = this._body;
+        if (readStream) {
+            delete this._body;
+            this._rawBody = await this.readFromStream(readStream);
+        }
+
+        return this._rawBody;
+    }
+
+    /**
+     * 读取 ArrayBuffer 格式消息内容
+     * @returns Promise<ArrayBuffer>
+     */
+    async arrayBuffer() {
+
+        /**
+         * @param {Blob|File} blob 
+         * @returns {Promise<ArrayBuffer>}
+         */
+        function readBlobAsArrayBuffer(blob) {
+            const reader = new FileReader();
+            const promise = fileReaderReady(reader);
+            reader.readAsArrayBuffer(blob);
+            return promise;
+        }
+
+        const body = await this._fullyReadBody();
+        if (body == null) {
+            // TODO: 
+
+        } else if (body.arrayBuffer) {
+            return Promise.resolve(body.arrayBuffer);
+
+        } else if (body.text) {
+            const encoder = new TextEncoder();
+            return Promise.resolve(encoder.encode(body.text));
+
+        } else if (body.blob) {
+            return readBlobAsArrayBuffer(body.blob);
+
+        } else if (body.formData) {
+            // @ts-ignore
+            return readBlobAsArrayBuffer(body.formData.toBlob());
+        }
+    }
+
+    /**
+     * @returns {Promise<Blob|undefined>}
+     */
+    async blob() {
+        const body = await this._fullyReadBody();
+
+        if (body.blob) {
+            return Promise.resolve(body.blob);
+
+        } else if (body.arrayBuffer) {
+            return Promise.resolve(new Blob([body.arrayBuffer]));
+
+        } else if (body.formData) {
+            // @ts-ignore
+            return body.formData.toBlob();
+
+        } else {
+            return Promise.resolve(new Blob([body.text || '']));
+        }
+    }
+
+    destroy() {
+
+    }
+
+    /**
+     * 当应答消息内容接收完毕
+     * - 通知消息内容接收完毕
+     * @returns {void}
+     */
+    end() {
+
+    }
+
+    /**
+     * @returns {Promise<FormData|undefined>}
+     */
+    async formData() {
+        const body = await this.text();
+        if (body == null) {
+            return;
+        }
+
+        const form = new FormData();
+        body.trim().split('&').forEach(function (bytes) {
+            if (bytes) {
+                const split = bytes.split('=');
+                const name = split.shift()?.replace(/\+/g, ' ');
+                const value = split.join('=').replace(/\+/g, ' ');
+
+                if (name) {
+                    form.append(decodeURIComponent(name), decodeURIComponent(value));
+                }
+            }
+        });
+
+        return form;
+    }
+
+    // text -> json
+    async json() {
+        try {
+            const text = await this.text();
+            if (!text || !text.length) {
+                return;
+            }
+
+            return JSON.parse(text);
+
+        } catch (err) {
+            return err;
+        }
+    }
+
+    /**
      * 从 Stream 中读取所有内容
      * @param {ReadableStream=} readStream 
      * @returns {Promise<ArrayBuffer|undefined>}
@@ -455,77 +569,6 @@ export class Body {
         return byteArray.buffer;
     }
 
-    destroy() {
-
-    }
-
-    /**
-     * 当应答消息内容接收完毕
-     * - 通知消息内容接收完毕
-     * @returns {void}
-     */
-    end() {
-
-    }
-
-    /**
-     * 读取 ArrayBuffer 格式消息内容
-     * @returns Promise<ArrayBuffer>
-     */
-    async arrayBuffer() {
-
-        /**
-         * @param {Blob|File} blob 
-         * @returns {Promise<ArrayBuffer>}
-         */
-        function readBlobAsArrayBuffer(blob) {
-            const reader = new FileReader();
-            const promise = fileReaderReady(reader);
-            reader.readAsArrayBuffer(blob);
-            return promise;
-        }
-
-        const body = await this.fullyReadBody();
-        if (body == null) {
-            // TODO: 
-
-        } else if (body.arrayBuffer) {
-            return Promise.resolve(body.arrayBuffer);
-
-        } else if (body.text) {
-            const encoder = new TextEncoder();
-            return Promise.resolve(encoder.encode(body.text));
-
-        } else if (body.blob) {
-            return readBlobAsArrayBuffer(body.blob);
-
-        } else if (body.formData) {
-            // @ts-ignore
-            return readBlobAsArrayBuffer(body.formData.toBlob());
-        }
-    }
-
-    /**
-     * @returns {Promise<Blob|undefined>}
-     */
-    async blob() {
-        const body = await this.fullyReadBody();
-
-        if (body.blob) {
-            return Promise.resolve(body.blob);
-
-        } else if (body.arrayBuffer) {
-            return Promise.resolve(new Blob([body.arrayBuffer]));
-
-        } else if (body.formData) {
-            // @ts-ignore
-            return body.formData.toBlob();
-
-        } else {
-            return Promise.resolve(new Blob([body.text || '']));
-        }
-    }
-
     /**
      * @returns {Promise<string|undefined>}
      */
@@ -542,7 +585,7 @@ export class Body {
             return promise;
         }
 
-        const body = await this.fullyReadBody();
+        const body = await this._fullyReadBody();
 
         if (body.blob) {
             return readBlobAsText(body.blob);
@@ -560,45 +603,6 @@ export class Body {
         }
     }
 
-    /**
-     * @returns {Promise<FormData|undefined>}
-     */
-    async formData() {
-        const body = await this.text();
-        if (body == null) {
-            return;
-        }
-
-        const form = new FormData();
-        body.trim().split('&').forEach(function (bytes) {
-            if (bytes) {
-                const split = bytes.split('=');
-                const name = split.shift()?.replace(/\+/g, ' ');
-                const value = split.join('=').replace(/\+/g, ' ');
-
-                if (name) {
-                    form.append(decodeURIComponent(name), decodeURIComponent(value));
-                }
-            }
-        });
-
-        return form;
-    }
-
-    // text -> json
-    async json() {
-        try {
-            const text = await this.text();
-            if (!text || !text.length) {
-                return;
-            }
-
-            return JSON.parse(text);
-
-        } catch (err) {
-            return err;
-        }
-    }
 }
 
 /**
@@ -1608,7 +1612,7 @@ export class FetchManager {
     async open(request, options) {
         const host = options.host;
         if (!host) {
-            return;
+            throw new Error('Invalid host');
         }
 
         // 0. 返回已存在的空闲连接
@@ -1690,7 +1694,7 @@ export async function fetch(input, init) {
     // 0. 初始化请求
     const request = new Request(input, init);
     if (!request.url) {
-        return;
+        throw new Error('Invalid URL');
     }
 
     const uri = new URL(request.url);

@@ -18,7 +18,7 @@ function ensureArgs(args, expected) {
  * @param {string} name 
  * @param {string|Blob|File} value 
  * @param {string} [filename] 
- * @returns 
+ * @returns {(string|File)[]}
  */
 function normalizeArgs(name, value, filename) {
     if (value instanceof Blob) {
@@ -36,6 +36,7 @@ function normalizeArgs(name, value, filename) {
             value = new File([value], filename, { type: value.type });
         }
 
+        // @ts-ignore
         return [String(name), value];
     }
 
@@ -48,6 +49,11 @@ function normalizeLinefeeds(value) {
     return value.replace(/\r?\n|\r/g, '\r\n');
 }
 
+/**
+ * 
+ * @param {any[]} array 
+ * @param {(item: any) => void} callback 
+ */
 function each(array, callback) {
     for (let i = 0; i < array.length; i++) {
         callback(array[i]);
@@ -56,6 +62,8 @@ function each(array, callback) {
 
 const escape = (/** @type {string} */ str) => str.replace(/\n/g, '%0A').replace(/\r/g, '%0D').replace(/"/g, '%22');
 
+const kRawData = Symbol('rawData');
+
 export class Blob {
     /**
      * @param {string[]|Blob[]|ArrayBuffer[]|ArrayBufferView[]} blobParts 
@@ -63,13 +71,13 @@ export class Blob {
      * @returns 
      */
     constructor(blobParts, options) {
-        /** @type string */
+        /** @type {string} */
         this.type = options && options.type;
 
-        /** @type number */
+        /** @type {number} */
         this.size = 0;
 
-        /** @type string | undefined */
+        /** @type {string=} */
         this.name = undefined;
 
         const textEncoder = new TextEncoder();
@@ -78,24 +86,24 @@ export class Blob {
             return;
         }
 
-        /** @type ArrayBufferLike[] */
+        /** @type {Uint8Array[]} */
         const list = [];
         for (const data of blobParts) {
             if (data == null) {
                 continue;
 
             } else if (data instanceof Blob) {
-                list.push(data._buffer && data._buffer.buffer);
+                list.push(data._rawData());
 
             } else if (data instanceof ArrayBuffer) {
-                list.push(data);
+                list.push(new Uint8Array(data));
 
             } else if (ArrayBuffer.isView(data)) {
-                list.push(data.buffer);
+                list.push(new Uint8Array(data.buffer, data.byteOffset, data.byteLength));
 
             } else {
                 const text = String(data);
-                list.push(textEncoder.encode(text).buffer);
+                list.push(textEncoder.encode(text));
             }
         }
 
@@ -106,20 +114,24 @@ export class Blob {
         let offset = 0;
         const blobBuffer = new Uint8Array(this.size);
         for (const buffer of list) {
-            blobBuffer.set(new Uint8Array(buffer), offset);
+            blobBuffer.set(buffer, offset);
             offset += buffer.byteLength;
         }
 
-        /** @type Uint8Array */
-        this._buffer = blobBuffer;
+        /** @type {Uint8Array} */
+        this[kRawData] = blobBuffer;
     }
 
     get [Symbol.toStringTag]() {
         return 'Blob';
     }
 
+    _rawData() {
+        return this[kRawData];
+    }
+
     async arrayBuffer() {
-        return this._buffer?.buffer;
+        return this._rawData()?.buffer;
     }
 
     /**
@@ -128,17 +140,17 @@ export class Blob {
      * @param {string} contentType 
      */
     slice(start, end, contentType) {
-        if (!this._buffer) {
+        if (!this._rawData()) {
             return;
         }
 
-        const buffer = this._buffer.slice(start, end);
+        const buffer = this._rawData().slice(start, end);
         return new Blob([buffer], { type: contentType });
     }
 
     async text() {
         const textDecoder = new TextDecoder();
-        return textDecoder.decode(this._buffer);
+        return textDecoder.decode(this._rawData());
     }
 }
 
@@ -264,6 +276,10 @@ Object.defineProperty(window, 'FileReader', {
 });
 
 /**
+ * @typedef {File|string} FormDataEntryValue
+ */
+
+/**
  * @implements {Iterable}
  */
 export class FormData {
@@ -273,8 +289,10 @@ export class FormData {
      * @param {HTMLElement=} form
      */
     constructor(form) {
-        this._data = [];
+        /** @type {FormDataEntryValue[][]} */
+        this[kRawData] = [];
 
+        /** @type {string} */
         this.boundary = '----formdata-' + Math.floor(Math.random() * Number.MAX_SAFE_INTEGER);
     }
 
@@ -282,35 +300,41 @@ export class FormData {
         return 'FormData';
     }
 
+    get _rawData() {
+        return this[kRawData];
+    }
+
     /**
      * Append a field
      *
      * @param {string} name field name
-     * @param {string|Blob|File} value string / blob / file
+     * @param {string|Blob} value string / blob / file
      * @param {string=} filename filename to use with blob
      * @return {void}
      */
     append(name, value, filename) {
         ensureArgs(arguments, 2);
-        this._data.push(normalizeArgs(name, value, filename));
+        this._rawData.push(normalizeArgs(name, value, filename));
     }
 
     /**
      * Delete all fields values given name
      *
-     * @param   {string}  name  Field name
-     * @return  {void}
+     * @param {string} name Field name
+     * @return {void}
      */
     delete(name) {
         ensureArgs(arguments, 1);
-        const result = [];
         name = String(name);
 
-        each(this._data, entry => {
-            entry[0] !== name && result.push(entry);
-        });
+        const result = [];
+        for (const entry of this._rawData) {
+            if (entry[0] !== name) {
+                result.push(entry);
+            }
+        };
 
-        this._data = result;
+        this[kRawData] = result;
     }
 
     /**
@@ -319,20 +343,22 @@ export class FormData {
      * @return {Iterator}
      */
     * entries() {
-        for (let i = 0; i < this._data.length; i++) {
-            yield this._data[i];
+        const data = this._rawData;
+        for (let i = 0; i < data.length; i++) {
+            yield data[i];
         }
     }
 
     /**
      * Iterate over all fields
      *
-     * @param   {Function}  callback  Executed for each item with parameters (value, name, thisArg)
-     * @param   {Object=}   thisArg   `this` context for callback function
-     * @return  {void}
+     * @param {Function} callback  Executed for each item with parameters (value, name, thisArg)
+     * @param {Object=} thisArg `this` context for callback function
+     * @return {void}
      */
     forEach(callback, thisArg) {
         ensureArgs(arguments, 1);
+
         for (const [name, value] of this) {
             callback.call(thisArg, value, name, this);
         }
@@ -342,32 +368,34 @@ export class FormData {
      * Return first field value given name
      * or null if non existent
      *
-     * @param   {string}  name      Field name
-     * @return  {string|File|null}  value Fields value
+     * @param {string} name Field name
+     * @return {FormDataEntryValue|null} value Fields value
      */
     get(name) {
         ensureArgs(arguments, 1);
-        const entries = this._data;
+        const entries = this._rawData;
         name = String(name);
         for (let i = 0; i < entries.length; i++) {
             if (entries[i][0] === name) {
                 return entries[i][1];
             }
         }
+
         return null;
     }
 
     /**
      * Return all fields values given name
      *
-     * @param   {string}  name  Fields name
-     * @return  {Array}         [{String|File}]
+     * @param {string} name Fields name
+     * @return {FormDataEntryValue[]}
      */
     getAll(name) {
         ensureArgs(arguments, 1);
-        const result = [];
+
         name = String(name);
-        each(this._data, data => {
+        const result = [];
+        each(this._rawData, data => {
             data[0] === name && result.push(data[1]);
         });
 
@@ -377,17 +405,18 @@ export class FormData {
     /**
      * Check for field name existence
      *
-     * @param   {string}   name  Field name
-     * @return  {boolean}
+     * @param {string} name Field name
+     * @return {boolean}
      */
     has(name) {
         ensureArgs(arguments, 1);
         name = String(name);
-        for (let i = 0; i < this._data.length; i++) {
-            if (this._data[i][0] === name) {
+        for (let i = 0; i < this._rawData.length; i++) {
+            if (this._rawData[i][0] === name) {
                 return true;
             }
         }
+
         return false;
     }
 
@@ -405,10 +434,10 @@ export class FormData {
     /**
      * Overwrite all values given name
      *
-     * @param   {string}    name      Filed name
-     * @param   {string}    value     Field value
-     * @param   {string=}   filename  Filename (optional)
-     * @return  {void}
+     * @param {string} name Filed name
+     * @param {string|Blob} value Field value
+     * @param {string=} filename Filename (optional)
+     * @return {void}
      */
     set(name, value, filename) {
         ensureArgs(arguments, 2);
@@ -420,7 +449,7 @@ export class FormData {
         // - replace the first occurrence with same name
         // - discards the remaining with same name
         // - while keeping the same order items where added
-        each(this._data, data => {
+        each(this._rawData, data => {
             data[0] === name
                 ? replace && (replace = !result.push(args))
                 : result.push(data);
@@ -428,7 +457,7 @@ export class FormData {
 
         replace && result.push(args);
 
-        this._data = result;
+        this[kRawData] = result;
     }
 
     /**
@@ -497,7 +526,192 @@ Object.defineProperty(window, 'FormData', {
     value: FormData
 });
 
-export function parse(data) {
+/**
+ * 
+ * @param {Uint8Array} u8Array 
+ * @param {string} searchString 
+ * @param {number} offset
+ * @returns {number}
+ */
+function findStringInUint8Array(u8Array, searchString, offset = 0) {
+    const encoder = new TextEncoder();
+    const searchArray = encoder.encode(searchString);
+    for (let i = offset; i < u8Array.length; i++) {
+        if (u8Array[i] === searchArray[0]) {
+            let found = true;
+            for (let j = 1; j < searchArray.length; j++) {
+                if (u8Array[i + j] !== searchArray[j]) {
+                    found = false;
+                    break;
+                }
+            }
+
+            if (found) {
+                return i; // 返回字符串的起始索引
+            }
+        }
+    }
+
+    return -1; // 没有找到字符串
+}
+
+/**
+ * parse
+ * @param {Uint8Array} data 
+ * @param {string=} boundary 
+ * @returns {FormData}
+ */
+export function parse(data, boundary) {
     const formData = new FormData();
+    if (data == null) {
+        return formData;
+    }
+
+    let state = 0;
+    let offset = 0;
+
+    const LINE_END = '\n'.charCodeAt(0);
+    const textDecoder = new TextDecoder();
+
+    /** @type {{name?: string, filename?: string, type?: string, data?: any, meta?: any}=} */
+    let currentElement;
+
+    /**
+     * @param {string} data 
+     * @returns {{value: string, parameters: Object<string, string>}}
+     */
+    function parseValue(data) {
+        /** @type {Object<string, string>} */
+        const result = {};
+        const tokens = data.split(';');
+        for (let i = 1; i < tokens.length; i++) {
+            const token = tokens[i];
+            const pos = token.indexOf('=');
+            if (pos < 0) {
+                continue;
+            }
+
+            const name = token.substring(0, pos).trim();
+            let value = token.substring(pos + 1).trim();
+            if (value.startsWith('"')) {
+                value = value.substring(1, value.length - 1);
+            }
+
+            result[name] = value;
+        }
+
+        return { value: tokens[0], parameters: result };
+    }
+
+    /**
+     * @param {string} line 
+     */
+    function parseLine(line) {
+        const pos = line.indexOf(':');
+        if (pos < 0) {
+            return;
+        }
+
+        const name = line.substring(0, pos).trim();
+        const value = line.substring(pos + 1).trim();
+
+        if (currentElement) {
+            currentElement.meta[name] = value;
+            const key = name.toLowerCase();
+
+            if (key == 'content-type') {
+                const result = parseValue(value);
+                currentElement.type = result?.value;
+
+            } else if (key == 'content-disposition') {
+                const result = parseValue(value);
+                const parameters = result?.parameters;
+                currentElement.name = parameters?.name;
+                currentElement.filename = parameters?.filename;
+            }
+
+            // console.log(name, value, item);
+        }
+    }
+
+    function addElement() {
+        // console.log('item:', item);
+
+        if (currentElement && currentElement.name && currentElement.data != null) {
+            formData.append(currentElement.name, currentElement.data, currentElement.filename);
+        }
+
+        currentElement = undefined;
+    }
+
+    while (true) {
+        if (state < 10) {
+            const pos = data.indexOf(LINE_END, offset);
+            if (pos < 0) {
+                addElement();
+                // const leftover = data.length - offset;
+                // console.log(leftover, boundary?.length);
+                break;
+            }
+
+            const line = textDecoder.decode(data.subarray(offset, pos)).trim();
+            // console.log('pos:', state, pos, line);
+
+            if (state == 0) {
+                boundary = line;
+                state = 1;
+
+                currentElement = { meta: {}, type: '', data: undefined };
+
+            } else if (state == 1) {
+                if (line == '') {
+                    state = 2;
+
+                    if (currentElement?.type) {
+                        state = 11;
+                    }
+
+                } else {
+                    parseLine(line);
+                }
+
+            } else if (state == 2) {
+                state = 0;
+
+                if (currentElement) {
+                    currentElement.data = line;
+                }
+
+                addElement();
+
+            } else {
+                break;
+            }
+
+            offset = pos + 1;
+
+        } else {
+            if (boundary == null) {
+                break;
+            }
+
+            const pos = findStringInUint8Array(data, '\r\n' + boundary, offset);
+            if (pos < 0) {
+                break;
+            }
+
+            if (currentElement) {
+                const filedata = data.subarray(offset, pos);
+                currentElement.data = new File([filedata], currentElement.filename || '', { type: currentElement.type });
+            }
+
+            // console.log(state, pos);
+            offset = pos + 1;
+
+            addElement();
+            state = 0;
+        }
+    }
+
     return formData;
 }

@@ -1,6 +1,9 @@
 // @ts-check
 /// <reference path ="../../types/index.d.ts" />
 import * as native from '@tjs/native';
+import * as fs from '@tjs/fs';
+
+const TAG = 'devcies:';
 
 export const watchdog = native.watchdog;
 export const adc = native.adc;
@@ -17,8 +20,17 @@ export class ADC {
     get [Symbol.toStringTag]() {
         return 'ADC';
     }
+
+    close() {
+        
+    }
 }
 
+/**
+ * 硬件看门狗
+ * 
+ * - /dev/watchdog 和 /dev/watchdog0 是同一个设备，是为了兼容老的应用。
+ */
 export class Watchdog {
     constructor() {
         /** @type string */
@@ -114,72 +126,117 @@ export class Watchdog {
     }
 }
 
+/**
+ * 上下文信息
+ */
 const $context = {
-    /** @type {{[key: string]: number}} */
+    /** @type {{[key: string]: number}} 设备名称和设备文件映射表 */
     names: {},
 
-    /** @type Watchdog[] */
+    /** @type Watchdog[] 看门狗设备列表 */
     watchdogs: [],
 
     /** @type ADC[] */
     adcs: [],
 
-    /** @type boolean */
-    initing: false
+    /** @type boolean 是否正在初始化中 */
+    initing: false,
+
+    /** @type boolean 是否已初始化 */
+    inited: false
 };
 
-async function initDefaults() {
+/**
+ * 初始化
+ * @returns 
+ */
+async function init() {
+    if ($context.inited || $context.initing) {
+        return;
+    }
+
+    $context.initing = true;
+
+    // watchdog
     try {
-        if ($context.initing) {
-            return;
+        $context.watchdogs = [];
+
+        const filename = '/dev/watchdog';
+        if (await fs.exists(filename)) {
+            const watchdog = new Watchdog();
+            const index = $context.watchdogs.length;
+            $context.watchdogs[index] = watchdog;
+            $context.names.watchdog = index;
+        }
+    } catch (e) {
+        console.log(TAG, 'init:', e.message);
+    }
+
+    // adc
+    try {
+        $context.adcs = [];
+
+        const filename = '/dev/adc';
+        if (await fs.exists(filename)) {
+            const index = $context.adcs.length;
+            const adc = new ADC();
+            $context.adcs[index] = adc;
+            $context.names.adc = index;
         }
 
-        $context.initing = true;
-
-        // watchdog
-        $context.watchdogs = [];
-        let index = $context.watchdogs.length;
-        const watchdog = new Watchdog();
-        $context.watchdogs[index] = watchdog;
-        $context.names.watchdog = index;
-        $context.watchdog = watchdog;
-
-        // adc
-        $context.adcs = [];
-        index = $context.adcs.length;
-        const adc = new ADC();
-        $context.adcs[index] = adc;
-        $context.names.adc = index;
-
-        $context.initing = false;
-
     } catch (e) {
-        console.log('devices:', e.message);
-        $context.initing = false;
+        console.log(TAG, 'init:', e.message);
+    }
+
+    $context.inited = true;
+    $context.initing = false;
+}
+
+/**
+ * 关闭所有设备
+ */
+export function close() {
+    const watchdogs = $context.watchdogs;
+    if (watchdogs) {
+        $context.watchdogs = [];
+        for (const watchdog of watchdogs) {
+            watchdog.close();
+        }
+    }
+
+    const adcs = $context.adcs;
+    $context.adcs = [];
+    if (adcs) {
+        for (const adc of adcs) {
+            adc.close();
+        }
     }
 }
 
 /**
- * 
+ * 返回所有已打开的 Watchdog 设备
  * @returns {Promise<Watchdog[]>}
  */
 export async function getWatchdogs() {
     if (!$context.watchdogs?.length) {
-        await initDefaults();
+        await init();
     }
 
     return $context.watchdogs || [];
 }
 
 /**
- * 
- * @param {*} options 
- * @returns {Promise<Watchdog>}
+ * 返回指定的 Watchdog 设备
+ * @param {{name?: string}} options 
+ * @returns {Promise<Watchdog|undefined>}
  */
 export async function requestWatchdog(options) {
     if (!$context.watchdogs?.length) {
-        await initDefaults();
+        await init();
     }
 
-    return $context.watchdog;
+    const name = options?.name;
+    if (name == null || name == 'watchdog0') {
+        return $context.watchdogs[0];
+    }
 }

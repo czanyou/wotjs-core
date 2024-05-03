@@ -9,8 +9,8 @@ import * as util from '@tjs/util';
 import { test } from '@tjs/test';
 
 /**
- * 开始服务器
- * @returns 
+ * 创建一个 HTTP 服务器
+ * @returns {Promise<http.Server>}
  */
 async function startServer() {
     const options = { port: 8088 };
@@ -24,7 +24,7 @@ async function startServer() {
 
         const result = { headers: {}, args: req.query };
         req.headers.forEach((value, key) => {
-            result.headers[key] = value;
+            result.headers[key.toLowerCase()] = value;
         });
 
         const type = req.headers.get('Content-Type');
@@ -64,9 +64,9 @@ async function startServer() {
 }
 
 /**
- * 测试 POST
+ * 测试 POST 请求
  */
-test('http - post.json', async () => {
+test('http - post', async () => {
     const server = await startServer();
     try {
         const url = 'http://localhost:8088/post?foo=100&bar=test';
@@ -119,7 +119,7 @@ test('http - post.json', async () => {
 });
 
 /**
- * 测试 GET
+ * 测试 GET 请求
  * 请求返回空消息内容
  */
 test('http - get', async () => {
@@ -145,9 +145,9 @@ test('http - get', async () => {
 });
 
 /**
- * 测试 HEAD
+ * 测试 HEAD 请求
  */
-test('http - head.json', async () => {
+test('http - head', async () => {
     const server = await startServer();
     try {
         const url = 'http://localhost:8088/post?foo=100&bar=test';

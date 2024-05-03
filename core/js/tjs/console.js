@@ -1169,7 +1169,28 @@ export const $logFormatter = {
      * @param {string} lineNumber 行号信息
      * @param {any[]} args 
      */
-    printLog(level, lineNumber, ...args) {
+    print(level, lineNumber, ...args) {
+        let printf = print;
+        if (level == 'i') {
+            // 
+
+        } else if (level == 'w' || level == 'a') {
+            printf = alert;
+
+        } else if (level == 'e') {
+            printf = alert;
+        }
+
+        printf(format(true, ...args));
+    },
+
+    /**
+     * 打印日志信息
+     * @param {string} level 日志级别: d, l, i, w, a, e
+     * @param {string} lineNumber 行号信息
+     * @param {any[]} args 
+     */
+    printConsole(level, lineNumber, ...args) {
         let printf = print;
         let start = $colors.COLORS.gray;
         if (level == 'i') {
@@ -1200,6 +1221,10 @@ export const $logFormatter = {
     }
 };
 
+export function getColors() {
+    return $colors.getColors();
+}
+
 /** 
  * 返回格式化后的字符串
  * @param {boolean} colorfully 
@@ -1224,6 +1249,46 @@ export function print(...args) {
  */
 export function alert(...args) {
     native.alert(format(true, ...args));
+}
+
+/** @param {string} text */
+export function width(text) {
+    return $tableFormatter.stringWidth(text);
+}
+
+/** @param {any[]} args */
+export function write(...args) {
+    native.write(...args);
+}
+
+/** 
+ * @param {boolean} colorfully 
+ * @param {any} message 
+ * @param {any[]} args 
+ */
+export function inspect(colorfully, message, ...args) {
+    return $formatter.formatValues(colorfully, message, ...args);
+}
+
+/**
+ * 打印日志信息
+ * @param {string} level 日志级别: `d`,`l`,`i`,`w`,`e`,`a`
+ * @param {string} lineNumber 源代码行号信息
+ * @param {any[]} args 
+ */
+export function printConsole(level, lineNumber, ...args) {
+    $logFormatter.printConsole(level, lineNumber, ...args);
+    return true;
+}
+
+/**
+ * @param {Function} onPrintLog 
+ */
+export function setPrintLog(onPrintLog) {
+    if (typeof onPrintLog == 'function') {
+        // @ts-ignore
+        window.console.onPrintLog = onPrintLog;
+    }
 }
 
 /**
@@ -1306,6 +1371,17 @@ export class Console {
      * @param {string} lineNumber 源代码行号信息
      * @param {any[]} args 
      */
+    printConsole(level, lineNumber, ...args) {
+        $logFormatter.printConsole(level, lineNumber, ...args);
+        return true;
+    }
+
+    /**
+     * 打印日志信息
+     * @param {string} level 日志级别: `d`,`l`,`i`,`w`,`e`,`a`
+     * @param {string} lineNumber 源代码行号信息
+     * @param {any[]} args 
+     */
     printLog(level, lineNumber, ...args) {
         if (this.onPrintLog) {
             const ret = this.onPrintLog(level, lineNumber, ...args);
@@ -1314,7 +1390,7 @@ export class Console {
             }
         }
 
-        $logFormatter.printLog(level, lineNumber, ...args);
+        $logFormatter.print(level, lineNumber, ...args);
     }
 
     /** 
@@ -1395,7 +1471,6 @@ export class Console {
      * @param {any[]} args 
      */
     print(message, ...args) {
-
         native.print(format(this._isColorfully, message, ...args));
     }
 

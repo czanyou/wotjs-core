@@ -22,7 +22,7 @@ function test() {
 
     console.print('uname', os.uname());
     console.print('cpus', os.cpus().length);
-    console.print('networkInterfaces', os.networkInterfaces().length);
+    console.print('networkInterfaces', Object.keys(os.networkInterfaces()));
     console.print('loadavg', os.loadavg().length);
 
     console.print('signal', os.signal.SIGSTOP);

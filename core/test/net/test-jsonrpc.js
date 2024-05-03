@@ -87,13 +87,13 @@ test('net.jsonrpc - createServer', async () => {
         console.log(result);
     }
 
-    const clients = manager.clients;
-    console.log('manager:', manager);
+    const connections = manager.connections;
+    // console.log('manager:', manager);
 
     // manager.close();
-    for (const client of clients.values()) {
+    for (const client of connections.values()) {
         client.close();
-        console.log('client:', client);
+        // console.log('client:', client);
     }
 
     server.close();

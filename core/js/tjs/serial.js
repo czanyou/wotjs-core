@@ -394,7 +394,7 @@ async function initSerialPorts() {
     try {
         if (!$context.options) {
             const config = await import('@tjs/config');
-            const deviceConfig = await config.load('device');
+            const deviceConfig = await config.load('product');
             setDeviceInfos(deviceConfig.data);
         }
 

@@ -649,8 +649,10 @@ void tjs_mod_misc_init(JSContext* ctx, JSModuleDef* m)
     JS_DefinePropertyValueStr(ctx, versions, "quickjs", JS_NewString(ctx, QJS_VERSION_STR), JS_PROP_C_W_E);
     JS_DefinePropertyValueStr(ctx, versions, "tjs", JS_NewString(ctx, tjs_version()), JS_PROP_C_W_E);
     JS_DefinePropertyValueStr(ctx, versions, "build", JS_NewString(ctx, tjs_build()), JS_PROP_C_W_E);
+    JS_DefinePropertyValueStr(ctx, versions, "code", JS_NewInt32(ctx, tjs_code()), JS_PROP_C_W_E);
     JS_DefinePropertyValueStr(ctx, versions, "core", JS_NewString(ctx, tjs_core_version()), JS_PROP_C_W_E);
     JS_DefinePropertyValueStr(ctx, versions, "core_build", JS_NewString(ctx, tjs_core_build()), JS_PROP_C_W_E);
+    JS_DefinePropertyValueStr(ctx, versions, "core_code", JS_NewInt32(ctx, tjs_core_code()), JS_PROP_C_W_E);
     JS_DefinePropertyValueStr(ctx, versions, "uv", JS_NewString(ctx, uv_version_string()), JS_PROP_C_W_E);
 
 #ifdef CONFIG_MBEDTLS

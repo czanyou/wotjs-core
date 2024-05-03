@@ -8,17 +8,25 @@ import * as streams from '@tjs/streams';
 
 import * as http from '@tjs/http';
 
+/**
+ * 测试文件上传功能
+ */
 test('http - upload', async () => {
+    // create a HTTP server
     const options = { port: 48088 };
     const server = http.createServer(options, async (req, res) => {
         const result = {};
-        result.headers = {};
+
+        // query
         result.args = req.query;
 
+        // headers
+        result.headers = {};
         req.headers.forEach((value, key) => {
             result.headers[key] = value;
         });
 
+        // body
         result.data = await req.text();
         await res.send(result);
     });
@@ -28,7 +36,7 @@ test('http - upload', async () => {
     let total = 0;
 
     /** @type ReadableStream<Uint8Array> */
-    const body = new streams.ReadableStream({
+    const body = streams.createReadableStream({
         pull(controller) {
             return new Promise((resolve, reject) => {
                 setTimeout(() => {
@@ -46,6 +54,7 @@ test('http - upload', async () => {
         }
     });
 
+    // fetch
     const url = 'http://localhost:48088/get?foo=100&bar=test';
     const init = { debug: true, method: 'POST', body, headers: { 'Content-Length': '100' } };
     const response = await fetch(url, init);
@@ -53,7 +62,9 @@ test('http - upload', async () => {
     assert.equal(response.status, 200);
     assert.ok(response.statusText);
 
+    // read response body
     const data = await response.json();
+
     // console.log(data);
     assert.equal(data.data.length, 100);
 

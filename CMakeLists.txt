@@ -3,7 +3,7 @@ cmake_minimum_required(VERSION 3.12)
 ###############################################################################
 # Project version
 
-project(TJS VERSION 23.6.15)
+project(TJS VERSION 24.4.28.25)
 
 include(CheckCCompilerFlag)
 include(targets/common/make.cmake)

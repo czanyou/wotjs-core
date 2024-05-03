@@ -1,0 +1,313 @@
+<html>
+
+<head>
+
+</head>
+
+<body>
+    <div>
+        test
+    </div>
+    <script>
+        // https://github.com/diafygi/webcrypto-examples/#rsa-oaep---generatekey
+
+        const CRYPTO_PUBLIC =
+            `-----BEGIN PUBLIC KEY-----
+MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQDk3i40hcIc+HhP7t/wY62yvX15
+8cLYWX0EJB2jaSbI6dUJ4gPjmu4kpZ2oDnGE10JPzj3T2khClgAjIi3+1TPjU+LS
+sXI3rdDyNp9KRPcm5Aa07Vc8/n1n54jAediiOTW3pyDrjsIJHAnhrWcKzdXtwxfF
+agcZ948PgUP1PP1bBwIDAQAB
+-----END PUBLIC KEY-----`
+
+        const CRYPTO_PRIVATE =
+            `-----BEGIN PRIVATE KEY-----
+MIICdwIBADANBgkqhkiG9w0BAQEFAASCAmEwggJdAgEAAoGBAOTeLjSFwhz4eE/u
+3/BjrbK9fXnxwthZfQQkHaNpJsjp1QniA+Oa7iSlnagOcYTXQk/OPdPaSEKWACMi
+Lf7VM+NT4tKxcjet0PI2n0pE9ybkBrTtVzz+fWfniMB52KI5NbenIOuOwgkcCeGt
+ZwrN1e3DF8VqBxn3jw+BQ/U8/VsHAgMBAAECgYA6qXAyai5s+orsAhBIL2RwMf2d
+aghFJ/rROuiV3/fe+4Btfg79IdL0dbbJQpp6MCqBBh321TY8SvJSDwq3DLK1j8FS
+/nngQQnmIfM0iCzQLBg5sa1ORTiV3Rl1N/6Ry2SJDoxabVeSe7PqXsh51P/mOqaw
+z48cO3vSiitIxEDewQJBAPlCHq6H18TlLjgsZa6S+pR2c40+i0/Ooswjt5476fhH
+tutGFrBqPMa9NrXJN8NrGWhKSCqhS03ZUEm4O0p/yXcCQQDrDuBVA9BtahYrekL+
+L2Byq5GJ7hWGteqKgQKeKwiB8Cj7K55gEKkzdfeFm+zddrKqhh0cSUA4wDtM6jMU
+wV7xAkEA9BEWUfeaA6YVd9OhTSuGSdEinG9doivHpPRkW4B3PTGbnwzmMqAUGtYz
+uBTrkWJRYpk5yORfBD+CKm1HQU+XSQJAF3a+sf3VenaSi/iCY3k7OXci6g/YGkBi
+jzzdlAhbqwzcKmZqQtCm8zodYTr1ZA4LO7ZzhXVScdfOk5j1TGcZIQJBAOgfrlxq
+7jYxWgKOYZtQV+vRWovY1v3mTiz/6yOcz8U9qVeElQQQAVNHaBPEOD+EuMAELlUg
+fyxpoasvurtQW+o=
+-----END PRIVATE KEY-----`
+
+        async function test_sha() {
+            const crypto = window.crypto;
+            const subtle = crypto.subtle;
+            console.log(subtle);
+
+            const data = new Uint8Array(['t', 'e', 's', 't']);
+            const ret = await subtle.digest("SHA-256", data);
+            document.write("SHA-256: ", ret);
+
+            console.log(ret);
+        }
+
+        const PEM_PRIVATE_Header = "-----BEGIN PRIVATE KEY-----";
+        const PEM_PRIVATE_Footer = "-----END PRIVATE KEY-----";
+        const PEM_PUBLIC_Header = "-----BEGIN PUBLIC KEY-----";
+        const PEM_PUBLIC_Footer = "-----END PUBLIC KEY-----";
+
+        const $context = {
+            publicKey: null,
+            privateKey: null
+        }
+
+        function ab2str(buf) {
+            return String.fromCharCode.apply(null, new Uint8Array(buf));
+        }
+
+        async function test_gen_key() {
+            const crypto = window.crypto;
+            const subtle = crypto.subtle;
+
+            const keys = await subtle.generateKey({
+                name: "RSA-OAEP",
+                modulusLength: 4096,
+                publicExponent: new Uint8Array([1, 0, 1]),
+                hash: "SHA-256"
+            }, true, ["encrypt", "decrypt"]);
+
+            const publicKey = keys.publicKey;
+            const privateKey = keys.privateKey;
+            console.log(publicKey, privateKey);
+
+            const output = await subtle.exportKey("jwk", publicKey);
+            console.log(output);
+
+            const output2 = await subtle.exportKey("spki", publicKey);
+            console.log(output2);
+
+            const encodedString = ab2str(output2);
+            const encoded = window.btoa(encodedString);
+            $context.publicKey = PEM_PRIVATE_Header + '\n' + encoded + '\n' + PEM_PRIVATE_Footer;
+            console.log($context.publicKey);
+
+            const data = str2ab('test');
+
+            // encrypt
+            const output3 = await subtle.encrypt({ name: 'RSA-OAEP' }, publicKey, data);
+            console.log('output3', output3);
+
+            // decrypt
+            const output4 = await subtle.decrypt({ name: 'RSA-OAEP' }, privateKey, output3);
+            console.log('output4', output4);
+        }
+
+        function str2ab(str) {
+            const buf = new ArrayBuffer(str.length);
+            const bufView = new Uint8Array(buf);
+            for (let i = 0, strLen = str.length; i < strLen; i++) {
+                bufView[i] = str.charCodeAt(i);
+            }
+            return buf;
+        }
+
+        async function test_import_private_key() {
+            const crypto = window.crypto;
+            const subtle = crypto.subtle;
+
+            const key = CRYPTO_PRIVATE;
+            const lines = key.split('\n');
+            console.log(lines);
+
+            const result = [];
+            for (let i = 0; i < lines.length; i++) {
+                const line = lines[i].trim();
+                if (!line) {
+                    continue;
+                }
+
+                if (line == PEM_PRIVATE_Header) {
+                    continue;
+                } else if (line == PEM_PRIVATE_Footer) {
+                    break;
+                } else {
+                    result.push(line);
+                }
+            }
+
+            const data = result.join('');
+            console.log(data);
+
+            const raw = window.atob(data);
+            console.log(raw);
+
+            const buffer = str2ab(raw);
+            console.log(buffer);
+
+            try {
+                const privateKey = await window.crypto.subtle.importKey("pkcs8", buffer,
+                    {
+                        name: "RSA-OAEP",
+                        hash: "SHA-256"
+                    }, true, ["decrypt"]
+                );
+
+                console.log(privateKey);
+
+                // decrypt
+                const input = $context.output;
+                const output = await subtle.decrypt({ name: 'RSA-OAEP' }, privateKey, input);
+                console.log('output', ab2str(output));
+
+            } catch (e) {
+                console.log(e, e.message);
+            }
+        }
+
+        async function test_import_public_key() {
+            const crypto = window.crypto;
+            const subtle = crypto.subtle;
+
+            const key = CRYPTO_PUBLIC;
+            const lines = key.split('\n');
+            console.log(lines);
+
+            const result = [];
+            for (let i = 0; i < lines.length; i++) {
+                const line = lines[i].trim();
+                if (!line) {
+                    continue;
+                }
+
+                if (line == PEM_PUBLIC_Header) {
+                    continue;
+                } else if (line == PEM_PUBLIC_Footer) {
+                    break;
+                } else {
+                    result.push(line);
+                }
+            }
+
+            const data = result.join('');
+            console.log(data);
+
+            const raw = window.atob(data);
+            console.log(raw);
+
+            const buffer = str2ab(raw);
+            console.log(buffer);
+
+            try {
+                const publicKey = await subtle.importKey("spki", buffer,
+                    {
+                        name: "RSA-OAEP",
+                        hash: "SHA-256"
+                    }, true, ["encrypt"]
+                );
+
+                console.log(publicKey);
+
+
+                const data = str2ab('test');
+
+                // encrypt
+                const output = await subtle.encrypt({ name: 'RSA-OAEP' }, publicKey, data);
+                $context.output = output;
+                console.log('output', output);
+
+            } catch (e) {
+                console.log(e, e.message);
+            }
+        }
+
+        async function test_aes() {
+            const crypto = window.crypto;
+            const subtle = crypto.subtle;
+
+            const algorithm = { name: "AES-GCM", length: 256 };
+            const key = await subtle.generateKey(algorithm, true, ['encrypt', 'decrypt']);
+            console.log(key);
+
+            const keydata = await subtle.exportKey("raw", key);
+            console.log(keydata);
+
+            const data = str2ab("test");
+            const iv = crypto.getRandomValues(new Uint8Array(12));
+            const raw = await subtle.encrypt({ name: "AES-GCM", iv, tagLength: 128 }, key, data);
+            console.log(raw);
+
+            const output = await subtle.decrypt({ name: "AES-GCM", iv, tagLength: 128 }, key, raw);
+            console.log(ab2str(output));
+        }
+
+        async function test_hmac() {
+            const crypto = window.crypto;
+            const subtle = crypto.subtle;
+
+            const algorithm = { name: "HMAC", hash: { name: "SHA-256" } };
+            const key = await subtle.generateKey(algorithm, true, ['sign', 'verify']);
+            console.log(key);
+
+            const keydata = await subtle.exportKey("raw", key);
+            console.log(keydata);
+
+            const data = str2ab("test");
+            const signature = await subtle.sign({ name: "HMAC" }, key, data);
+            console.log(signature);
+
+            const valid = await subtle.verify({ name: "HMAC" }, key, signature, data);
+            console.log(valid);
+        }
+
+        async function test_hmac2() {
+            const crypto = window.crypto;
+            const subtle = crypto.subtle;
+            var encoder = new TextEncoder("utf-8");
+            const keyData = encoder.encode("12345678");
+
+            const algorithm = { name: "HMAC", hash: { name: "SHA-256" } };
+            const key = await subtle.importKey("raw", keyData, algorithm, false, ['sign', 'verify']);
+            console.log(key);
+
+            const data = str2ab("test");
+            const signature = await subtle.sign({ name: "HMAC" }, key, data);
+            console.log(signature);
+
+            const valid = await subtle.verify({ name: "HMAC" }, key, signature, data);
+            console.log(valid);
+        }
+
+        async function test_PBKDF2() {
+            const crypto = window.crypto;
+            const subtle = crypto.subtle;
+            const password = str2ab("test");
+
+            const algorithm = { name: "PBKDF2" };
+            const pkey = await subtle.importKey('raw', password, algorithm, false, ['deriveKey', 'deriveBits']);
+            console.log(pkey);
+
+            const key = await subtle.deriveKey({
+                "name": 'PBKDF2',
+                "salt": crypto.getRandomValues(new Uint8Array(16)),
+                "iterations": 1000,
+                "hash": 'SHA-256'
+            }, pkey, { "name": 'AES-CBC', "length": 256 }, true, ["encrypt", "decrypt"]);
+            console.log(key);
+
+            const keydata = await subtle.exportKey("raw", key);
+            console.log(keydata);
+        }
+
+        async function test() {
+
+            // test_import_private_key();
+            // await test_import_public_key();
+            // await test_import_private_key();
+            // test_import_key();
+
+            test_PBKDF2();
+        }
+
+        test();
+    </script>
+</body>
+
+</html>

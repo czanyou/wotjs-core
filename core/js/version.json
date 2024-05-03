@@ -1,6 +1,7 @@
 {
 	"arch": "@TJS_ARCH@",
 	"board": "@TJS_BOARD@",
+	"code": "@TJS_VERSION_TWEAK@",
 	"platform": "@TJS_PLATFORM@",
 	"qjs": "@QJS_VERSION_STR@",
 	"root": "@TJS_ROOT@",

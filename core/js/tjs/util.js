@@ -4,8 +4,8 @@ import * as native from '@tjs/native';
 import { defineEventAttribute } from '@tjs/event-target';
 
 const util = native.util;
-const utf8 = native.utf8;
 
+export const utf8 = native.utf8;
 export const zlib = native.zlib;
 
 const FORMATS = {
@@ -197,7 +197,6 @@ export function encode(data, format) {
  * @returns {Uint8Array}
  */
 export function decode(data, format) {
-
     const type = (format && FORMATS[format]) || util.CODE_HEX;
     return util.decode(data, type);
 }

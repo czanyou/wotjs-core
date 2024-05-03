@@ -424,13 +424,16 @@ defineEventAttribute(Server.prototype, 'listening');
 // ////////////////////////////////////////////////////////////
 // UDPSocket
 
+/**
+ * UDP Socket
+ */
 export class UDPSocket extends EventTarget {
     constructor(options) {
         super();
 
         this.readyState = 0;
 
-        /** @type native.UDP|undefined */
+        /** @type {native.UDP=} */
         this._handle = new native.UDP();
     }
 
@@ -495,6 +498,25 @@ export class UDPSocket extends EventTarget {
         this.removeAllEventListeners();
     }
 
+    /**
+     * @param {boolean} broadcast 
+     */
+    setBroadcast(broadcast) {
+        this._handle?.setBroadcast(broadcast);
+    }
+
+    /**
+     * @param {number} ttl 
+     */
+    setTTL(ttl) {
+        return this._handle?.setTTL(ttl);
+    }
+
+    /**
+     * @param {*} message 
+     * @param {*} address 
+     * @returns 
+     */
     async send(message, address) {
         const handle = this._handle;
         const result = await handle?.send(message, address);

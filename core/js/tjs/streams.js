@@ -578,3 +578,17 @@ Object.defineProperty(window, 'WritableStream', {
     writable: true,
     value: WritableStream
 });
+
+/**
+ * 
+ * @param {*} underlyingSource 
+ * @param {*} queuingStrategy 
+ * @returns 
+ */
+export function createReadableStream(underlyingSource, queuingStrategy) {
+    return new ReadableStream(underlyingSource, queuingStrategy);
+}
+
+export function createWritableStream() {
+    return new WritableStream();
+}

@@ -1,8 +1,10 @@
 /**
- * wotjs 内置网络模块
+ * WoT.js 内置网络模块
  */
 
 /**
+ * DNS 客户端
+ * 
  * The dns module enables name resolution. For example, use it to look up IP addresses of host names.
  */
 declare module '@tjs/dns' {
@@ -51,9 +53,13 @@ declare module '@tjs/dns' {
      * @param hostname 
      * @param options All option properties are optional. If options is an integer, then it must be 4 or 6
      */
-    export function lookup(hostname: string, options?: number | LookupOptions): Promise<AddressInfo | AddressInfo[]>
+    export function lookup(hostname: string, options?: number | LookupOptions): Promise<AddressInfo>
+    export function lookup(hostname: string, options: { all: true }): Promise<AddressInfo[]>
 }
 
+/**
+ * HTTP 客户端
+ */
 declare module '@tjs/fetch' {
     /**
      * 客户端连接
@@ -115,7 +121,7 @@ declare module '@tjs/fetch' {
 }
 
 /**
- * HTTP 1.1 server
+ * HTTP 服务端
  */
 declare module '@tjs/http' {
 
@@ -141,6 +147,8 @@ declare module '@tjs/http' {
 
         /** A ReadableStream of the body contents. */
         readonly body: ReadableStream;
+
+        readonly bodyUsed: boolean;
 
         /** 
          * Returns a Headers object consisting of the headers associated with request. 
@@ -178,8 +186,6 @@ declare module '@tjs/http' {
 
         /** Returns a promise that resolves with a text representation of the response body. */
         text(): Promise<string>;
-
-        parseBody(): Promise<ArrayBuffer | FormData | URLSearchParams | string | any>;
     }
 
     /**
@@ -549,9 +555,14 @@ declare module '@tjs/jsonrpc' {
 }
 
 /**
+ * MQTT 客户端
+ * 
  * A library for the MQTT protocol
  */
 declare module '@tjs/mqtt' {
+    /**
+     * 客户端选项
+     */
     export interface MQTTClientOptions {
         /** Client ID */
         clientId?: string;
@@ -581,21 +592,30 @@ declare module '@tjs/mqtt' {
         reschedulePings?: boolean;
     }
 
+    /**
+     * 消息发布选项
+     */
     export interface MQTTPublishOptions {
         topic?: string,
         qos?: number
     }
 
+    /**
+     * 消息订阅选项
+     */
     export interface MQTTSubscribeOptions {
 
     }
 
+    /**
+     * 代表一个 MQTT 请求对象
+     */
     export interface MQTTRequest {
 
     }
 
     /**
-     * 消息缓存
+     * MQTT 消息缓存管理器接口
      */
     export interface MQTTStore {
         /** 清除所有缓存的消息 */
@@ -654,6 +674,9 @@ declare module '@tjs/mqtt' {
          */
         close(): Promise<void>;
 
+        /**
+         * 统计信息
+         */
         getStats(): { retryCount: number };
 
         /**
@@ -752,19 +775,31 @@ declare module '@tjs/mqtt' {
  * TCP or IPC servers (net.createServer()) and clients (net.connect()).
  */
 declare module '@tjs/net' {
+    /**
+     * 连接事件
+     */
     interface ConnectionEvent extends Event {
         connection: Socket
     }
 
+    /**
+     * DNS 解析事件
+     */
     interface LookupEvent extends Event {
         address: SocketAddress
     }
 
+    /**
+     * UDP 消息事件
+     */
     interface UDPMessageEvent extends MessageEvent {
         data: any;
         address: SocketAddress
     }
 
+    /**
+     * 连接选项
+     */
     interface ConnectOptions {
         /** 本地 Pipe 管道名称 */
         path?: string;
@@ -774,6 +809,27 @@ declare module '@tjs/net' {
 
         /** 端口 */
         port?: number;
+    }
+
+    /**
+     * 代表一个网络地址
+     */
+    export interface SocketAddress {
+        /** 
+         * The network address as either an IPv4 or IPv6 string. 
+         * Default: '127.0.0.1' if family is 'ipv4'; '::' if family is 'ipv6'. 
+         */
+        address?: string,
+
+        /**
+         * An IP port.
+         */
+        port?: number,
+
+        /**
+         * One of either '4(ipv4)' or '6(ipv6)'. Default: '4(ipv4)'.
+         */
+        family?: number
     }
 
     /**
@@ -1006,6 +1062,15 @@ declare module '@tjs/net' {
         onlistening?(event: Event): void;
     }
 
+    interface SocketMessageEvent extends Event {
+        data?: ArrayBuffer;
+        address?: SocketAddress;
+    }
+
+    interface MessageEventListener {
+        (event: SocketMessageEvent): void;
+    }
+
     /**
      * This class is an abstraction of a UDP socket
      */
@@ -1015,6 +1080,8 @@ declare module '@tjs/net' {
          * socket as reported by the operating system: { port: 12346, family: 'IPv4', address: '127.0.0.1' }
          */
         address(): SocketAddress;
+
+        addEventListener(type: "message", callback: MessageEventListener, options?: boolean | AddEventListenerOptions): void;
 
         bind(address: SocketAddress, flags?: number): void;
 
@@ -1041,6 +1108,9 @@ declare module '@tjs/net' {
          */
         ref(): void;
 
+        setBroadcast(broadcast: boolean): void;
+        setTTL(ttl:number): number;
+
         /**
          * Sends data on the socket. 
          * The second parameter specifies the encoding in the case of a string. 
@@ -1055,27 +1125,9 @@ declare module '@tjs/net' {
          */
         unref(): void;
 
-        onclose(event: Event): void;
-        onerror(event: ErrorEvent): void;
-        onmessage(event: UDPMessageEvent): void;
-    }
-
-    export interface SocketAddress {
-        /** 
-         * The network address as either an IPv4 or IPv6 string. 
-         * Default: '127.0.0.1' if family is 'ipv4'; '::' if family is 'ipv6'. 
-         */
-        address?: string,
-
-        /**
-         * An IP port.
-         */
-        port?: number,
-
-        /**
-         * One of either '4(ipv4)' or '6(ipv6)'. Default: '4(ipv4)'.
-         */
-        family?: number
+        onclose?(event: Event): void;
+        onerror?(event: ErrorEvent): void;
+        onmessage?(event: UDPMessageEvent): void;
     }
 
     /**
@@ -1097,6 +1149,9 @@ declare module '@tjs/net' {
      */
     export function connect(options: ConnectOptions): Socket;
 
+    /**
+     * 服务端选项
+     */
     export interface ServerOptions { }
 
     /**
@@ -1105,6 +1160,9 @@ declare module '@tjs/net' {
      */
     export function createServer(options?: ServerOptions): Server;
 
+    /**
+     * UDP 选项
+     */
     export interface SocketOptions { }
 
     /**
@@ -1121,12 +1179,21 @@ declare module '@tjs/net' {
 declare module '@tjs/tls' {
     import { SocketAddress } from '@tjs/net';
 
+    /**
+     * 证书列表
+     */
     export const rootCertificates: string[];
 
+    /**
+     * 解析事件
+     */
     interface LookupEvent extends Event {
         address: SocketAddress
     }
 
+    /**
+     * 连接选项
+     */
     export interface ConnectOptions {
         isServer: boolean,
         server: Server,
@@ -1134,6 +1201,9 @@ declare module '@tjs/tls' {
         rejectUnauthorized: boolean,
     }
 
+    /**
+     * 客户端
+     */
     export class TLSSocket extends EventTarget {
         static readonly CONNECTING: number;
         static readonly OPEN: number;
@@ -1317,8 +1387,14 @@ declare module '@tjs/tls' {
         onmessage?(event: MessageEvent): void;
     }
 
+    /**
+     * 服务端选项
+     */
     export interface ServerOptions { }
 
+    /**
+     * DTLS 选项
+     */
     export interface DTLSSocketOptions { }
 
     /**

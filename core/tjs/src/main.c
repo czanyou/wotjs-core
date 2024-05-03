@@ -34,6 +34,10 @@ const char* tjs_build(void)
     return tjs_core_build();
 }
 
+const int tjs_code(void)
+{
+    return TJS_VERSION_TWEAK;
+}
 
 int main(int argc, char** argv)
 {

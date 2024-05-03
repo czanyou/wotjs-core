@@ -9,10 +9,94 @@ declare module '@tjs/abort-controller' {
     }
 }
 
+/**
+ * 控制台模块
+ */
 declare module '@tjs/console' {
     export class Console {
 
     }
+
+    /**
+     * 颜色格式化工具
+     */
+    interface ColorFormatter {
+        black(text: string): string;
+        blue(text: string): string;
+        cyan(text: string): string;
+        green(text: string): string;
+        magenta(text: string): string;
+        red(text: string): string;
+        white(text: string): string;
+        yellow(text: string): string;
+    }
+
+    interface Colors extends ColorFormatter {
+        COLORS: { [key: string]: string }
+        BACKGROUND_COLORS: { [key: string]: string }
+
+        background: ColorFormatter
+        bright: ColorFormatter
+    }
+
+    /**
+     * 打印信息到控制台，包含行尾换行
+     * @param args 
+     */
+    export function alert(...args: any): void;
+
+    /**
+     * 格式化字符串
+     * @param colorfully 
+     * @param message 
+     * @param args 
+     */
+    export function format(colorfully: boolean, ...args: any): string;
+
+    /**
+     * 颜色信息
+     */
+    export function getColors(): Colors;
+
+    /**
+     * 格式化字符串
+     * @param colorfully 
+     * @param message 
+     * @param args 
+     */
+    export function inspect(colorfully: boolean, message: any, ...args: any): string;
+
+    /**
+     * 打印信息到控制台，包含行尾换行
+     * @param args 
+     */
+    export function print(...args: any): void;
+
+    /**
+     * 打印日志信息
+     * @param {string} level 日志级别: `d`,`l`,`i`,`w`,`e`,`a`
+     * @param {string} lineNumber 源代码行号信息
+     * @param {any[]} args 
+     */
+    export function printConsole(level: string, lineNumber: string, ...args: any): boolean;
+
+    /**
+     * 设置自定义打印函数
+     * @param onPrintLog 
+     */
+    export function setPrintLog(onPrintLog: (level: string, line: string, ...args: any) => void): void;
+
+    /**
+     * 计算字节显示宽度
+     * @param text 
+     */
+    export function width(text: string): number;
+
+    /**
+     * 打印信息到控制台，不包含行尾换行
+     * @param args 
+     */
+    export function write(...args: any): void;
 
     global {
 
@@ -73,7 +157,6 @@ declare module '@tjs/console' {
             code: number | string;
             error?: string;
         }
-
     }
 }
 
@@ -81,18 +164,8 @@ declare module '@tjs/console' {
  * Web stream API
  */
 declare module '@tjs/streams' {
-
-    export class ReadableStream<R> {
-        readonly locked: boolean;
-        constructor(underlyingSource?: UnderlyingSource<R>, strategy?: QueuingStrategy<R>);
-
-        getReader(): ReadableStreamDefaultReader<R>;
-        cancel(reason?: any): Promise<void>;
-
-        pipeThrough<T>(transform: ReadableWritablePair<T, R>, options?: StreamPipeOptions): ReadableStream<T>;
-        pipeTo(destination: WritableStream<R>, options?: StreamPipeOptions): Promise<void>;
-        tee(): [ReadableStream<R>, ReadableStream<R>];
-    }
+    function createReadableStream<R>(underlyingSource?: UnderlyingSource<R>, queuingStrategy?: QueuingStrategy<R>): ReadableStream<R>;
+    function createWritableStream<R>(): WritableStream<R>;
 }
 
 /** Crypto */
@@ -110,6 +183,9 @@ declare module '@tjs/performance' {
     }
 }
 
+/**
+ * 模拟浏览器中的 Navigator 对象
+ */
 declare module '@tjs/navigator' {
     import * as serial from "@tjs/serial"
 
@@ -166,6 +242,10 @@ declare module '@tjs/event-target' {
             removeAllEventListeners(eventName?: string): void;
         }
     }
+}
+
+declare module '@tjs/form-data' {
+    export function parse(data: Uint8Array): FormData;
 }
 
 /**

@@ -180,7 +180,8 @@ export class MQTTClient extends EventTarget {
 
         /** @type any */
         this._statInfo = {
-            _retryCount: 0
+            retryCount: 0, 
+            reconnectPeriod: 0
         };
 
         /** @type {{[key: string]: number}} 记录订阅的主题，重连后可自动重新订阅 */
@@ -681,13 +682,19 @@ export class MQTTClient extends EventTarget {
         const options = this._options;
 
         // 定时重连
-        const reconnectPeriod = options.reconnectPeriod != null ? options.reconnectPeriod : 1000;
+        const statInfo = this._statInfo;
+        const minReconnectPeriod = options.reconnectPeriod != null ? options.reconnectPeriod : 1000;
+        const maxReconnectPeriod = minReconnectPeriod * 60;
+        const reconnectPeriod = Math.min(maxReconnectPeriod, Math.max(minReconnectPeriod, statInfo.reconnectPeriod));
+
         const lastConnectTime = this._lastConnectTime || 0;
-        if (reconnectPeriod > 0) {
-            const span = (now - lastConnectTime);
+        if (minReconnectPeriod > 0) {
+            const span = Math.abs(now - lastConnectTime);
             // console.log(TAG, span, '>', reconnectPeriod);
 
             if (span >= reconnectPeriod) {
+                statInfo.reconnectPeriod = reconnectPeriod * 2;
+
                 this.reconnect();
             }
         }
