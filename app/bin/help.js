@@ -6,12 +6,12 @@ import * as process from '@tjs/process';
 
 /**
  * 返回应用信息
- * @returns {{applications: string[], applets: string[]}}
+ * @returns {{commands: string[], applets: string[]}}
  */
-export function getApplications() {
-    const modules = native.util.applications().sort();
+export function getCommands() {
+    const modules = native.util.modules().sort();
 
-    const applications = [];
+    const commands = [];
     const applets = [];
     for (const name of modules) {
         const tokens = name.split('/');
@@ -30,40 +30,11 @@ export function getApplications() {
 
         } else if (tokens[2] == 'app.js') {
             // application: @app/:name/app.js
-            applications.push(app);
+            commands.push(app);
         }
     }
 
-    return { applets, applications };
-}
-
-export function getApplicationModules() {
-    const modules = native.util.applications().sort();
-
-    const result = [];
-    for (const name of modules) {
-        const tokens = name.split('/');
-        const app = tokens[1];
-        if (!app) {
-            continue;
-
-        } else if (app != 'modules') {
-            continue;
-
-        } else if (tokens[2] == 'bin') {
-            continue;
-        }
-
-        // filename
-        let filename = name;
-        if (name.endsWith('.js')) {
-            filename = name.substring(0, name.length - 3);
-        }
-
-        result.push(filename);
-    }
-
-    return result;
+    return { applets, commands };
 }
 
 /**
@@ -95,19 +66,17 @@ function help(execute, script, type) {
 
     const modules = native.util.modules().sort();
 
-    const applicationsInfo = getApplications();
-    const applications = applicationsInfo.applications.join(', ');
-    const applets = applicationsInfo.applets.join(', ');
+    const commandsInfo = getCommands();
+    const commands = commandsInfo.commands.join(', ');
+    const applets = commandsInfo.applets.join(', ');
 
     console.print(`tjs is a JavaScript runtime for Web of Things
 
 ${colors.white('Usage:')}
-
   tjs [options] <script.js> [arguments]
   tjs [options] <command> <subcommand> [arguments]
   
 ${colors.white('Options:')}
-
   -v, --version             print tjs version
   -h, --help                list options
       --dump                dump the memory usage stats
@@ -116,15 +85,12 @@ ${colors.white('Options:')}
       --stack-size n        limit the stack size to 'n' bytes
 
 ${colors.white('Commands:')}
-
-  ${applications}, ${applets}
+  ${commands}, ${applets}
 
 ${process.version}@${process.execPath()}:${process.scriptPath()}`);
 
     if (type == 'modules') {
-        const applications = getApplicationModules();
-        printList('Core modules:', modules, '@tjs/');
-        printList('App modules:', applications, '@app/modules/');
+        printList('Core modules:', modules);
     }
 }
 

@@ -25,48 +25,6 @@
 #include "private.h"
 #include "tjs.h"
 
-extern const uint8_t mjs_abort_controller[];
-extern const uint32_t mjs_abort_controller_size;
-
-extern const uint8_t mjs_bootstrap[];
-extern const uint32_t mjs_bootstrap_size;
-
-extern const uint8_t mjs_native_bootstrap[];
-extern const uint32_t mjs_native_bootstrap_size;
-
-extern const uint8_t mjs_console[];
-extern const uint32_t mjs_console_size;
-
-extern const uint8_t mjs_crypto[];
-extern const uint32_t mjs_crypto_size;
-
-extern const uint8_t mjs_encoding[];
-extern const uint32_t mjs_encoding_size;
-
-extern const uint8_t mjs_event_target[];
-extern const uint32_t mjs_event_target_size;
-
-extern const uint8_t mjs_fetch[];
-extern const uint32_t mjs_fetch_size;
-
-extern const uint8_t mjs_form_data[];
-extern const uint32_t mjs_form_data_size;
-
-extern const uint8_t mjs_navigator[];
-extern const uint32_t mjs_navigator_size;
-
-extern const uint8_t mjs_storage[];
-extern const uint32_t mjs_storage_size;
-
-extern const uint8_t mjs_performance[];
-extern const uint32_t mjs_performance_size;
-
-extern const uint8_t mjs_process[];
-extern const uint32_t mjs_process_size;
-
-extern const uint8_t mjs_url[];
-extern const uint32_t mjs_url_size;
-
 int tjs__eval_binary(JSContext* ctx, const uint8_t* buf, size_t buf_len)
 {
     JSValue obj = JS_ReadObject(ctx, buf, buf_len, JS_READ_OBJ_BYTECODE);
@@ -99,28 +57,44 @@ error:
     return -1;
 }
 
+int tjs__eval_module(JSContext* ctx, const char* filename)
+{
+    if (filename == NULL) {
+        return -1;
+    }
+
+    // 1. get module data
+    uint32_t size = 0;
+    const uint8_t* byte_code = tjs_module_get_data(filename, &size);
+    if (byte_code == NULL || size <= 0) {
+        printf("Error: could not load '%s'\r\n", filename);
+        return -1;
+    }
+
+    return tjs__eval_binary(ctx, byte_code, size);
+}
+
 void tjs__bootstrap_globals(JSContext* ctx)
 {
 #ifdef ENABLE_BOOTSTRAP
-    tjs__eval_binary(ctx, mjs_native_bootstrap, mjs_native_bootstrap_size);
-    tjs__eval_binary(ctx, mjs_encoding, mjs_encoding_size);
-    tjs__eval_binary(ctx, mjs_console, mjs_console_size);
-    tjs__eval_binary(ctx, mjs_crypto, mjs_crypto_size);
-    tjs__eval_binary(ctx, mjs_event_target, mjs_event_target_size);
-    tjs__eval_binary(ctx, mjs_form_data, mjs_form_data_size);
-    tjs__eval_binary(ctx, mjs_storage, mjs_storage_size);
-    tjs__eval_binary(ctx, mjs_performance, mjs_performance_size);
-    tjs__eval_binary(ctx, mjs_url, mjs_url_size);
-    tjs__eval_binary(ctx, mjs_process, mjs_process_size);
-    tjs__eval_binary(ctx, mjs_abort_controller, mjs_abort_controller_size);
-    tjs__eval_binary(ctx, mjs_navigator, mjs_navigator_size);
-    tjs__eval_binary(ctx, mjs_bootstrap, mjs_bootstrap_size);
+    tjs__eval_module(ctx, "@tjs/native-bootstrap");
+    tjs__eval_module(ctx, "@tjs/encoding");
+    tjs__eval_module(ctx, "@tjs/console");
+    tjs__eval_module(ctx, "@tjs/crypto");
+    tjs__eval_module(ctx, "@tjs/event-target");
+    tjs__eval_module(ctx, "@tjs/storage");
+    tjs__eval_module(ctx, "@tjs/performance");
+    tjs__eval_module(ctx, "@tjs/url");
+    tjs__eval_module(ctx, "@tjs/process");
+    tjs__eval_module(ctx, "@tjs/abort-controller");
+    tjs__eval_module(ctx, "@tjs/navigator");
+    tjs__eval_module(ctx, "@tjs/bootstrap");
 #endif
 }
 
 void tjs__add_builtins(JSContext* ctx)
 {
 #ifdef ENABLE_BOOTSTRAP
-    tjs__eval_binary(ctx, mjs_fetch, mjs_fetch_size);
+    tjs__eval_module(ctx, "@tjs/fetch");
 #endif
 }

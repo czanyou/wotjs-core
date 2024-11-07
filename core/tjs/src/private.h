@@ -106,6 +106,14 @@ int tjs_load_file(JSContext *ctx, DynBuf *dbuf, const char *filename);
 ///////////////////////////////////////////////////////////////
 // module
 
+int tjs_module_add_module(const char* name, const uint8_t* data, uint32_t data_len);
+
+int tjs_module_init(JSRuntime *rt, void* user_data);
+
+const uint8_t* tjs_module_get_data(const char* name, uint32_t* psize);
+
+JSValue tjs_module_get_names(JSContext* ctx);
+
 /** tjs 模块加载器 */
 JSModuleDef *tjs_module_loader(JSContext *ctx, const char *module_name, void *opaque);
 
@@ -135,6 +143,7 @@ JSValue tjs__get_main_module_name(JSContext *ctx);
 
 /** 执行二进制字节码 */
 int tjs__eval_binary(JSContext *ctx, const uint8_t *buf, size_t buf_len);
+int tjs__eval_module(JSContext* ctx, const char* filename);
 
 /** 启动时加载的内置模块 */
 void tjs__bootstrap_globals(JSContext *ctx);
@@ -177,7 +186,7 @@ JSValue tjs_get_fileno(JSContext* ctx, uv_handle_t* handle);
 void tjs_call_handler(JSContext *ctx, JSValueConst func);
 void JS_FreePropEnum(JSContext *ctx, JSPropertyEnum *tab, uint32_t len);
 
-char* path_join(char* buffer, const char* subname, size_t buffer_size);
+char* tjs_path_join(char* buffer, const char* subname, size_t buffer_size);
 
 int tjs_module_eval_file(JSContext* ctx, const char* name);
 const char* tjs_module_get_command_filename(char* filename, size_t buffer_size, const char* name);

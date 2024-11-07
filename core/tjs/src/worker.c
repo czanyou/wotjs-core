@@ -27,9 +27,6 @@
 
 #include <unistd.h>
 
-extern const uint8_t mjs_worker_bootstrap[];
-extern const uint32_t mjs_worker_bootstrap_size;
-
 enum tjs_worker_events_e {
     WORKER_EVENT_MESSAGE = 0,
     WORKER_EVENT_MESSAGE_ERROR,
@@ -120,7 +117,7 @@ static void worker_entry(void* arg)
     JS_FreeValue(ctx, global_obj);
 
 #ifdef ENABLE_BOOTSTRAP
-    CHECK_EQ(0, tjs__eval_binary(ctx, mjs_worker_bootstrap, mjs_worker_bootstrap_size));
+    CHECK_EQ(0, tjs__eval_module(ctx, "@tjs/worker-bootstrap"));
 #endif
 
     /* End the worker bootstrap. */

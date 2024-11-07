@@ -1,4 +1,0 @@
-name DT02B Gateway
-type _webthing._tcp
-port 80
-txt server=dt02b

@@ -31,7 +31,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-char* path_join(char* buffer, const char* subname, size_t buffer_size)
+char* tjs_path_join(char* buffer, const char* subname, size_t buffer_size)
 {
     if (buffer == NULL || buffer_size <= 0) {
         return buffer;
@@ -58,7 +58,7 @@ char* path_join(char* buffer, const char* subname, size_t buffer_size)
     return p;
 }
 
-const char* path_extname(const char* buffer)
+const char* tjs_path_extname(const char* buffer)
 {
     size_t size = strlen(buffer);
     const char* p = buffer + size;

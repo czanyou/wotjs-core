@@ -5,15 +5,17 @@
  * @template R
  */
 export class ReadableStreamDefaultController {
+
+    /** @type {ReadableStream<R>=} owner */
+    #ownerStream = undefined;
+
     /**
-     * 
      * @param {ReadableStream<R>} stream 
      */
     constructor(stream) {
-        /** @type ReadableStream<R> | undefined owner */
-        this._ownerStream = stream;
+        this.#ownerStream = stream;
 
-        /** @type number */
+        /** @type {number} */
         this.desiredSize = 0;
     }
 
@@ -29,10 +31,14 @@ export class ReadableStreamDefaultController {
      *  或者 ReadableStreamDefaultReader.cancel()。
      */
     close() {
-        const ownerStream = this._ownerStream;
+        const ownerStream = this.#ownerStream;
         if (ownerStream) {
             ownerStream.close();
         }
+    }
+
+    detachStream() {
+        this.#ownerStream = undefined;
     }
 
     /**
@@ -40,7 +46,7 @@ export class ReadableStreamDefaultController {
      * @param {R} chunk 要送入的数据块。
      */
     enqueue(chunk) {
-        const ownerStream = this._ownerStream;
+        const ownerStream = this.#ownerStream;
         if (ownerStream) {
             ownerStream.enqueue(chunk);
         }
@@ -51,7 +57,7 @@ export class ReadableStreamDefaultController {
      * @param {Error} err The error you want future interactions to fail with.
      */
     error(err) {
-        const ownerStream = this._ownerStream;
+        const ownerStream = this.#ownerStream;
         if (ownerStream) {
             ownerStream.error(err);
         }
@@ -63,19 +69,21 @@ export class ReadableStreamDefaultController {
  * implements ReadableStreamGenericReader<R>
  */
 export class ReadableStreamDefaultReader {
+    /** @type {ReadableStream<R>=} owner */
+    #ownerStream = undefined;
+
+    /** @type {boolean} */
+    #isLockReleased = false;
+
     /**
      * 
      * @param {ReadableStream<R>} stream 
      */
     constructor(stream) {
-        /** @type ReadableStream<R>|undefined owner */
-        this._ownerStream = stream;
+        this.#ownerStream = stream;
 
-        /** @type boolean */
-        this._isLockReleased = false;
-
-        /** @type Promise | null */
-        this._closedPromise = null;
+        /** @type {Promise<any>=} */
+        this._closedPromise = undefined;
     }
 
     get [Symbol.toStringTag]() {
@@ -83,7 +91,7 @@ export class ReadableStreamDefaultReader {
     }
 
     get closed() {
-        const ownerStream = this._ownerStream;
+        const ownerStream = this.#ownerStream;
         if (!ownerStream) {
             return Promise.reject(new Error('owner stream is null'));
         }
@@ -101,7 +109,7 @@ export class ReadableStreamDefaultReader {
      * @throws TypeError 源对象不是 ReadableStreamDefaultReader，或者流没有所有者。
      */
     async cancel(reason) {
-        const ownerStream = this._ownerStream;
+        const ownerStream = this.#ownerStream;
         if (ownerStream) {
             ownerStream._reader = null;
             await ownerStream.cancel(reason);
@@ -117,12 +125,12 @@ export class ReadableStreamDefaultReader {
      * @throws TypeError 源对象不是 ReadableStreamDefaultReader，或者流没有所有者。
      */
     async read() {
-        if (this._isLockReleased) {
+        if (this.#isLockReleased) {
             throw new TypeError('releaseLock is called');
         }
 
         // 1. If this.[[stream]] is undefined, return a promise rejected with a TypeError exception.
-        const ownerStream = this._ownerStream;
+        const ownerStream = this.#ownerStream;
         if (!ownerStream) {
             throw new TypeError('onwer stream is null');
         }
@@ -145,7 +153,7 @@ export class ReadableStreamDefaultReader {
     releaseLock() {
         this._isLockReleased = true;
 
-        const ownerStream = this._ownerStream;
+        const ownerStream = this.#ownerStream;
         if (!ownerStream) {
             return;
         }
@@ -159,7 +167,7 @@ export class ReadableStreamDefaultReader {
         ownerStream._rejectReadPromises(new TypeError('lock is released'));
 
         // 9. Set reader.[[stream]] to undefined.
-        this._ownerStream = undefined;
+        this.#ownerStream = undefined;
     }
 }
 
@@ -524,7 +532,7 @@ export class ReadableStream {
                 const controller = this._controller;
                 if (controller) {
                     this._controller = undefined;
-                    controller._ownerStream = undefined;
+                    controller.detachStream();
                 }
             }
         }

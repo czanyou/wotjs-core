@@ -3,27 +3,70 @@
 // @ts-check
 /// <reference path ="../modules/types/index.d.ts" />
 import * as process from '@tjs/process';
+import shell from '@tjs/shell';
 
-import * as cmdline from '../modules/utils/cmdline.js';
-import * as build from './src/build.js';
-import * as link from './src/link.js';
+import * as cmdline from '../modules/utils/cmdline';
+import * as getopts from '../modules/utils/getopts';
+import * as link from './src/link';
+import * as bundle from './src/bundle';
+
+async function checkProjectRoot() {
+    const basePath = shell.pwd();
+    const colors = console.colors;
+    // console.print('cwd:', basePath);
+
+    try {
+        const filename = shell.join(basePath, '/core/tjs/include/tjs.h');
+        return await shell.exists(filename);
+
+    } catch (e) {
+        console.print(colors.red('Error: current directory is not TJS project root.'));
+        return false;
+    }
+}
 
 const $commands = {
     title: 'This is a build tool for WoT.js',
     commands: {
-        /** 
-         * 打包指定的固件镜像文件
-         * @param {string} board, 
-         * @param {string=} pathname 
+        /**
+         * 打包
+         * @param  {...string} args 
+         * @returns 
          */
-        pack(board, pathname) {
-            if (!board) {
-                console.print('Create a tarball for a board\n');
-                console.print('Usage: tjs build pack <board>');
+        async bundle(...args) {
+            const options = getopts.parse(args, {
+                alias: {
+                    'basepath': 'b',
+                    'exepath': 'e',
+                    'output': 'o',
+                    'libname': 'l'
+                },
+                default: {
+                    'output': './build/tjs'
+                }
+            });
+
+            const bundler = new bundle.Bundler();
+            if (options.basepath) {
+                bundler.basepath = String(options.basepath);
             }
 
-            build.pack(board, pathname);
+            if (options.exepath) {
+                bundler.exepath = String(options.exepath);
+            }
+
+            if (options.libname) {
+                bundler.libname = String(options.libname);
+            }
+
+            if (options.output) {
+                bundler.outpath = String(options.output);
+            }
+
+            // @ts-ignore
+            return await bundler.bundle(options._);
         },
+
         /** 
          * 创建链接文件
          * @param {string} board 
@@ -32,9 +75,10 @@ const $commands = {
             if (!board) {
                 console.print('Symlink current source folder\n\nUsage: tjs build link <board>\n');
             }
-        
+
             link.link(board);
         },
+
         /** 
          * 删除链接文件
          * @param {string} board 
@@ -43,8 +87,33 @@ const $commands = {
             if (!board) {
                 console.print('Remove source folder links\n\nUsage: tjs build unlink\n');
             }
-        
+
             link.unlink(board);
+        },
+
+        /**
+         * 更新 CMake 项目版本号配置文件
+         * - CMakeVersion.cmake
+         * @param {string} filename 配置文件名
+         */
+        async version(filename) {
+            if (!await checkProjectRoot()) {
+                return;
+            }
+
+            const colors = console.colors;
+            filename = shell.join(shell.pwd(), filename);
+            console.log('Version Filename:', filename);
+
+            const data = await shell.read(filename);
+            console.log('Current Version:', data);
+            const code = process.versions.code;
+
+            const date = new Date();
+            const version = `${date.getFullYear() % 100}.${date.getMonth() + 1}.${date.getDate()}.${code + 1}`;
+            console.log('New Version:', colors.green(version));
+
+            await shell.write(filename, `set(TJS_PROJECT_VERSOIN ${version})\n`);
         }
     }
 };

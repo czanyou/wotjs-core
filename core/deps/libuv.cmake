@@ -130,8 +130,8 @@ if (SIZEOF_VOID_P EQUAL 8)
 endif ()
 
 if (CMAKE_SYSTEM_NAME STREQUAL "Windows")
-    target_compile_definitions(tjs_uv PRIVATE _WIN32_WINNT=0x0600 _CRT_SECURE_NO_WARNINGS _GNU_SOURCE)
-    target_link_libraries(tjs_uv ws2_32 shell32 psapi iphlpapi advapi32 userenv)
+    target_compile_definitions(tjs_uv PRIVATE WIN32_LEAN_AND_MEAN _CRT_DECLARE_NONSTDC_NAMES=0 _WIN32_WINNT=0x0602 _CRT_SECURE_NO_WARNINGS _GNU_SOURCE)
+    target_link_libraries(tjs_uv psapi user32 advapi32 iphlpapi userenv ws2_32 dbghelp ole32 shell32)
 
 else ()
     target_compile_definitions(tjs_uv PRIVATE _GNU_SOURCE)

@@ -198,20 +198,21 @@ class SerialPortReadable {
 }
 
 export class SerialPort extends EventTarget {
+
+    /** @type {native.uart.UART=} */
+    handle = undefined;
+
     /** @param {SerialPortInfo} [info]  */
     constructor(info) {
         super();
 
-        /** @type SerialPortOptions */
+        /** @type {SerialPortOptions} */
         this.options = {};
 
-        /** @type SerialPortInfo | undefined */
+        /** @type {SerialPortInfo=} */
         this.info = info;
 
-        /** @type native.uart.UART | undefined */
-        this.handle = undefined;
-
-        /** @type SerialPortReadable | undefined  */
+        /** @type {SerialPortReadable=}  */
         this.readable = undefined;
     }
 

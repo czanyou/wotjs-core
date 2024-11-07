@@ -65,7 +65,7 @@ set(SOURCES
     ${CORE_DIR}/src/version.c
     ${CORE_DIR}/src/vm.c
     ${CORE_DIR}/src/worker.c
-    ${CMAKE_CURRENT_BINARY_DIR}/core-js.c
+    ${CMAKE_CURRENT_BINARY_DIR}/tjs-js.c
 )
 
 if (BUILD_MBEDTLS)
@@ -82,8 +82,6 @@ target_link_libraries(tjs_core tjs_miniz tjs_mqtt_packet tjs_http_parser tjs_qui
 
 if (BUILD_STATIC_LIBS)
     target_link_libraries(tjs_core -static)
-#    target_link_libraries(tjs_core -static-libgcc -static-libstdc++ -Wl,-Bstatic -Wl,-Bdynamic)
-#    target_link_libraries(tjs_core gcc -Wl,-Bstatic)
 endif ()
 
 target_include_directories(tjs_core PRIVATE ${CORE_DIR}/src/ )
@@ -113,7 +111,7 @@ if (BUILD_WITH_ANDROID)
     target_link_libraries(tjs_uv dl m)
 
 elseif (BUILD_WITH_MINGW)
-    # Nothing...
+    target_link_libraries(tjs_quickjs pthread)
 
 elseif (LINUX)
     target_link_libraries(tjs_uv dl pthread rt m)
@@ -134,4 +132,9 @@ if (BUILD_REDIS_JS)
     message(STATUS "Build redis module.")
     target_link_libraries(tjs redisjs)
     target_compile_definitions(tjs_core PRIVATE BUILD_REDIS_JS)
+endif ()
+
+if (BUILD_GPIO)
+    add_definitions(-DCONFIG_USE_GPIO)
+    target_link_libraries(tjs gpio)
 endif ()

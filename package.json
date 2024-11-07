@@ -2,12 +2,6 @@
     "name": "wot.js",
     "version": "23.1.15",
     "description": "Platform for Web of Things with JavaScript",
-    "scripts": {
-        "local": "make local",
-        "linux": "make linux",
-        "pack": "make pack",
-        "build": "esbuild app.js --bundle --external:@tjs/* --platform=neutral --outfile=outout.js"
-    },
     "type": "module",
     "author": "anyou",
     "devDependencies": {

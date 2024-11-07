@@ -1,3 +1,4 @@
+#!/usr/bin/env tjs
 // @ts-check
 /// <reference path ="../../types/index.d.ts" />
 import * as net from '@tjs/net';
@@ -91,3 +92,15 @@ test('net.tcp - http:get - baidu', async () => {
     assert.equal(remoteAddress.family, 4);
     assert.equal(remoteAddress.port, port);
 });
+
+function test2() {
+    function printType(data) {
+        console.log(data, data instanceof ArrayBuffer);
+
+    }
+
+    printType(new ArrayBuffer(8));
+    printType('test');
+}
+
+test2();

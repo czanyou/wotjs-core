@@ -297,9 +297,9 @@ static char* tjs_cli_get_exepath_command_filename(char* buffer, size_t buffer_si
 
         // $path/app/:name/app.js
         *p = '\0';
-        path_join(buffer, "app", buffer_size);
-        path_join(buffer, name, buffer_size);
-        path_join(buffer, "app.js", buffer_size);
+        tjs_path_join(buffer, "app", buffer_size);
+        tjs_path_join(buffer, name, buffer_size);
+        tjs_path_join(buffer, "app.js", buffer_size);
         // printf("filename=%s\r\n", buffer);
         if (access(buffer, R_OK) == 0) {
             return buffer;
@@ -307,9 +307,9 @@ static char* tjs_cli_get_exepath_command_filename(char* buffer, size_t buffer_si
 
         // $path/app/bin/:name.js
         *p = '\0';
-        path_join(buffer, "app", buffer_size);
-        path_join(buffer, "bin", buffer_size);
-        path_join(buffer, name, buffer_size);
+        tjs_path_join(buffer, "app", buffer_size);
+        tjs_path_join(buffer, "bin", buffer_size);
+        tjs_path_join(buffer, name, buffer_size);
         strncat(buffer, ".js", buffer_size);
         // printf("filename=%s\r\n", buffer);
         if (access(buffer, R_OK) == 0) {
@@ -340,9 +340,9 @@ static char* tjs_cli_get_root_command_filename(char* buffer, size_t buffer_size,
 
     // 1. ${root}/app/${name}/app.js
     strncpy(buffer, TJS_ROOT, buffer_size);
-    path_join(buffer, "app", buffer_size);
-    path_join(buffer, name, buffer_size);
-    path_join(buffer, "app.js", buffer_size);
+    tjs_path_join(buffer, "app", buffer_size);
+    tjs_path_join(buffer, name, buffer_size);
+    tjs_path_join(buffer, "app.js", buffer_size);
     // printf("file: %s\r\n", buffer);
     if (access(buffer, R_OK) == 0) {
         return buffer;
@@ -350,9 +350,9 @@ static char* tjs_cli_get_root_command_filename(char* buffer, size_t buffer_size,
 
     // 2. ${root}/app/bin/${name}.js
     strncpy(buffer, TJS_ROOT, buffer_size);
-    path_join(buffer, "app", buffer_size);
-    path_join(buffer, "bin", buffer_size);
-    path_join(buffer, name, buffer_size);
+    tjs_path_join(buffer, "app", buffer_size);
+    tjs_path_join(buffer, "bin", buffer_size);
+    tjs_path_join(buffer, name, buffer_size);
     strncat(buffer, ".js", buffer_size);
     // printf("filename=%s\r\n", buffer);
     if (access(buffer, R_OK) == 0) {

@@ -6,13 +6,15 @@ set(BUILD_APP_WOT_JS   ON)
 set(BUILD_APP_BUILD_JS ON)
 set(BUILD_WITH_MINGW   ON)
 
-set(TJS_ARCH     "x64")
+set(TJS_ARCH     "amd64")
 set(TJS_BOARD    "windows")
 
 # Set the root path name
 set(TJS_ROOT     "C:/wotjs/")
 
 add_definitions(-DOS_WINDOWS)
+add_link_options(-static)
+add_link_options(-Wl,-Bstatic)
 
 # Set the target system type to `Windows`: 
 set(WIN32 TRUE)

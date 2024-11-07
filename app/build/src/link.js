@@ -83,26 +83,11 @@ export async function link(board) {
     await makeLink(`${PROJECT_PATH}/app`, `${BUILD_BIN_PATH}/app`);
     await makeLink(BUILD_BIN_PATH, `${INSTALL_ROOT_PATH}/bin`);
 
-    const names = ['tjs', 'tjsc', 'mscan'];
-    const commands = ['tci', 'tcd', 'tpm'];
-
-    //  Create links to the wottjs executable file
-    if (board == 'dt03') {
-        names.push('mkd');
-        commands.push('tbusd', 'tgd');
-
-    } else if (board == 'linux') {
-        names.push('faad', 'ipcd');
-    }
+    const names = ['tjs', 'tjsc'];
 
     // 在 `/usr/local/bin` 目录下创建需要的可执行文件链接
     for (const name of names) {
         await makeLink(`${INSTALL_ROOT_PATH}/bin/${name}`, `${LOCAL_BIN_PATH}/${name}`);
-    }
-
-    // 在 `/usr/local/bin` 目录下创建需要的 tjs 子命令链接
-    for (const name of commands) {
-        await makeLink(`${INSTALL_ROOT_PATH}/bin/tjs`, `${LOCAL_BIN_PATH}/${name}`);
     }
 
     await rm(`${PROJECT_PATH}/app/app`);
@@ -130,7 +115,7 @@ export async function unlink(board) {
 
     // 删除所有 `/usr/local/bin` 目录下的可执行文件链接
     console.print('');
-    const names = ['tjs', 'tjsc', 'tci', 'tcd', 'tpm', 'mscan', 'faad', 'tgd', 'tbusd', 'mkd', 'ipcd'];
+    const names = ['tjs', 'tjsc'];
     for (const name of names) {
         await remove(`${LOCAL_BIN_PATH}/${name}`);
     }

@@ -51,7 +51,7 @@
  * @param filename 要读取的文件名
  * @return 读取的文件内容
  */
-uint8_t* js_load_file(JSContext* ctx, size_t* length, const char* filename)
+static uint8_t* tjs_load_file(JSContext* ctx, size_t* length, const char* filename)
 {
     if (filename == NULL || filename[0] == '\0') {
         return NULL;
@@ -91,7 +91,7 @@ uint8_t* js_load_file(JSContext* ctx, size_t* length, const char* filename)
  *
  * @param ctx
  */
-void js_dump_error(JSContext* ctx)
+static void tjs_dump_error(JSContext* ctx)
 {
     JSValue exception = JS_GetException(ctx);
     BOOL is_error = JS_IsError(ctx, exception);
@@ -207,22 +207,29 @@ namelist_entry_t* namelist_find(namelist_t* list, const char* name)
 ///////////////////////////////////////////////////////////////////////////////
 //
 
+/**
+ * 编译选项
+ */
 typedef struct tjs_compiler_options_s {
     const char* outname; // 输出文件名
     const char* basepath; // 输入文件基础路径
     const char* libname; // 库名
-    int is_module;
-    BOOL is_byte_swap;
+    int is_module; //
+    BOOL is_byte_swap; //
 
 } tjs_compiler_options_t;
 
+/** 编译选项 */
 static tjs_compiler_options_t tjs_options = { 0 };
 
-static namelist_t tjs_module_list;
-static namelist_t tjs_cmodule_list;
+static namelist_t tjs_c_module_list;
 static namelist_t tjs_init_module_list;
+static namelist_t tjs_js_module_list;
 
-static const char* c_ident_prefix = "mjs_";
+/**
+ * 输出文件中 (C语言)，变量名前缀
+ */
+static const char* tjs_c_ident_prefix = "tjs_m_";
 
 /**
  * @brief
@@ -276,20 +283,20 @@ static void tjs_get_cname(char* buf, size_t buf_size, const char* filename)
 /**
  * @brief
  *
- * @param buf
- * @param buf_size
+ * @param buffer
+ * @param buffer_size
  * @param prefix
- * @param file
+ * @param basename
  */
-static void tjs_get_packge_name(char* buf, size_t buf_size, const char* prefix, const char* file)
+static void tjs_get_packge_name(char* buffer, size_t buffer_size, const char* prefix, const char* basename)
 {
     int prefix_length = strlen(prefix);
-    pstrcpy(buf, sizeof(buf), prefix);
+    pstrcpy(buffer, sizeof(buffer), prefix);
 
-    buf += prefix_length;
-    buf_size -= prefix_length;
+    buffer += prefix_length;
+    buffer_size -= prefix_length;
 
-    const char* p = file;
+    const char* p = basename;
     const char* end = NULL;
 
     if (strcmp(prefix, "@tjs/") == 0) {
@@ -301,12 +308,12 @@ static void tjs_get_packge_name(char* buf, size_t buf_size, const char* prefix, 
     }
 
     size_t len = end - p;
-    if (len > buf_size - 1) {
-        len = buf_size - 1;
+    if (len > buffer_size - 1) {
+        len = buffer_size - 1;
     }
 
-    memcpy(buf, p, len);
-    buf[len] = '\0';
+    memcpy(buffer, p, len);
+    buffer[len] = '\0';
 }
 
 /**
@@ -333,7 +340,18 @@ static void tjs_print_hex_string(FILE* output, const uint8_t* buffer, size_t len
     }
 }
 
-static void tjs_print_object_code(JSContext* ctx, FILE* output, JSValueConst object,
+/**
+ * 打印字节码
+ *
+ * @param ctx
+ * @param output
+ * @param object
+ * @param package_name
+ * @param cname
+ * @param load_only
+ *
+ */
+static void tjs_print_module_byte_code(JSContext* ctx, FILE* output, JSValueConst module,
     const char* package_name, const char* cname, BOOL load_only)
 {
     int flags = JS_WRITE_OBJ_BYTECODE;
@@ -342,19 +360,19 @@ static void tjs_print_object_code(JSContext* ctx, FILE* output, JSValueConst obj
     }
 
     size_t code_length;
-    uint8_t* code_bytes = JS_WriteObject(ctx, &code_length, object, flags);
+    uint8_t* code_bytes = JS_WriteObject(ctx, &code_length, module, flags);
     if (!code_bytes) {
-        js_dump_error(ctx);
+        tjs_dump_error(ctx);
         exit(1);
     }
 
-    // printf("tjs_print_object_code: %s - %s\r\n", package_name, cname);
+    // printf("tjs_print_module_byte_code: %s - %s\r\n", package_name, cname);
     uint32_t code_size = code_length;
-    namelist_add(&tjs_module_list, package_name, cname, code_size, load_only);
+    namelist_add(&tjs_js_module_list, package_name, cname, code_size, load_only);
 
-    // fprintf(output, "#define %s%s_size_t %u\n\n", c_ident_prefix, cname, code_size);
-    fprintf(output, "const uint32_t %s%s_size = %u;\n\n", c_ident_prefix, cname, code_size);
-    fprintf(output, "const uint8_t %s%s[%u] = {\n", c_ident_prefix, cname, code_size);
+    // fprintf(output, "#define %s%s_size_t %u\n\n", tjs_c_ident_prefix, cname, code_size);
+    // fprintf(output, "const uint32_t %s%s_size = %u;\n\n", tjs_c_ident_prefix, cname, code_size);
+    fprintf(output, "static const uint8_t %s%s[%u] = {\n", tjs_c_ident_prefix, cname, code_size);
     tjs_print_hex_string(output, code_bytes, code_length);
     fprintf(output, "};\n\n");
 
@@ -380,7 +398,7 @@ JSModuleDef* tjs_module_loader(JSContext* ctx, const char* module_name, void* op
     JSModuleDef* module = NULL;
 
     /* check if it is a declared C or system module */
-    namelist_entry_t* entry = namelist_find(&tjs_cmodule_list, module_name);
+    namelist_entry_t* entry = namelist_find(&tjs_c_module_list, module_name);
     if (entry) {
         /* add in the static init module list */
         namelist_add(&tjs_init_module_list, entry->name, entry->short_name, 0, 0);
@@ -402,23 +420,23 @@ JSModuleDef* tjs_module_loader(JSContext* ctx, const char* module_name, void* op
  * @param ctx JavaScript 运行时上下文
  * @param output 输出文件
  * @param filename 要编译的源文件名
+ *
  * @param is_module 是否是模块
  * @param libname 库名，如 'tjs' 表示 '@tjs/...'
  * @param basepath 要编译的文件的基础路径
  */
-static void tjs_compile_file(JSContext* ctx, FILE* output, const char* filename)
+static void tjs_compile_javascript_file(JSContext* ctx, FILE* output, const char* filename)
 {
     char package_name[PATH_MAX] = { 0 };
+    char package_prefix[PATH_MAX] = { 0 };
     char cname[PATH_MAX] = { 0 };
-    char prefix[PATH_MAX] = { 0 };
     char dirname[PATH_MAX] = { 0 };
 
-    snprintf(prefix, sizeof(prefix), "@%s/", tjs_options.libname ? tjs_options.libname : "tjs");
     // printf("tjsc: compile: %s - %s\r\n", prefix, filename);
 
-    // file data
+    // load file data
     size_t filesize;
-    char* filedata = (char*)js_load_file(ctx, &filesize, filename);
+    char* filedata = (char*)tjs_load_file(ctx, &filesize, filename);
     if (!filedata) {
         fprintf(stderr, "Could not load '%s'\n", filename);
         exit(1);
@@ -437,13 +455,18 @@ static void tjs_compile_file(JSContext* ctx, FILE* output, const char* filename)
     }
 
     // module name
-    filename = filename + strlen(basepath);
-    tjs_get_cname(cname, sizeof(cname), filename);
-    tjs_get_packge_name(package_name, sizeof(package_name), prefix, filename);
-    // printf("tjs_compile_file: %s - %s (%s, %s), %s\r\n", basepath, cname, prefix, package_name, filename);
+    const char* basename = filename + strlen(basepath);
+
+    // C 语言变量名
+    tjs_get_cname(cname, sizeof(cname), basename);
+
+    // javascript 包名
+    snprintf(package_prefix, sizeof(package_prefix), "@%s/", tjs_options.libname ? tjs_options.libname : "tjs");
+    tjs_get_packge_name(package_name, sizeof(package_name), package_prefix, basename);
+    // printf("tjs_compile_javascript_file: %s - %s (%s, %s), %s\r\n", basepath, cname, prefix, package_name, filename);
     // printf("tjsc: add=%s\n", package_name);
 
-    // flags
+    // eval flags
     int eval_flags = JS_EVAL_FLAG_COMPILE_ONLY;
     int is_module = tjs_options.is_module;
     if (is_module < 0) {
@@ -457,17 +480,19 @@ static void tjs_compile_file(JSContext* ctx, FILE* output, const char* filename)
         eval_flags |= JS_EVAL_TYPE_GLOBAL;
     }
 
-    // eval
+    // eval file: 加载 js 文件模块
     JSValue module = JS_Eval(ctx, filedata, filesize, package_name, eval_flags);
     js_free(ctx, filedata);
 
     if (JS_IsException(module)) {
-        js_dump_error(ctx);
+        tjs_dump_error(ctx);
         exit(1);
     }
 
-    // encode
-    tjs_print_object_code(ctx, output, module, package_name, cname, FALSE);
+    // encode: 输出字节码
+    tjs_print_module_byte_code(ctx, output, module, package_name, cname, FALSE);
+
+    // free
     JS_FreeValue(ctx, module);
 }
 
@@ -477,28 +502,25 @@ static void tjs_compile_file(JSContext* ctx, FILE* output, const char* filename)
  * @param ctx
  * @param output
  * @param filename
- * @param is_module
- * @param libname
- * @param basepath
  */
 static void tjs_add_file(JSContext* ctx, FILE* output, const char* filename)
 {
     char package_name[PATH_MAX] = { 0 };
+    char package_prefix[PATH_MAX] = { 0 };
     char cname[PATH_MAX] = { 0 };
-    char prefix[PATH_MAX] = { 0 };
     char dirname[PATH_MAX] = { 0 };
 
-    snprintf(prefix, sizeof(prefix), "@%s/", tjs_options.libname ? tjs_options.libname : "tjs");
     // printf("tjsc: compile: %s - %s\r\n", prefix, filename);
 
     // file data
     size_t filesize;
-    char* filedata = (char*)js_load_file(ctx, &filesize, filename);
+    char* filedata = (char*)tjs_load_file(ctx, &filesize, filename);
     if (!filedata) {
         fprintf(stderr, "Could not load '%s'\n", filename);
         exit(1);
     }
 
+    // basepath
     const char* basepath = tjs_options.basepath;
     if (!basepath) {
         char* p = strrchr(filename, '/');
@@ -512,26 +534,34 @@ static void tjs_add_file(JSContext* ctx, FILE* output, const char* filename)
     }
 
     // module name
-    filename = filename + strlen(basepath);
-    tjs_get_cname(cname, sizeof(cname), filename);
-    tjs_get_packge_name(package_name, sizeof(package_name), prefix, filename);
+    const char* basename = filename + strlen(basepath);
+    tjs_get_cname(cname, sizeof(cname), basename);
 
-    printf("tjsc: add=%s\n", package_name);
-    // printf("tjsc add: cname=%s, package=%s, filename=%s\r\n", cname, package_name, filename);
+    snprintf(package_prefix, sizeof(package_prefix), "@%s/", tjs_options.libname ? tjs_options.libname : "tjs");
+    tjs_get_packge_name(package_name, sizeof(package_name), package_prefix, basename);
+
+    // printf("tjsc: add=%s\n", package_name);
+    // printf("tjsc add: cname=%s, package=%s, basename=%s\r\n", cname, package_name, basename);
 
     // encode
     uint32_t code_size = filesize;
-    namelist_add(&tjs_module_list, package_name, cname, code_size, 0);
+    namelist_add(&tjs_js_module_list, package_name, cname, code_size, 0);
 
     // code
-    // fprintf(output, "#define %s%s_size_t %u\n\n", c_ident_prefix, cname, code_size);
-    fprintf(output, "const uint32_t %s%s_size = %u;\n\n", c_ident_prefix, cname, code_size);
-    fprintf(output, "const uint8_t %s%s[%u] = {\n", c_ident_prefix, cname, code_size);
+    // fprintf(output, "#define %s%s_size_t %u\n\n", tjs_c_ident_prefix, cname, code_size);
+    // fprintf(output, "const uint32_t %s%s_size = %u;\n\n", tjs_c_ident_prefix, cname, code_size);
+    fprintf(output, "static const uint8_t %s%s[%u] = {\n", tjs_c_ident_prefix, cname, code_size);
     tjs_print_hex_string(output, filedata, code_size);
     fprintf(output, "};\n\n");
 }
 
-static void tjs_print_file_header(FILE* output)
+/**
+ * 输出文件头
+ *
+ * - C 语言格式
+ * @param output 输出文件
+ */
+static void tjs_print_output_file_header(FILE* output)
 {
     fprintf(output,
         "/* File generated automatically by the WoT.js compiler. */\n"
@@ -542,73 +572,90 @@ static void tjs_print_file_header(FILE* output)
         "\n");
 }
 
-static void tjs_print_file_footer(FILE* output, const char* type, namelist_t* list)
+/**
+ * 输出文件尾
+ *
+ * - C 语言格式
+ * @param output 输出文件
+ * @param type 输出文件类型名, 如 `app` 或 `tjs`
+ * @param list 模块文件列表
+ */
+static void tjs_print_output_file_footer(FILE* output, const char* type, namelist_t* list)
 {
     int i;
     printf("tjsc: (%s) Add total %d files\n", type, list->count);
 
-    // modules
-    fprintf(output, "static const char* module_names[] = {\r\n");
+    // 0. tjs_module_count
+    fprintf(output, "static uint32_t tjs_module_count = %d;\r\n", list->count);
+
+    // 1. tjs_module_names
+    fprintf(output, "static const char* tjs_module_names[] = {\r\n");
     for (i = 0; i < list->count; i++) {
         namelist_entry_t* entry = &list->array[i];
         fprintf(output, "    \"%s\",\r\n", entry->name);
     }
     fprintf(output, "    NULL\r\n};\r\n\r\n");
 
-    // data
-    fprintf(output, "static const uint8_t* module_data[] = {\r\n");
+    // 2. tjs_module_data
+    fprintf(output, "static const uint8_t* tjs_module_data[] = {\r\n");
     for (i = 0; i < list->count; i++) {
         namelist_entry_t* entry = &list->array[i];
-        fprintf(output, "    mjs_%s,\r\n", entry->short_name);
+        fprintf(output, "    tjs_m_%s,\r\n", entry->short_name);
     }
     fprintf(output, "    NULL\r\n};\r\n\r\n");
 
-    // size
-    fprintf(output, "static const size_t module_size[] = {\r\n");
+    // 3. tjs_module_size
+    fprintf(output, "static const size_t tjs_module_size[] = {\r\n");
     for (i = 0; i < list->count; i++) {
         namelist_entry_t* entry = &list->array[i];
         fprintf(output, "    %ld,\r\n", entry->size);
     }
     fprintf(output, "    0\r\n};\r\n\r\n");
 
-    fprintf(output, "static uint32_t module_count = %d;\r\n", list->count);
-
-    // get_module
+    // 4. tjs_get_module_data
     fprintf(output, "\r\n"
-        "const uint8_t* tjs_get_%s_module_data(const char* name, uint32_t* psize)\r\n"
-        "{\r\n"
-        "    if (name == NULL) {\r\n"
-        "        return NULL;\r\n"
-        "    }\r\n\r\n"
-        "    int count = module_count;\r\n"
-        "    for (int i = 0; i < count; i++) {\r\n"
-        "        const char* module_name = module_names[i];\r\n"
-        "        if (module_name && strcmp(name, module_name) == 0) {\r\n"
-        "            *psize = module_size[i];\r\n"
-        "            return module_data[i];\r\n"
-        "        }\r\n"
-        "    }\r\n\r\n"
-        "    return NULL;\r\n"
-        "}\r\n",
+                    "const uint8_t* tjs_get_%s_module_data(const char* name, uint32_t* psize)\r\n"
+                    "{\r\n"
+                    "    if (name == NULL) {\r\n"
+                    "        return NULL;\r\n"
+                    "    }\r\n\r\n"
+                    "    int count = tjs_module_count;\r\n"
+                    "    for (int i = 0; i < count; i++) {\r\n"
+                    "        const char* module_name = tjs_module_names[i];\r\n"
+                    "        if (module_name && strcmp(name, module_name) == 0) {\r\n"
+                    "            *psize = tjs_module_size[i];\r\n"
+                    "            return tjs_module_data[i];\r\n"
+                    "        }\r\n"
+                    "    }\r\n\r\n"
+                    "    return NULL;\r\n"
+                    "}\r\n",
         type);
 
-    // get_module_name
+    // 5. tjs_get_module_name
     fprintf(output, "\r\n"
-        "const char* tjs_get_%s_module_name(int index)\r\n"
-        "{\r\n"
-        "    if (index < 0 || index > module_count) {\r\n"
-        "        return NULL;\r\n"
-        "    }\r\n\r\n"
-        "    return module_names[index];\r\n"
-        "}\r\n",
+                    "const char* tjs_get_%s_module_name(int index)\r\n"
+                    "{\r\n"
+                    "    if (index < 0 || index > tjs_module_count) {\r\n"
+                    "        return NULL;\r\n"
+                    "    }\r\n\r\n"
+                    "    return tjs_module_names[index];\r\n"
+                    "}\r\n",
         type);
 
-    // get_module_count
+    // 4. tjs_module_init
     fprintf(output, "\r\n"
-        "const uint32_t tjs_get_%s_module_count()\r\n"
-        "{\r\n"
-        "    return module_count;\r\n"
-        "}\r\n",
+                    "extern int tjs_module_add_module(const char* name, const uint8_t* data, uint32_t data_len);\r\n"
+                    "int tjs_%s_module_init()\r\n"
+                    "{\r\n"
+                    "    int count = tjs_module_count;\r\n"
+                    "    for (int i = 0; i < count; i++) {\r\n"
+                    "        const char* module_name = tjs_module_names[i];\r\n"
+                    "        if (module_name) {\r\n"
+                    "            tjs_module_add_module(module_name, tjs_module_data[i], tjs_module_size[i]);\r\n"
+                    "        }\r\n"
+                    "    }\r\n\r\n"
+                    "    return 0;\r\n"
+                    "}\r\n",
         type);
 }
 
@@ -686,17 +733,18 @@ int tjs_parse_options(int argc, char** argv)
     return 0;
 }
 
-int main(int argc, char** argv)
+int tjs_compiler(int argc, char** argv)
 {
     int i;
 
+    // 1. options
     tjs_parse_options(argc, argv);
 
     if (optind >= argc) {
         tjs_print_help();
     }
 
-    // output
+    // 1.1 output filename
     char filename[1024];
     pstrcpy(filename, sizeof(filename), tjs_options.outname);
     FILE* output = fopen(filename, "w");
@@ -705,7 +753,7 @@ int main(int argc, char** argv)
         exit(1);
     }
 
-    // runtime
+    // 2. init runtime
     JSRuntime* js_runtime = JS_NewRuntime();
     JSContext* js_context = JS_NewContext(js_runtime);
 
@@ -718,31 +766,42 @@ int main(int argc, char** argv)
     /* loader for ES6 modules */
     JS_SetModuleLoaderFunc(js_runtime, NULL, tjs_module_loader, NULL);
 
-    tjs_print_file_header(output);
+    // 3. header
+    tjs_print_output_file_header(output);
 
+    // 4. add files
     for (i = optind; i < argc; i++) {
         const char* filename = argv[i];
         if (strstr(filename, "/@assets/")) {
+            // 资源文件
             tjs_add_file(js_context, output, filename);
 
         } else if (has_suffix(filename, ".js")) {
-            tjs_compile_file(js_context, output, filename);
+            // javascript 文件
+            tjs_compile_javascript_file(js_context, output, filename);
 
         } else {
+            // 资源文件
             tjs_add_file(js_context, output, filename);
         }
     }
 
-    // free context
+    // 5. footer
+    tjs_print_output_file_footer(output, tjs_options.libname, &tjs_js_module_list);
+    fclose(output);
+
+    // 6. free runtime
     JS_FreeContext(js_context);
     JS_FreeRuntime(js_runtime);
 
-    tjs_print_file_footer(output, tjs_options.libname, &tjs_module_list);
-    fclose(output);
-
     // free names
-    namelist_free(&tjs_module_list);
-    namelist_free(&tjs_cmodule_list);
+    namelist_free(&tjs_js_module_list);
+    namelist_free(&tjs_c_module_list);
     namelist_free(&tjs_init_module_list);
     return 0;
+}
+
+int main(int argc, char** argv)
+{
+    return tjs_compiler(argc, argv);
 }

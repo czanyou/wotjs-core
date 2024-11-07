@@ -22,14 +22,6 @@ extern int utils_base64_encode(unsigned char* dst, size_t dlen, size_t* olen,
 extern int utils_base64_decode(unsigned char* dst, size_t dlen, size_t* olen,
     const unsigned char* src, size_t slen);
 
-
-#ifdef BUILD_APP_JS
-const uint8_t* tjs_get_app_module_data(const char* name, uint32_t* psize);
-const char* tjs_get_app_module_name(int index);
-#endif
-
-const char* tjs_get_tjs_module_name(int index);
-
 static JSValue tjs_util_test(JSContext* ctx, JSValueConst this_val, int argc, JSValueConst* argv)
 {
     return JS_UNDEFINED;
@@ -91,7 +83,7 @@ static JSValue tjs_utf8_encode(JSContext* ctx, JSValueConst this_val, int argc, 
     return TJS_NewUint8Array(ctx, buffer, data_length);
 }
 
-static JSValue tjs_read_app_file(JSContext* ctx, JSValueConst this_val, int argc, JSValueConst* argv)
+static JSValue tjs_read_module_file(JSContext* ctx, JSValueConst this_val, int argc, JSValueConst* argv)
 {
     if (argc <= 0) {
         return JS_UNDEFINED;
@@ -103,9 +95,8 @@ static JSValue tjs_read_app_file(JSContext* ctx, JSValueConst this_val, int argc
         return JS_UNDEFINED;
     }
 
-#ifdef BUILD_APP_JS
     uint32_t data_length = 0;
-    const uint8_t* data = tjs_get_app_module_data(name, &data_length);
+    const uint8_t* data = tjs_module_get_data(name, &data_length);
     JS_FreeCString(ctx, name);
 
     if (data == NULL || data_length == 0) {
@@ -115,48 +106,11 @@ static JSValue tjs_read_app_file(JSContext* ctx, JSValueConst this_val, int argc
     uint8_t* buffer = js_malloc(ctx, data_length);
     memcpy(buffer, data, data_length);
     return TJS_NewArrayBuffer(ctx, buffer, data_length);
-
-#else
-    return JS_UNDEFINED;
-#endif
 }
 
-static JSValue tjs_get_core_module_names(JSContext* ctx, JSValueConst this_val, int argc, JSValueConst* argv)
+static JSValue tjs_get_module_names(JSContext* ctx, JSValueConst this_val, int argc, JSValueConst* argv)
 {
-    JSValue array = JS_NewArray(ctx);
-
-    int position = 0;
-    int index = 0;
-    while (true) {
-        const char* name = tjs_get_tjs_module_name(index++);
-        if (name == NULL) {
-            break;
-        }
-       
-        JS_DefinePropertyValueUint32(ctx, array, position++, JS_NewString(ctx, name), JS_PROP_C_W_E);
-    }
-
-    return array;
-}
-
-static JSValue tjs_get_app_module_names(JSContext* ctx, JSValueConst this_val, int argc, JSValueConst* argv)
-{
-    JSValue array = JS_NewArray(ctx);
-
-#ifdef BUILD_APP_JS
-    int position = 0;
-    int index = 0;
-    while (true) {
-        const char* name = tjs_get_app_module_name(index++);
-        if (name == NULL) {
-            break;
-        }
-       
-        JS_DefinePropertyValueUint32(ctx, array, position++, JS_NewString(ctx, name), JS_PROP_C_W_E);
-    }
-#endif
-
-    return array;
+    return tjs_module_get_names(ctx);
 }
 
 static JSValue tjs_util_encode(JSContext* ctx, JSValueConst this_val, int argc, JSValueConst* argv)
@@ -252,9 +206,8 @@ static const JSCFunctionListEntry tjs_util_funcs[] = {
 
     TJS_CFUNC_DEF("test", 2, tjs_util_test),
     TJS_CFUNC_DEF("hash", 2, tjs_util_hash),
-    TJS_CFUNC_DEF("asset", 1, tjs_read_app_file),
-    TJS_CFUNC_DEF("modules", 0, tjs_get_core_module_names),
-    TJS_CFUNC_DEF("applications", 0, tjs_get_app_module_names),
+    TJS_CFUNC_DEF("asset", 1, tjs_read_module_file),
+    TJS_CFUNC_DEF("modules", 0, tjs_get_module_names),
     TJS_CFUNC_DEF("decode", 2, tjs_util_decode),
     TJS_CFUNC_DEF("encode", 2, tjs_util_encode),
     TJS_CFUNC_DEF("toString", 2, tjs_utf8_decode),

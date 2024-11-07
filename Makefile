@@ -59,13 +59,9 @@ define make_help
 	@echo "  $Gclean$N     Clean the output of current project."
 	@echo ""
 	@echo "  $Gtest$N      Execute unit tests."
-	@echo "  $Gpack$N      Packs the code to a bundle package for current [BOARD]"
 	@echo ""
 	@echo "  $Glink$N      Symlinks the application to a folder for deployment to current hosting system."
 	@echo "  $Gunlink$N    Remove all linked files"
-	@echo ""
-	@echo "  $Ginstall$N   Install generated files for deployment to current hosting system."
-	@echo "  $Guninstall$N Remove all installed files"
 	@echo ""
 
 	@echo "Available board targets:"
@@ -106,28 +102,18 @@ test2:
 	./build/local/tjs test core/test/core core/test/ext core/test/native \
 	core/test/http core/test/mqtt core/test/net core/test/tls
 
-## ------------------------------------------------------------
-## Packs & Installs
+# 自动生成和更新项目版本号
+version:
+	@./build/local/tjs build version ./CMakeVersion.cmake
 
-pack:
-	@echo ''
-	@echo '= Build "${BOARD_TYPE}" bundle package:'
-	@rm -rf output/${BOARD_TYPE}/files
-	@./build/local/tjs build pack ${BOARD_TYPE}
+## ------------------------------------------------------------
+## Link
 
 link:
 	@./build/local/tjs build link ${BOARD_TYPE}
 
 unlink:
 	@./build/local/tjs build unlink ${BOARD_TYPE}
-
-install:
-	@echo "$GInstalling generated files to '/usr/local/lib/'...$N"
-	rsync -avh ./build/${BOARD_TYPE}/*.a /usr/local/lib/
-
-uninstall:
-	@echo "$GRemoving installed files...$N"
-	rm -rf /usr/local/lib/libtjs_*.a
 
 ## ------------------------------------------------------------
 ## Platforms or boards
@@ -150,5 +136,12 @@ linux:
 	@make board board=$@ --no-print-directory
 	@echo "-- Executable: `build/$@/tjs -v` BUILD_TYPE=${BUILD_TYPE}"
 
-rk3568:
+linux-arm:
 	@make board board=$@ --no-print-directory
+
+linux-arm64:
+	rsync -av core/libs/aarch64/* build/$@/
+	@make board board=$@ --no-print-directory
+
+arm64: linux-arm64
+arm: linux-arm

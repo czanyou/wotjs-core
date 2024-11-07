@@ -127,7 +127,6 @@ static int tjs_init(JSContext* ctx, JSModuleDef* m)
     return 0;
 }
 
-
 JSModuleDef* js_init_module_uv(JSContext* ctx, const char* name)
 {
     JSModuleDef* m;
@@ -329,7 +328,7 @@ TJSRuntime* tjs_new_runtime(bool is_worker, TJSRuntimeOptions* options)
     qrt->stop.data = qrt;
 
     /* loader for ES6 modules */
-    JS_SetModuleLoaderFunc(rt, tjs_module_normalizer, tjs_module_loader, qrt);
+    tjs_module_init(rt, qrt);
 
     /* unhandled promise rejection tracker */
     JS_SetHostPromiseRejectionTracker(rt, tjs__promise_rejection_tracker, NULL);
@@ -368,7 +367,7 @@ TJSRuntime* TJS_NewRuntime(TJSRuntimeOptions* options)
 {
     TJSRuntimeOptions default_options;
     if (options == NULL) {
-        options = &default_options; 
+        options = &default_options;
         TJS_DefaultOptions(options);
     }
 
@@ -467,25 +466,21 @@ uv_loop_t* TJS_GetLoopRT(TJSRuntime* qrt)
 
 static void uv__idle_cb(uv_idle_t* handle)
 {
-    // printf("vm: uv__idle_cb\r\n");
     // Noop
 }
 
 static void uv__maybe_idle(TJSRuntime* qrt)
 {
     if (JS_IsJobPending(qrt->rt)) {
-        // printf("vm: uv__maybe_idle, 1\r\n");
         CHECK_EQ(uv_idle_start(&qrt->jobs.idle, uv__idle_cb), 0);
+
     } else {
-        // printf("vm: uv__maybe_idle, 2\r\n");
         CHECK_EQ(uv_idle_stop(&qrt->jobs.idle), 0);
     }
 }
 
 static void uv__prepare_cb(uv_prepare_t* handle)
 {
-    // printf("vm: uv__prepare_cb\r\n");
-
     TJSRuntime* qrt = handle->data;
     CHECK_NOT_NULL(qrt);
 
@@ -495,8 +490,6 @@ static void uv__prepare_cb(uv_prepare_t* handle)
 void tjs_execute_pending_jobs(JSContext* ctx)
 {
     JSRuntime* rt = JS_GetRuntime(ctx);
-    // printf("vm: tjs_execute_pending_jobs: %d\r\n", JS_IsJobPending(rt));
-
     JSContext* ctx1;
     int err;
 
@@ -515,8 +508,6 @@ void tjs_execute_pending_jobs(JSContext* ctx)
 
 static void uv__check_cb(uv_check_t* handle)
 {
-    // printf("vm: uv__check_cb\r\n");
-
     TJSRuntime* qrt = handle->data;
     CHECK_NOT_NULL(qrt);
 
@@ -539,9 +530,11 @@ void TJS_Run(TJSRuntime* qrt)
         uv_unref((uv_handle_t*)&qrt->stop);
     }
 
-    uv__maybe_idle(qrt);
-
-    uv_run(&qrt->loop, UV_RUN_DEFAULT);
+    int ret = 0;
+    do {
+        uv__maybe_idle(qrt);
+        ret = uv_run(&qrt->loop, UV_RUN_DEFAULT);
+    } while (ret == 0 && JS_IsJobPending(qrt->rt));
 }
 
 void TJS_Stop(TJSRuntime* qrt)

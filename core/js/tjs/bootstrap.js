@@ -286,7 +286,7 @@ class Worker extends EventTarget {
 
     terminate() {
         this[kWorker].terminate();
-        
+
         this.removeAllEventListeners();
     }
 }

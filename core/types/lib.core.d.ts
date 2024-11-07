@@ -248,7 +248,7 @@ declare module '@tjs/fs' {
      * @param filename 文件名
      * @param encoding 编码格式, 只支持 `utf-8`
      */
-    export function readFile(filename: string, encoding?: IReadFileOptions | string): Promise<string | ArrayBuffer>;
+    export function readFile(filename: string, encoding?: IReadFileOptions | string): Promise<Uint8Array|undefined>;
     export function readFile(filename: string, encoding: "utf-8"): Promise<string>;
 
     /**

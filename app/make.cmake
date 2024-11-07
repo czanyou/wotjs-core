@@ -8,11 +8,7 @@ set(APP_JS_DIR ${CMAKE_CURRENT_LIST_DIR})
 
 set(app_js_files
     ${APP_JS_DIR}/bin/*.js
-    ${APP_JS_DIR}/modules/system/*.js
     ${APP_JS_DIR}/modules/utils/*.js
-    ${APP_JS_DIR}/modules/vendor/*.js
-#   ${APP_JS_DIR}/tpm/src/*.js
-#   ${APP_JS_DIR}/tpm/*.js
 )
 
 ###############################################################
@@ -30,6 +26,8 @@ endif ()
 # build app js files to c files
 # 通过下面的自定义命令将 app 的脚本文件编译成 C 语言文件
 
+message(STATUS "app_js_files: ${app_js_files}")
+
 add_custom_command(
     COMMAND
         ${TJS_COMPILER} # tjsc 编译器
@@ -45,3 +43,5 @@ add_custom_command(
     COMMENT
         "Built app js files"
 )
+
+message(STATUS "TJS_COMPILER: ${TJS_COMPILER}")

@@ -236,46 +236,43 @@ export const rootCertificates = [
 // TLSSocket
 
 export class TLSSocket extends EventTarget {
+    /** @type {native.TLS=} */
+    #handle = undefined;
+
     /**
-     * @param {*} [options] 
+     * @param {any=} options
      */
     constructor(options) {
         super();
 
-        /** @type boolean */
+        /** @type {boolean} */
         this.authorized = false;
 
-        /** @type string | undefined */
+        /** @type {string=} */
         this.authorizationError = undefined;
 
-        /** @type number */
+        /** @type {number} */
         this.bytesRead = 0;
 
-        /** @type number */
+        /** @type {number} */
         this.bytesWritten = 0;
 
         /** @type {Promise<void>=} */
         this.connected = undefined;
 
-        /** @type boolean */
+        /** @type {boolean} */
         this.encrypted = true;
 
-        /** @type {native.TLS=} */
-        this._handle = undefined;
+        /** @type {any} */
+        this.options = options;
 
-        /** @type any */
-        this._options = options;
-
-        /** @type number */
+        /** @type {number} */
         this.readyState = TLSSocket.CLOSED;
 
-        /** @type number | undefined */
+        /** @type {number=} */
         this.timeout = undefined;
 
-        const handle = options && options.handle;
-        if (handle) {
-            this._setHandle(handle);
-        }
+        this.#setHandle(options?.handle);
     }
 
     get [Symbol.toStringTag]() {
@@ -283,7 +280,7 @@ export class TLSSocket extends EventTarget {
     }
 
     get bufferedAmount() {
-        const handle = this._handle;
+        const handle = this.#handle;
         return handle?.bufferedAmount();
     }
 
@@ -344,7 +341,7 @@ export class TLSSocket extends EventTarget {
             const options = { cacert: rootCertificates.join('') };
             const handle = new native.TLS(options);
 
-            this._setHandle(handle);
+            this.#setHandle(handle);
 
             // console.log('address', address);
             await handle.connect(address);
@@ -374,9 +371,9 @@ export class TLSSocket extends EventTarget {
     close() {
         this.connected = undefined;
 
-        const handle = this._handle;
+        const handle = this.#handle;
         if (handle) {
-            this._handle = undefined;
+            this.#handle = undefined;
 
             handle.close();
         }
@@ -394,7 +391,7 @@ export class TLSSocket extends EventTarget {
     /** */
     async shutdown() {
         try {
-            const handle = this._handle;
+            const handle = this.#handle;
             await handle?.shutdown();
 
         } catch (error) {
@@ -406,27 +403,27 @@ export class TLSSocket extends EventTarget {
     }
 
     localAddress() {
-        const handle = this._handle;
+        const handle = this.#handle;
         return handle?.address();
     }
 
     remoteAddress() {
-        const handle = this._handle;
+        const handle = this.#handle;
         return handle?.remoteAddress();
     }
 
     ref() {
-        this._handle?.ref();
+        this.#handle?.ref();
     }
 
     setKeepAlive(enable = true, delay = 0) {
-        const handle = this._handle;
+        const handle = this.#handle;
         handle?.setKeepAlive(enable, delay);
         return this;
     }
 
     setNoDelay(enable = true) {
-        const handle = this._handle;
+        const handle = this.#handle;
         handle?.setNoDelay(enable);
         return this;
     }
@@ -442,7 +439,7 @@ export class TLSSocket extends EventTarget {
     }
 
     unref() {
-        this._handle?.unref();
+        this.#handle?.unref();
     }
 
     /**
@@ -456,7 +453,7 @@ export class TLSSocket extends EventTarget {
         // @ts-ignore
         this.bytesWritten += data.byteLength || data.length || 0;
 
-        const handle = this._handle;
+        const handle = this.#handle;
         if (!handle) {
             return;
         }
@@ -475,9 +472,13 @@ export class TLSSocket extends EventTarget {
      * 
      * @param {native.TLS} handle 
      */
-    _setHandle(handle) {
+    #setHandle(handle) {
         const self = this;
-        this._handle = handle;
+        this.#handle = handle;
+
+        if (handle == null) {
+            return;
+        }
 
         function onSocketClose() {
             handle.onclose = undefined;
@@ -550,13 +551,18 @@ defineEventAttribute(TLSSocket.prototype, 'timeout');
 // Server
 
 export class Server extends EventTarget {
+    /** @type {native.TLS=} */
+    #handle = undefined;
+
+    /**
+     * 
+     * @param {any=} options 
+     */
     constructor(options) {
         super();
 
-        this._options = options;
+        this.options = options;
 
-        /** @type native.TLS | undefined */
-        this._handle = undefined;
         this.onconnection = undefined;
     }
 
@@ -565,19 +571,19 @@ export class Server extends EventTarget {
     }
 
     async accept() {
-        const handle = this._handle;
+        const handle = this.#handle;
         const result = handle && handle.accept();
         return result;
     }
 
     address() {
-        return this._handle && this._handle.address();
+        return this.#handle && this.#handle.address();
     }
 
     async close() {
-        const handle = this._handle;
+        const handle = this.#handle;
         if (handle) {
-            this._handle = undefined;
+            this.#handle = undefined;
 
             handle.close();
             this.dispatchEvent(new Event('close'));
@@ -601,7 +607,7 @@ export class Server extends EventTarget {
             const address = options;
             const handle = new native.TLS();
             handle.bind(address);
-            this._handle = handle;
+            this.#handle = handle;
 
         } catch (error) {
             this.dispatchEvent(new ErrorEvent('error', { error }));
@@ -610,7 +616,7 @@ export class Server extends EventTarget {
         }
 
         const self = this;
-        const server = this._handle;
+        const server = this.#handle;
         server.onconnection = async function () {
             // console.log('connection');
             const connection = server.accept();
@@ -641,8 +647,6 @@ defineEventAttribute(Server.prototype, 'listening');
 export class DTLSSocket extends EventTarget {
     constructor(handle) {
         super();
-
-        this._handle = handle;
     }
 
     get [Symbol.toStringTag]() {

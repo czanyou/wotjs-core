@@ -16,21 +16,21 @@ import { defineEventAttribute } from '@tjs/event-target';
  */
 export class Socket extends EventTarget {
 
+    /** @type {native.TCP|native.Pipe=} */
+    #handle = undefined;
+
     /** @param {any} [options] */
     constructor(options) {
         super();
 
-        /** @type number */
+        /** @type {number} */
         this.bytesRead = 0;
 
-        /** @type number */
+        /** @type {number} */
         this.bytesWritten = 0;
 
         /** @type {Promise=} 表示连接状态的 promise */
         this.connected = undefined;
-
-        /** @type {native.TCP | native.Pipe =} */
-        this._handle = undefined;
 
         /** @type {number} 连接状态 */
         this.readyState = Socket.CLOSED;
@@ -38,10 +38,7 @@ export class Socket extends EventTarget {
         /** @type {number=} 连接超时时间，单位为毫秒 */
         this.timeout = undefined;
 
-        const handle = options?.handle;
-        if (handle) {
-            this._setHandle(handle);
-        }
+        this.#setHandle(options?.handle);
     }
 
     get [Symbol.toStringTag]() {
@@ -49,8 +46,7 @@ export class Socket extends EventTarget {
     }
 
     get bufferedAmount() {
-        const handle = this._handle;
-        return handle?.bufferedAmount();
+        return this.#handle?.bufferedAmount();
     }
 
     get connecting() {
@@ -94,7 +90,7 @@ export class Socket extends EventTarget {
                 address = options.path;
 
                 const handle = new native.Pipe();
-                this._handle = handle;
+                this.#handle = handle;
 
             } else {
                 address = await dns.lookup(options.host, { family: 4 });
@@ -110,7 +106,7 @@ export class Socket extends EventTarget {
                 this.dispatchEvent(event);
 
                 const handle = new native.TCP();
-                this._handle = handle;
+                this.#handle = handle;
             }
 
             if (this.timeout && this.timeout > 0) {
@@ -121,9 +117,9 @@ export class Socket extends EventTarget {
                 }, this.timeout);
             }
 
-            const client = this._handle;
+            const client = this.#handle;
 
-            this._setHandle(client);
+            this.#setHandle(client);
 
             // console.log('address', address);
             await client.connect(address);
@@ -146,7 +142,7 @@ export class Socket extends EventTarget {
                 this._connectTimeoutTimer = null;
             }
 
-            this._onError(error);
+            this.#onError(error);
             this.close();
         }
 
@@ -154,37 +150,33 @@ export class Socket extends EventTarget {
     }
 
     localAddress() {
-        const handle = this._handle;
-        return handle?.address();
+        return this.#handle?.address();
     }
 
     /** 主动关闭这个连接 */
     close() {
-        this._onClose();
+        this.#onClose();
         this.removeAllEventListeners();
         return this;
     }
 
     ref() {
-        this._handle?.ref();
+        this.#handle?.ref();
     }
 
     remoteAddress() {
-        const handle = this._handle;
-        return handle?.remoteAddress();
+        return this.#handle?.remoteAddress();
     }
 
     setKeepAlive(enable = true, delay = 0) {
-        const handle = this._handle;
         // @ts-ignore
-        handle?.setKeepAlive(enable, delay);
+        this.#handle?.setKeepAlive(enable, delay);
         return this;
     }
 
     setNoDelay(enable = true) {
-        const handle = this._handle;
         // @ts-ignore
-        handle?.setNoDelay(enable);
+        this.#handle?.setNoDelay(enable);
         return this;
     }
 
@@ -201,11 +193,10 @@ export class Socket extends EventTarget {
     /** 关闭写 */
     async shutdown() {
         try {
-            const handle = this._handle;
-            await handle?.shutdown();
+            await this.#handle?.shutdown();
 
         } catch (error) {
-            this._onError(error);
+            this.#onError(error);
             this.close();
         }
 
@@ -213,7 +204,7 @@ export class Socket extends EventTarget {
     }
 
     unref() {
-        this._handle?.unref();
+        this.#handle?.unref();
     }
 
     /**
@@ -222,39 +213,30 @@ export class Socket extends EventTarget {
      * @returns {Promise<void>}
      */
     async write(data) {
-        if (!data) {
+        if (data == null) {
             return;
         }
 
-        // @ts-ignore
-        this.bytesWritten += data.byteLength || data.length || 0;
+        if (typeof data == 'string') {
+            this.bytesWritten += data.length ?? 0;
 
-        const handle = this._handle;
-        if (!handle) {
-            return;
+        } else {
+            this.bytesWritten += data.byteLength ?? 0;
         }
 
         try {
-            await handle.write(data);
+            await this.#handle?.write(data);
 
         } catch (error) {
-            this._onError(error);
+            this.#onError(error);
             this.close();
         }
     }
 
     /**
-     * 当发生错误
-     * @param {any} error 
-     */
-    _onError(error) {
-        this.dispatchEvent(new ErrorEvent('error', { error }));
-    }
-
-    /**
      * 当连接关闭
      */
-    _onClose() {
+    #onClose() {
         this.connected = undefined;
 
         if (this.readyState != Socket.CLOSED) {
@@ -262,9 +244,9 @@ export class Socket extends EventTarget {
             this.dispatchEvent(new Event('close'));
         }
 
-        const handle = this._handle;
+        const handle = this.#handle;
         if (handle) {
-            this._handle = undefined;
+            this.#handle = undefined;
 
             handle.onclose = undefined;
             handle.onerror = undefined;
@@ -274,21 +256,29 @@ export class Socket extends EventTarget {
         }
     }
 
+    /**
+     * 当发生错误
+     * @param {any} error 
+     */
+    #onError(error) {
+        this.dispatchEvent(new ErrorEvent('error', { error }));
+    }
+
     /** @param {native.TCP|native.Pipe} handle */
-    _setHandle(handle) {
+    #setHandle(handle) {
         if (handle == null) {
             return;
         }
 
-        this._handle = handle;
+        this.#handle = handle;
 
         handle.onerror = (error) => {
-            this._onError(error);
+            this.#onError(error);
         };
 
         handle.onmessage = (message) => {
             if (message == null) {
-                this._onClose();
+                this.#onClose();
 
             } else {
                 this.bytesRead += message.byteLength;
@@ -329,30 +319,26 @@ defineEventAttribute(Socket.prototype, 'timeout');
 // Server
 
 export class Server extends EventTarget {
-    constructor() {
-        super();
+    /** @type {native.Pipe|native.TCP=}  */
+    #handle = undefined;
 
-        /** @type boolean */
-        this.listening = false;
-
-        /** @type native.Pipe | native.TCP | undefined  */
-        this._handle = undefined;
-    }
+    /** @type {boolean} */
+    listening = false;
 
     get [Symbol.toStringTag]() {
         return 'Server';
     }
 
     address() {
-        return this._handle?.address();
+        return this.#handle?.address();
     }
 
     async close() {
         this.listening = false;
 
-        const handle = this._handle;
+        const handle = this.#handle;
         if (handle) {
-            this._handle = undefined;
+            this.#handle = undefined;
 
             handle.onclose = undefined;
             handle.onconnection = undefined;
@@ -380,13 +366,13 @@ export class Server extends EventTarget {
                 const name = options;
                 const handle = new native.Pipe();
                 handle.bind(name);
-                this._handle = handle;
+                this.#handle = handle;
 
             } else {
                 const address = options;
                 const handle = new native.TCP();
                 handle.bind(address);
-                this._handle = handle;
+                this.#handle = handle;
             }
 
         } catch (error) {
@@ -396,7 +382,7 @@ export class Server extends EventTarget {
         }
 
         const self = this;
-        const socket = this._handle;
+        const socket = this.#handle;
         socket.onconnection = async function () {
             const connection = socket.accept();
             const event = new Event('connection');
@@ -428,37 +414,37 @@ defineEventAttribute(Server.prototype, 'listening');
  * UDP Socket
  */
 export class UDPSocket extends EventTarget {
-    constructor(options) {
-        super();
+    /** @type {native.UDP=} */
+    #handle = new native.UDP();
 
-        this.readyState = 0;
-
-        /** @type {native.UDP=} */
-        this._handle = new native.UDP();
-    }
+    /** @type {number} */
+    readyState = 0;
 
     get [Symbol.toStringTag]() {
         return 'UDPSocket';
     }
 
+    /**
+     * @param {any} options 
+     */
+    constructor(options) {
+        super();
+    }
+
     address() {
-        const handle = this._handle;
-        return handle?.address();
+        return this.#handle?.address();
     }
 
     remoteAddress() {
-        const handle = this._handle;
-        return handle?.remoteAddress();
+        return this.#handle?.remoteAddress();
     }
 
     connect(address) {
-        const handle = this._handle;
-        handle?.connect(address);
+        this.#handle?.connect(address);
     }
 
     disconnect() {
-        const handle = this._handle;
-        handle?.disconnect();
+        this.#handle?.disconnect();
     }
 
     /**
@@ -477,16 +463,16 @@ export class UDPSocket extends EventTarget {
             flags = undefined;
         }
 
-        const handle = this._handle;
+        const handle = this.#handle;
         handle?.bind(options, flags);
 
-        this._init();
+        this.#init();
     }
 
     close() {
-        const handle = this._handle;
+        const handle = this.#handle;
         if (handle) {
-            this._handle = undefined;
+            this.#handle = undefined;
 
             handle.onclose = undefined;
             handle.onerror = undefined;
@@ -502,14 +488,14 @@ export class UDPSocket extends EventTarget {
      * @param {boolean} broadcast 
      */
     setBroadcast(broadcast) {
-        this._handle?.setBroadcast(broadcast);
+        this.#handle?.setBroadcast(broadcast);
     }
 
     /**
      * @param {number} ttl 
      */
     setTTL(ttl) {
-        return this._handle?.setTTL(ttl);
+        return this.#handle?.setTTL(ttl);
     }
 
     /**
@@ -518,22 +504,21 @@ export class UDPSocket extends EventTarget {
      * @returns 
      */
     async send(message, address) {
-        const handle = this._handle;
-        const result = await handle?.send(message, address);
+        const result = await this.#handle?.send(message, address);
 
-        this._init();
+        this.#init();
 
         return result;
     }
 
-    _init() {
+    #init() {
         if (this.readyState > 0) {
             return;
         }
 
         this.readyState = 1;
 
-        const handle = this._handle;
+        const handle = this.#handle;
         if (!handle) {
             return;
         }
