@@ -8,6 +8,43 @@ import * as path from '@tjs/path'
 import * as native from '@tjs/native'
 
 /**
+ * 比较两个文件名是否匹配
+ * @param {string} filename 文件名
+ * @param {string} pattern 包含 * 或 ? 通配符的文件名
+ * @returns {boolean}
+ */
+export function isNameMatch(filename, pattern) {
+	if (filename == pattern) {
+		return true;
+	}
+
+	const m = filename.length;
+	const n = pattern.length;
+	const dp = new Array(m + 1).fill(0).map(() => new Array(n + 1).fill(false));
+	dp[0][0] = true;
+
+	// 处理模式以 * 开头的情况
+	for (let j = 1; j <= n; j++) {
+		if (pattern[j - 1] === '*') {
+			dp[0][j] = dp[0][j - 1];
+		}
+	}
+
+	for (let i = 1; i <= m; i++) {
+		for (let j = 1; j <= n; j++) {
+			if (pattern[j - 1] === '?' || filename[i - 1] === pattern[j - 1]) {
+				dp[i][j] = dp[i - 1][j - 1];
+			} else if (pattern[j - 1] === '*') {
+				dp[i][j] = dp[i - 1][j] || dp[i][j - 1];
+			}
+		}
+	}
+
+	return dp[m][n];
+}
+
+
+/**
  * 打包器
  */
 export class Bundler {
@@ -69,8 +106,20 @@ export class Bundler {
 			this.basepath = os.cwd();
 		}
 
+		const list = [];
+
 		for (const file of files) {
-			await this.compile(file);
+			const listFiles = await this.listFiles(this.basepath, file);
+			list.push(...listFiles);
+		}
+
+		for (const filename of list) {
+			try {
+				await this.compile(filename);
+
+			} catch (e) {
+				console.error('bundle:', filename, e);
+			}
 		}
 
 		await this.pack();
@@ -104,6 +153,34 @@ export class Bundler {
 		buffer.set(new Uint8Array(data), tagHeaderSize + tagName.byteLength)
 
 		this.modules.push({ name, data: buffer });
+	}
+
+	/**
+	 * @param {string} basename 
+	 * @param {string} name 
+	 */
+	async listFiles(basename, name) {
+		/** @type {string[]} */
+		const result = [];
+		if (!name) {
+			return result;
+		}
+
+		const dirname = path.dirname(name);
+		const filename = path.basename(name);
+
+		const dirents = await fs.readdir(path.join(basename, dirname));
+		for (const dirent of dirents) {
+			if (dirent.type != 1) {
+				continue;
+			}
+
+			if (isNameMatch(dirent.name, filename)) {
+				result.push(path.join(dirname, dirent.name));
+			}
+		}
+
+		return result;
 	}
 
 	/**

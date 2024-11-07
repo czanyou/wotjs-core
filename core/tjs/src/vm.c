@@ -603,10 +603,12 @@ JSValue TJS_EvalFile(JSContext* ctx, const char* filename, int flags, bool is_ma
     dbuf_data = (char*)dbuf.buf;
 
     // 跳过首行 #! 注释
+#if 0
     if ((dbuf_data[0] == '#') && (dbuf_data[1] == '!')) {
         dbuf_data[0] = '/';
         dbuf_data[1] = '/';
     }
+#endif
 
     // printf("eval: file=%s, r=%d, size=%ld, data=[%s]\r\n", filename, r, dbuf_size, dbuf_data);
     if (flags == -1) {

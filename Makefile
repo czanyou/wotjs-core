@@ -145,3 +145,6 @@ linux-arm64:
 
 arm64: linux-arm64
 arm: linux-arm
+
+pack:
+	./build/local/tjs build bundle -o ./build/${BOARD_TYPE}/bundle.js -b app -l @app bin/*.js build/*.js build/src/*.js modules/utils/*.js

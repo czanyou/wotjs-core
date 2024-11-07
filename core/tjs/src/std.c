@@ -143,17 +143,27 @@ static JSValue tjs_std_compile(JSContext* ctx, JSValue this_val, int argc, JSVal
     }
 
     int eval_flags = JS_EVAL_FLAG_COMPILE_ONLY;
-    int is_module = JS_DetectModule((const char*)buf, len);
+    int is_module = 1;
+    if (is_module < 0) {
+        is_module = JS_DetectModule((const char*)buf, len);
+        // 总是为 module
+        printf("module: %d:%s\n", is_module, module_name);
+    }
+
     if (is_module) {
         eval_flags |= JS_EVAL_TYPE_MODULE;
     } else {
         eval_flags |= JS_EVAL_TYPE_GLOBAL;
     }
 
-    // printf("module: %d:%s, buffer: %s\n", is_module, module_name, buf);
     JSValue object = JS_Eval(ctx, (const char*)buf, len, module_name, eval_flags);
     JS_FreeCString(ctx, module_name);
     js_free(ctx, buf);
+
+    if (JS_IsException(object)) {
+        JS_FreeValue(ctx, object);
+        return JS_EXCEPTION;
+    }
 
     size_t code_length = 0;
     int flags = JS_WRITE_OBJ_BYTECODE;

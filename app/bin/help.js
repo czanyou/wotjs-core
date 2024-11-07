@@ -50,9 +50,8 @@ function help(execute, script, type) {
      * 
      * @param {string} type 
      * @param {string[]} modules 
-     * @param {string=} prefix 
      */
-    function printList(type, modules, prefix) {
+    function printList(type, modules) {
         if (modules.length) {
             console.print(colors.green(type));
 
@@ -64,7 +63,7 @@ function help(execute, script, type) {
         }
     }
 
-    const modules = native.util.modules().sort();
+    const modules = native.util.modules(); //.sort();
 
     const commandsInfo = getCommands();
     const commands = commandsInfo.commands.join(', ');

@@ -53,17 +53,30 @@ static tjs_module_context_t tjs_module_context = { 0 };
 
 int tjs_module_add_module(const char* name, const uint8_t* data, uint32_t data_len)
 {
-    tjs_module_t* module = (tjs_module_t*)malloc(sizeof(tjs_module_t));
-    if (module == NULL) {
-        return -1;
+    tjs_module_t* module = tjs_module_context.modules;
+    while (module) {
+        if (module->name == NULL) {
+            break;
+        }
+
+        if (strcmp(name, module->name) == 0) {
+            module->data = data;
+            module->data_len = data_len;
+            return 0;
+        }
+
+        module = module->next;
     }
 
-    module->name = name;
-    module->data = data;
-    module->data_len = data_len;
-    module->next = tjs_module_context.modules;
-    tjs_module_context.modules = module;
-    tjs_module_context.module_count++;
+    module = (tjs_module_t*)malloc(sizeof(tjs_module_t));
+    if (module != NULL) {
+        module->name = name;
+        module->data = data;
+        module->data_len = data_len;
+        module->next = tjs_module_context.modules;
+        tjs_module_context.modules = module;
+        tjs_module_context.module_count++;
+    }
 
     return 0;
 }
