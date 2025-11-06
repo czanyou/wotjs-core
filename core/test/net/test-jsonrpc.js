@@ -70,7 +70,7 @@ test('net.jsonrpc - createServer', async () => {
     {
         const proxy = getProxy();
         const result = await proxy.test('test');
-        console.log(result);
+        // console.log(result);
         assert.ok(result);
 
         manager.close();
@@ -84,7 +84,7 @@ test('net.jsonrpc - createServer', async () => {
         requests.push(proxy.test('test'));
 
         const result = await Promise.all(requests);
-        console.log(result);
+        // console.log(result);
     }
 
     const connections = manager.connections;

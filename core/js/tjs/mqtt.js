@@ -180,7 +180,7 @@ export class MQTTClient extends EventTarget {
 
         /** @type any */
         this._statInfo = {
-            retryCount: 0, 
+            retryCount: 0,
             reconnectPeriod: 0
         };
 
@@ -498,7 +498,8 @@ export class MQTTClient extends EventTarget {
      * @param {MQTTPacket} message 
      */
     handleSubscribeAck(message) {
-        // console.log(TAG, '_onSubscribeAck:', message);
+        // console.log(TAG, 'handleSubscribeAck:', message);
+
         const pid = message.packetId || 0;
         this._resolvePromise('subscribe:' + pid, message);
     }
@@ -508,7 +509,7 @@ export class MQTTClient extends EventTarget {
      * @param {MQTTPacket} message 
      */
     handleUnsubscribeAck(message) {
-        // console.log(TAG, '_onUnsubscribeAck:', message);
+        // console.log(TAG, 'handleUnsubscribeAck:', message);
         const pid = message.packetId || 0;
         this._resolvePromise('unsubscribe:' + pid, message);
     }

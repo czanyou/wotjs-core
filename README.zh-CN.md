@@ -1,37 +1,60 @@
-# WoT.js
+# About WoT.js
 
-## 概述
+## Overview - 概述
 
-简单地说 WoT.js 是运行在嵌入式系统中的 JavaScript。
+基于 QuickJS 的嵌入式物联网 JavaScript 运行时环境
 
-WoT.js 是基于 QuickJs JavaScript 运行时建立的一个平台。
+### Documents - 文档
 
-它是一个事件驱动嵌入式端 JavaScript 环境，基于 QuickJs 引擎。QuickJs 占用系统资源非常少，且支持最新的 ES2020 语法规范。
+[开发文档](./docs/)
 
-## Hello World
+## Supported platforms - 支持的平台
 
-### 脚本模式
+目前只适用于基于 IoT 设备的嵌入式 Linux 平台
 
-创建一个文件：
+* GNU/Linux
+* Windows/WSL
+* Windows/mingw
 
-```js
-console.log("Hello World");
-```
+## 依赖项
 
-保存该文件，文件名为 `helloworld.js`， 并通过 tjs 命令来执行：
+WoT.js 依赖于以下一些依赖项，这样它才能正常工作。
+
+### QuickJS
+
+### libuv
+
+另外一个重要的依赖项是 libuv，它是一个 C 写成的类库，用于非阻塞型的 I/O 操作，同时在所有支持的操作系统上保持一致的接口。它提供了一些机制来处理诸如文件系统、DNS、网络、子进程、管道、信号量控制、轮询机制和数据流。它同样也提供了一个线程池，用于无法在操作系统层面进行异步操作的任务卸载。
+
+## Develop - 开发
+
+### Building - 构建
+
+使用了 CMake 做为主要构建工具
+
+[CMake] is necessary.
 
 ```shell
-tjs helloworld.js
+# 安装需要的编译工具
+sudo apt install cmake make gcc g++ -y
+
+# Compile it!
+make local
+
+# Run the tjs
+./build/local/tjs -v
 ```
 
-程序执行后，正常的话，就会在终端输出 Hello World。
+其他编译选项:
 
-### 命令行模式
+- `build` 编译原生代码
+- `dist` 打包，需在 `make build` 后执行
+- `link` 安装本机运行环境，必须在 `make local` 后执行
+- `unlink` 删除安装的文件
+- `clean` 清除生成的编译目标文件
 
-在终端直接执行:
+常用开发板快速编译选项
 
-```shell
-tjs -e 'console.log("Hello World")'
-```
-
-程序执行后，就会在终端输出 Hello World。
+- `make local` 生成适合 `本机` 的目标文件
+- `make linux` 生成适合 `Linux` 系统的目标文件
+- `make windows` 生成适合 `Windows` 系统的目标文件

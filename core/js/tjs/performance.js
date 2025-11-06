@@ -3,18 +3,20 @@
 import * as native from '@tjs/native';
 
 class Performance {
+    #startTime = hrtimeMs();
+    #entries = [];
+    #marksIndex = Object.create(null);
+
     constructor() {
-        this._startTime = hrtimeMs();
-        this._entries = [];
-        this._marksIndex = Object.create(null);
+
     }
 
     get timeOrigin() {
-        return this._startTime;
+        return this.#startTime;
     }
 
     now() {
-        return hrtimeMs() - this._startTime;
+        return hrtimeMs() - this.#startTime;
     }
 
     mark(name) {
@@ -24,30 +26,30 @@ class Performance {
             startTime: this.now(),
             duration: 0
         };
-        this._entries.push(mark);
-        this._marksIndex[name] = mark;
+        this.#entries.push(mark);
+        this.#marksIndex[name] = mark;
     }
 
     measure(name, startMark, endMark) {
         let startTime;
         let endTime;
   
-        if (endMark !== undefined && this._marksIndex[endMark] === undefined) {
+        if (endMark !== undefined && this.#marksIndex[endMark] === undefined) {
           throw new SyntaxError("Failed to execute 'measure' on 'Performance': The mark '" + endMark + "' does not exist.");
         }
   
-        if (startMark !== undefined && this._marksIndex[startMark] === undefined) {
+        if (startMark !== undefined && this.#marksIndex[startMark] === undefined) {
           throw new SyntaxError("Failed to execute 'measure' on 'Performance': The mark '" + startMark + "' does not exist.");
         }
   
-        if (this._marksIndex[startMark]) {
-          startTime = this._marksIndex[startMark].startTime;
+        if (this.#marksIndex[startMark]) {
+          startTime = this.#marksIndex[startMark].startTime;
         } else {
           startTime = 0;
         }
   
-        if (this._marksIndex[endMark]) {
-          endTime = this._marksIndex[endMark].startTime;
+        if (this.#marksIndex[endMark]) {
+          endTime = this.#marksIndex[endMark].startTime;
         } else {
           endTime = this.now();
         }
@@ -58,40 +60,39 @@ class Performance {
             startTime,
             duration: endTime - startTime
         };
-        this._entries.push(mark);
+        this.#entries.push(mark);
     }
 
     getEntriesByType(type) {
-        return this._entries.filter(entry => entry.entryType === type);
+        return this.#entries.filter(entry => entry.entryType === type);
     }
 
     getEntriesByName(name) {
-        return this._entries.filter(entry => entry.name === name);
+        return this.#entries.filter(entry => entry.name === name);
     }
 
     clearMarks(name) {
         if (typeof name === 'undefined') {
-            this._entries = this._entries.filter(entry => entry.entryType !== 'mark');
+            this._entries = this.#entries.filter(entry => entry.entryType !== 'mark');
         } else {
-            const entry = this._entries.find(e => e.entryType === 'mark' && e.name === name);
-            this._entries.splice(this._entries.indexOf(entry), 1);
-            delete this._marksIndex[name];
+            const entry = this.#entries.find(e => e.entryType === 'mark' && e.name === name);
+            this.#entries.splice(this.#entries.indexOf(entry), 1);
+            delete this.#marksIndex[name];
         }
     }
 
     clearMeasures(name) {
         if (typeof name === 'undefined') {
-            this._entries = this._entries.filter(entry => entry.entryType !== 'measure');
+            this._entries = this.#entries.filter(entry => entry.entryType !== 'measure');
         } else {
-            const entry = this._entries.find(e => e.entryType === 'measure' && e.name === name);
-            this._entries.splice(this._entries.indexOf(entry), 1);
+            const entry = this.#entries.find(e => e.entryType === 'measure' && e.name === name);
+            this.#entries.splice(this.#entries.indexOf(entry), 1);
         }
     }
 }
 
 function hrtimeMs() {
-    // @ts-ignore
-    return Number(BigDecimal(native.hrtime()) / 1e6m);
+    return Number(BigInt(native.hrtime()) / 1000000n);
 }
 
 export { Performance };

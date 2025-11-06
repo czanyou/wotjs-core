@@ -304,8 +304,8 @@ TJSRuntime* tjs_new_runtime(bool is_worker, TJSRuntimeOptions* options)
     }
 
     /* Enable BigFloat and BigDecimal */
-    JS_AddIntrinsicBigFloat(ctx);
-    JS_AddIntrinsicBigDecimal(ctx);
+    // JS_AddIntrinsicBigFloat(ctx);
+    // JS_AddIntrinsicBigDecimal(ctx);
 
     qrt->is_worker = is_worker;
 

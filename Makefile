@@ -95,16 +95,12 @@ clean:
 
 test:
 	@echo "$GExecuting unit tests...$N"
-	./build/local/tjs test core/test/core core/test/ext core/test/native \
-	core/test/http core/test/mqtt core/test/net core/test/tls
-
-test2:
-	./build/local/tjs test core/test/core core/test/ext core/test/native \
-	core/test/http core/test/mqtt core/test/net core/test/tls
+	./build/local/tjs test  core/test/native core/test/core core/test/ext \
+	core/test/net core/test/http core/test/mqtt core/test/tls
 
 # 自动生成和更新项目版本号
 version:
-	@./build/local/tjs build version ./CMakeVersion.cmake
+	@./build/local/tjs build version ./version.cmake
 
 ## ------------------------------------------------------------
 ## Link
@@ -126,15 +122,8 @@ local:
 	@make board board=$@ --no-print-directory
 	@echo "-- Executable: `build/$@/tjs -v` BUILD_TYPE=${BUILD_TYPE}"
 
-darwin:
+darwin-x64:
 	@make board board=$@ --no-print-directory
-
-windows:
-	@make board board=$@ --no-print-directory
-
-linux:
-	@make board board=$@ --no-print-directory
-	@echo "-- Executable: `build/$@/tjs -v` BUILD_TYPE=${BUILD_TYPE}"
 
 linux-arm:
 	@make board board=$@ --no-print-directory
@@ -143,8 +132,29 @@ linux-arm64:
 	rsync -av core/libs/aarch64/* build/$@/
 	@make board board=$@ --no-print-directory
 
-arm64: linux-arm64
+linux-x64:
+	@make board board=$@ --no-print-directory
+	@echo "-- Executable: `build/$@/tjs -v` BUILD_TYPE=${BUILD_TYPE}"
+
+windows-x64:
+	@make board board=$@ --no-print-directory
+
 arm: linux-arm
+arm64: linux-arm64
+darwin: darwin-x64
+windows: windows-x64
+x64: linux-x64
+
+linux: linux-arm linux-arm64 linux-x64
 
 pack:
-	./build/local/tjs build bundle -o ./build/${BOARD_TYPE}/bundle.js -b app -l @app bin/*.js build/*.js build/src/*.js modules/utils/*.js
+	mkdir -p build/bin/
+	cp build/linux-arm/tjs build/bin/linux-arm-tjs
+	cp build/linux-arm64/tjs build/bin/linux-arm64-tjs
+	cp build/linux-x64/tjs build/bin/linux-x64-tjs
+	cp build/windows-x64/tjs.exe build/bin/windows-x64-tjs.exe
+
+bundle:
+	./build/local/tjs build bundle -o ./build/linux-x64-tjs -r app -l @app bin/*.js build/*.js build/src/*.js modules/utils/*.js
+	chmod 755 ./build/linux-x64-tjs
+	./build/local/tjs build bundle -e ./build/bin/windows-x64-tjs.exe -o ./build/windows-x64-tjs.exe -r app -l @app bin/*.js build/*.js build/src/*.js modules/utils/*.js

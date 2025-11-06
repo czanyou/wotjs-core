@@ -43,7 +43,7 @@
 - homedir
 - hrtime
 - isatty
-- loadScript
+- evalFile
 - mqtt
 - openlog
 - print

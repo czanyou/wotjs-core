@@ -1295,22 +1295,28 @@ export function setPrintLog(onPrintLog) {
  * 控制台工具
  */
 export class Console {
+    /** @type {Colors} */
+    colors = $colors.getColors();
+
+    /** @type {Function=} */
+    onPrintLog = undefined;
+
+    /** @type {Object<string,number>} */
+    #count = {};
+
+    /** @type {boolean} */
+    #isColorfully = true;
+
+    /** @type {Object<string,number>} */
+    #time = {};
+
+    /**
+     * @param {any=} options 
+     */
     constructor(options) {
-        /** @type Colors */
-        this.colors = $colors.getColors();
-
-        /** @type boolean */
-        this._isColorfully = true;
-
-        /** @type Object<string,number> */
-        this._count = {};
-
-        /** @type Object<string,number> */
-        this._time = {};
-
         const value = native.getenv('SESSIONNAME');
         if (value == 'Console') {
-            this._isColorfully = false;
+            this.#isColorfully = false;
 
             for (const key in $colors.COLORS) {
                 $colors.COLORS[key] = '';
@@ -1324,13 +1330,32 @@ export class Console {
                 $colors.BACKGROUND_COLORS[key] = '';
             }
         }
-
-        /** @type Function | null */
-        this.onPrintLog = null;
     }
 
     get [Symbol.toStringTag]() {
         return 'Console';
+    }
+
+    /** 
+     * @param {any} message 
+     * @param {any[]} args 
+     */
+    alert(message, ...args) {
+        native.alert(format(this.#isColorfully, message, ...args));
+    }
+
+    /**
+     * 
+     * @param {*} expression 
+     * @param {string} message 
+     * @returns 
+     */
+    assert(expression, message) {
+        if (expression) {
+            return;
+        }
+
+        this.printLog('a', $logFormatter.getFileLine(), message || 'console.assert');
     }
 
     clear() {
@@ -1338,31 +1363,74 @@ export class Console {
     }
 
     count(name = 'default') {
-        const data = this._count;
+        const data = this.#count;
         const count = data[name] || 0;
         data[name] = count + 1;
         this.print(name + ': ' + count + 1);
     }
 
     countReset(name = 'default') {
-        const data = this._count;
+        const data = this.#count;
         delete data[name];
     }
 
-    time(name = 'default') {
-        const data = this._time;
-        data[name] = Date.now();
+    /** 
+     * @param {any} message 
+     * @param {any[]} args 
+     */
+    debug(message, ...args) {
+        this.printLog('d', $logFormatter.getFileLine(), message, ...args);
     }
 
-    timeEnd(name = 'default') {
-        const data = this._count;
-        const startTime = data[name];
-        if (startTime == null) {
-            return;
-        }
+    /** @param {*} o */
+    dir(o) {
+        print(o);
+    }
 
-        const span = (Date.now() - startTime) / 1000.0;
-        this.print(name + ': ' + span + ' ms');
+    /** @param {*} o */
+    dirxml(o) {
+        print(o);
+    }
+
+    /** 
+     * @param {any} message 
+     * @param {any[]} args 
+     */
+    error(message, ...args) {
+        this.printLog('e', $logFormatter.getFileLine(), message, ...args);
+    }
+
+    /** 
+     * @param {any} message 
+     * @param {any[]} args 
+     */
+    info(message, ...args) {
+        this.printLog('i', $logFormatter.getFileLine(), message, ...args);
+    }
+
+    /** 
+     * @param {any} colorfully 
+     * @param {any} message 
+     * @param {any[]} args 
+     */
+    inspect(colorfully, message, ...args) {
+        return format(colorfully, message, ...args);
+    }
+
+    /** 
+     * @param {any} message 
+     * @param {any[]} args 
+     */
+    log(message, ...args) {
+        this.printLog('l', $logFormatter.getFileLine(), message, ...args);
+    }
+
+    /** 
+     * @param {any} message 
+     * @param {any[]} args 
+     */
+    print(message, ...args) {
+        native.print(format(this.#isColorfully, message, ...args));
     }
 
     /**
@@ -1393,95 +1461,6 @@ export class Console {
         $logFormatter.print(level, lineNumber, ...args);
     }
 
-    /** 
-     * @param {any} message 
-     * @param {any[]} args 
-     */
-    debug(message, ...args) {
-        this.printLog('d', $logFormatter.getFileLine(), message, ...args);
-    }
-
-    /** 
-     * @param {any} message 
-     * @param {any[]} args 
-     */
-    log(message, ...args) {
-        this.printLog('l', $logFormatter.getFileLine(), message, ...args);
-    }
-
-    /** 
-     * @param {any} message 
-     * @param {any[]} args 
-     */
-    info(message, ...args) {
-        this.printLog('i', $logFormatter.getFileLine(), message, ...args);
-    }
-
-    /** 
-     * @param {any} message 
-     * @param {any[]} args 
-     */
-    warn(message, ...args) {
-        this.printLog('w', $logFormatter.getFileLine(), message, ...args);
-    }
-
-    /** 
-     * @param {any} message 
-     * @param {any[]} args 
-     */
-    error(message, ...args) {
-        this.printLog('e', $logFormatter.getFileLine(), message, ...args);
-    }
-
-    /**
-     * 
-     * @param {*} expression 
-     * @param {string} message 
-     * @returns 
-     */
-    assert(expression, message) {
-        if (expression) {
-            return;
-        }
-
-        this.printLog('a', $logFormatter.getFileLine(), message || 'console.assert');
-    }
-
-    /** @param {*} o */
-    dir(o) {
-        print(o);
-    }
-
-    /** @param {*} o */
-    dirxml(o) {
-        print(o);
-    }
-
-    /** 
-     * @param {any} colorfully 
-     * @param {any} message 
-     * @param {any[]} args 
-     */
-    inspect(colorfully, message, ...args) {
-        return format(colorfully, message, ...args);
-    }
-
-    /** 
-     * @param {any} message 
-     * @param {any[]} args 
-     */
-    print(message, ...args) {
-        native.print(format(this._isColorfully, message, ...args));
-    }
-
-    /** 
-     * @param {any} message 
-     * @param {any[]} args 
-     */
-    alert(message, ...args) {
-        native.alert(format(this._isColorfully, message, ...args));
-    }
-
     /**
      * @param {any} data 
      * @param {string[]} properties 
@@ -1502,6 +1481,22 @@ export class Console {
         }
     }
 
+    time(name = 'default') {
+        const data = this.#time;
+        data[name] = Date.now();
+    }
+
+    timeEnd(name = 'default') {
+        const data = this.#count;
+        const startTime = data[name];
+        if (startTime == null) {
+            return;
+        }
+
+        const span = (Date.now() - startTime) / 1000.0;
+        this.print(name + ': ' + span + ' ms');
+    }
+
     /** @param {any[]} args */
     trace(...args) {
         const err = new Error();
@@ -1513,6 +1508,14 @@ export class Console {
         stacks.splice(0, 1);
         err.stack = stacks.join('\n');
         alert(err);
+    }
+
+    /** 
+     * @param {any} message 
+     * @param {any[]} args 
+     */
+    warn(message, ...args) {
+        this.printLog('w', $logFormatter.getFileLine(), message, ...args);
     }
 
     /** @param {string} text */

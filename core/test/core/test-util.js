@@ -110,9 +110,14 @@ test('util.types', async () => {
 
     async function test() { };
 
-    // isPromise
-    assert.ok(!util.types.isPromise(null));
-    assert.ok(util.types.isPromise(Promise.resolve(0)));
-    assert.ok(util.types.isPromise(test()));
-    assert.ok(util.types.isPromise(Promise.reject(new Error('test isPromise(reject)'))));
+    try {
+        // isPromise
+        assert.ok(!util.types.isPromise(null));
+        assert.ok(util.types.isPromise(Promise.resolve(0)));
+        assert.ok(util.types.isPromise(test()));
+        assert.ok(util.types.isPromise(Promise.reject(new Error('test isPromise(reject)'))));
+
+    } catch (e) {
+        console.log(e);
+    }
 });

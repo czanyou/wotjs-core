@@ -15,16 +15,32 @@ test('net.pipe - server:client', async () => {
 
     }
 
-    const $context = {};
+    const $context = {
+        /** @type {net.Socket=} */
+        connection: undefined,
+
+        /** @type {net.Server=} */
+        server: undefined,
+
+        /** @type {net.Socket=} */
+        client: undefined,
+    };
 
     const textDecoder = new TextDecoder();
     const promise = new Promise((resolve, reject) => {
-        const result = {};
+        const result = {
+            isEndOfFile: false,
+            connected: false,
+        };
 
+        /**
+         * 
+         * @param {net.Socket} connection 
+         */
         async function handleConnection(connection) {
             $context.connection = connection;
 
-            connection.onmessage = function (event) {
+            connection.onmessage = function (/** @type {*} */ event) {
                 const data = event.data;
                 // console.log('data', data);
                 if (!data) {
@@ -47,8 +63,15 @@ test('net.pipe - server:client', async () => {
             return server;
         }
 
+        /**
+         * 
+         * @param {*} serverAddress 
+         * @returns 
+         */
         async function createEchoClient(serverAddress) {
             const client = net.connect(serverAddress);
+
+            /** @type {any} */
             let readBuffer = null;
 
             client.onmessage = async function (event) {
@@ -77,7 +100,7 @@ test('net.pipe - server:client', async () => {
 
             client.onopen = async function (event) {
                 // console.log('onopen');
-                result.conntected = true;
+                result.connected = true;
                 await client.write('PING');
             };
 

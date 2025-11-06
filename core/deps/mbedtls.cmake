@@ -5,11 +5,13 @@ set(LIBMBEDTLS_DIR ${CMAKE_CURRENT_LIST_DIR}/mbedtls)
 set(SOURCES
 	# libcrypto
 	${LIBMBEDTLS_DIR}/library/aes.c
+	${LIBMBEDTLS_DIR}/library/aesce.c
 	${LIBMBEDTLS_DIR}/library/aesni.c
 	${LIBMBEDTLS_DIR}/library/asn1parse.c
 	${LIBMBEDTLS_DIR}/library/asn1write.c
 	${LIBMBEDTLS_DIR}/library/base64.c
 	${LIBMBEDTLS_DIR}/library/bignum.c
+	${LIBMBEDTLS_DIR}/library/bignum_core.c
 	${LIBMBEDTLS_DIR}/library/rsa_alt_helpers.c
 	${LIBMBEDTLS_DIR}/library/camellia.c
 	${LIBMBEDTLS_DIR}/library/ccm.c
@@ -17,6 +19,7 @@ set(SOURCES
 	${LIBMBEDTLS_DIR}/library/chachapoly.c
 	${LIBMBEDTLS_DIR}/library/cipher_wrap.c
 	${LIBMBEDTLS_DIR}/library/cipher.c
+	${LIBMBEDTLS_DIR}/library/cmac.c
 	${LIBMBEDTLS_DIR}/library/ctr_drbg.c
 	${LIBMBEDTLS_DIR}/library/des.c
 	${LIBMBEDTLS_DIR}/library/dhm.c
@@ -41,6 +44,7 @@ set(SOURCES
 	${LIBMBEDTLS_DIR}/library/pk.c
 	${LIBMBEDTLS_DIR}/library/pkcs12.c
 	${LIBMBEDTLS_DIR}/library/pkcs5.c
+	${LIBMBEDTLS_DIR}/library/pk_ecc.c
 	${LIBMBEDTLS_DIR}/library/pkparse.c
 	${LIBMBEDTLS_DIR}/library/pkwrite.c
 	${LIBMBEDTLS_DIR}/library/platform_util.c
@@ -50,6 +54,7 @@ set(SOURCES
 	${LIBMBEDTLS_DIR}/library/nist_kw.c
 	${LIBMBEDTLS_DIR}/library/rsa.c
 	${LIBMBEDTLS_DIR}/library/sha1.c
+	${LIBMBEDTLS_DIR}/library/sha3.c
 	${LIBMBEDTLS_DIR}/library/sha256.c
 	${LIBMBEDTLS_DIR}/library/sha512.c
 	${LIBMBEDTLS_DIR}/library/threading.c
@@ -71,12 +76,37 @@ set(SOURCES
 	${LIBMBEDTLS_DIR}/library/debug.c
 	${LIBMBEDTLS_DIR}/library/ssl_cache.c
 	${LIBMBEDTLS_DIR}/library/ssl_ciphersuites.c
-	${LIBMBEDTLS_DIR}/library/ssl_cli.c
+	${LIBMBEDTLS_DIR}/library/ssl_debug_helpers_generated.c
+	${LIBMBEDTLS_DIR}/library/ssl_client.c
+	${LIBMBEDTLS_DIR}/library/ssl_tls12_client.c
+	${LIBMBEDTLS_DIR}/library/ssl_tls12_server.c
+	${LIBMBEDTLS_DIR}/library/ssl_tls13_client.c
+	${LIBMBEDTLS_DIR}/library/ssl_tls13_generic.c
+	${LIBMBEDTLS_DIR}/library/ssl_tls13_server.c
+	${LIBMBEDTLS_DIR}/library/ssl_tls13_keys.c
+		
 	${LIBMBEDTLS_DIR}/library/ssl_cookie.c
 	${LIBMBEDTLS_DIR}/library/ssl_msg.c
-	${LIBMBEDTLS_DIR}/library/ssl_srv.c
 	${LIBMBEDTLS_DIR}/library/ssl_ticket.c
 	${LIBMBEDTLS_DIR}/library/ssl_tls.c
+	
+	${LIBMBEDTLS_DIR}/library/psa_crypto_aead.c
+	${LIBMBEDTLS_DIR}/library/psa_crypto_cipher.c
+	${LIBMBEDTLS_DIR}/library/psa_crypto_client.c
+	${LIBMBEDTLS_DIR}/library/psa_crypto_driver_wrappers_no_static.c
+	${LIBMBEDTLS_DIR}/library/psa_crypto_ecp.c
+	${LIBMBEDTLS_DIR}/library/psa_crypto_ecp.c
+	${LIBMBEDTLS_DIR}/library/psa_crypto_ffdh.c
+	${LIBMBEDTLS_DIR}/library/psa_crypto_hash.c
+	${LIBMBEDTLS_DIR}/library/psa_crypto_mac.c
+	${LIBMBEDTLS_DIR}/library/psa_crypto_pake.c
+	${LIBMBEDTLS_DIR}/library/psa_crypto_rsa.c
+	${LIBMBEDTLS_DIR}/library/psa_crypto_se.c
+	${LIBMBEDTLS_DIR}/library/psa_crypto_slot_management.c
+	${LIBMBEDTLS_DIR}/library/psa_crypto_storage.c
+	${LIBMBEDTLS_DIR}/library/psa_crypto.c
+	${LIBMBEDTLS_DIR}/library/psa_its_file.c
+	${LIBMBEDTLS_DIR}/library/psa_util.c
 )
 
 if (BUILD_SHARED_LIBS)
@@ -89,3 +119,6 @@ endif ()
 target_include_directories(tjs_mbedtls PUBLIC ${LIBMBEDTLS_DIR}/include)
 
 # set_target_properties(tjs_mbedtls PROPERTIES PREFIX "")
+if (CMAKE_SYSTEM_NAME STREQUAL "Windows")
+	target_link_libraries(tjs_mbedtls bcrypt)
+endif ()

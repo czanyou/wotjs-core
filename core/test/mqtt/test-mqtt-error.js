@@ -16,7 +16,11 @@ mqttOptions.reschedulePings = true;
 mqttOptions.clean = true;
 
 test('net.mqtt - bad hostname', async () => {
-    const result = {};
+    const result = {
+        hasError: '',
+        closed: false,
+        error: null,
+    };
 
     const url = 'mqtt://iot.localhost-bad.cn:1883';
     const options = { ...mqttOptions };
@@ -26,7 +30,7 @@ test('net.mqtt - bad hostname', async () => {
     client.onerror = function (event) {
         /** @type Error */
         const error = event.error;
-        console.log('error:', error.name, '-', error.code, '-', error.message);
+        // console.log('error:', error.name, '-', error.code, '-', error.message);
         result.hasError = event.error;
 
         client.close();
@@ -34,17 +38,17 @@ test('net.mqtt - bad hostname', async () => {
 
     client.onclose = function (event) {
         result.closed = true;
-        console.log('close');
+        // console.log('close');
     };
 
     client.addEventListener('statechange', (event) => {
-        console.log('statechange:', client.readyState);
+        // console.log('statechange:', client.readyState);
     });
 
     try {
         await client.ready;
-    
-    } catch (e) {
+
+    } catch (/** @type {any} */ e) {
         console.log('error:', e.message);
         result.error = e;
     }

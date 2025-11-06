@@ -757,12 +757,6 @@ int tjs_compiler(int argc, char** argv)
     JSRuntime* js_runtime = JS_NewRuntime();
     JSContext* js_context = JS_NewContext(js_runtime);
 
-    /* Enable BigFloat and BigDecimal */
-#ifdef CONFIG_BIGNUM
-    JS_AddIntrinsicBigFloat(js_context);
-    JS_AddIntrinsicBigDecimal(js_context);
-#endif
-
     /* loader for ES6 modules */
     JS_SetModuleLoaderFunc(js_runtime, NULL, tjs_module_loader, NULL);
 

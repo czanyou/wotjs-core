@@ -35,7 +35,7 @@
 extern int tjs_app_module_init();
 extern int tjs_tjs_module_init();
 
-typedef JSModuleDef*(tjs_module_init_func)(JSContext* ctx, const char* module_name);
+typedef JSModuleDef*(tjs_module_init_func)(JSContext * ctx, const char* module_name);
 
 typedef struct tjs_module_s {
     struct tjs_module_s* next;
@@ -243,7 +243,10 @@ uint32_t tjs_module_read_uint32(uint8_t* buffer, int size)
     return value;
 }
 
-int tjs_module_load()
+/**
+ * 从当前可执行文件尾部加载字节码模块
+ */
+int tjs_module_load_exepath()
 {
     // exepath
     char exepath[PATH_MAX] = { 0 };
@@ -328,14 +331,25 @@ int tjs_module_load()
     return 0;
 }
 
-int tjs_module_init(JSRuntime* rt, void* user_data)
+int tjs_module_preload()
 {
     tjs_tjs_module_init();
     tjs_app_module_init();
-    tjs_module_load();
+    tjs_module_load_exepath();
 
+    return 0;
+}
+
+int tjs_module_init(JSRuntime* rt, void* user_data)
+{
     JS_SetModuleLoaderFunc(rt, tjs_module_normalizer, tjs_module_loader, user_data);
     return 0;
+}
+
+static int tjs_module_dummy_init(JSContext* ctx, JSModuleDef* m)
+{
+    /* should never be called when compiling JS code */
+    abort();
 }
 
 /**
@@ -351,8 +365,14 @@ static JSModuleDef* tjs_module_load_bytecode(JSContext* ctx, const char* name)
     uint32_t data_len = 0;
     const uint8_t* data = tjs_module_get_data(name, &data_len);
     if (data == NULL) {
-        JS_ThrowReferenceError(ctx, "could not load module filename '%s' as library", name);
+#if 0
+        JS_ThrowReferenceError(ctx, "could not load module '%s' as library", name);
         return NULL;
+#else
+        // 方便编译
+        printf("module '%s' not found\n", name);
+        return JS_NewCModule(ctx, name, tjs_module_dummy_init);
+#endif
     }
 
     // 2. read as object
@@ -669,7 +689,7 @@ char* tjs_module_normalizer(JSContext* ctx, const char* base_name, const char* n
  */
 int tjs_module_set_import_meta(JSContext* ctx, JSValueConst func_val, JS_BOOL use_realpath, JS_BOOL is_main)
 {
-    char buf[PATH_MAX + 16];
+    char url[PATH_MAX + 16];
     int r;
 
     // module name
@@ -689,7 +709,7 @@ int tjs_module_set_import_meta(JSContext* ctx, JSValueConst func_val, JS_BOOL us
 
     // url
     if (!strchr(module_name, ':')) {
-        pstrcpy(buf, sizeof(buf), "file://");
+        pstrcpy(url, sizeof(url), "file://");
         /*  */
         if (use_realpath) {
             uv_fs_t req;
@@ -701,16 +721,16 @@ int tjs_module_set_import_meta(JSContext* ctx, JSValueConst func_val, JS_BOOL us
                 return -1;
             }
 
-            pstrcat(buf, sizeof(buf), req.ptr);
+            pstrcat(url, sizeof(url), req.ptr);
             uv_fs_req_cleanup(&req);
 
         } else {
-            pstrcat(buf, sizeof(buf), module_name);
+            pstrcat(url, sizeof(url), module_name);
         }
 
     } else {
         // http://
-        pstrcpy(buf, sizeof(buf), module_name);
+        pstrcpy(url, sizeof(url), module_name);
     }
 
     JS_FreeCString(ctx, module_name);
@@ -721,7 +741,7 @@ int tjs_module_set_import_meta(JSContext* ctx, JSValueConst func_val, JS_BOOL us
         return -1;
     }
 
-    JS_DefinePropertyValueStr(ctx, meta_obj, "url", JS_NewString(ctx, buf), JS_PROP_C_W_E);
+    JS_DefinePropertyValueStr(ctx, meta_obj, "url", JS_NewString(ctx, url), JS_PROP_C_W_E);
     JS_DefinePropertyValueStr(ctx, meta_obj, "main", JS_NewBool(ctx, is_main), JS_PROP_C_W_E);
     JS_FreeValue(ctx, meta_obj);
     return 0;

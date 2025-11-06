@@ -4,7 +4,6 @@ cmake_minimum_required(VERSION 3.12)
 set(BUILD_APP_BUILD_JS ON) # 嵌入 Build APP 脚本
 set(BUILD_APP_JS       ON) # 嵌入 APP 脚本
 set(BUILD_MBEDTLS      ON) # medtls 嵌入式 TLS
-set(BUILD_NETWORKING   ON) # 基于 C 的 JSON-RPC/HTTP/MQTT 等网络模块
 set(BUILD_REDIS_JS     OFF) # 嵌入 Redis 客户端
 set(BUILD_SQLITE_JS    OFF) # sqlite3 嵌入式数据库
 set(BUILD_GPIO         ON) # 使用 GPIO 库

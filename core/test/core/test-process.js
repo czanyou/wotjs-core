@@ -24,12 +24,14 @@ function testProcess() {
     assert.ok(process.versions);
     assert.ok(process.argv);
 
+    /**
     console.log(process.execPath());
     console.log(process.scriptPath());
     console.log(process.getuid());
     console.log(process.getgid());
     console.log(process.geteuid());
     console.log(process.getegid());
+    */
 }
 
 function testEnv() {
@@ -47,5 +49,5 @@ function testEnv() {
     assert.equal(value2, undefined);
 }
 
-test('process', testProcess);
 test('process.env', testEnv);
+test('process', testProcess);

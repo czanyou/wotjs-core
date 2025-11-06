@@ -78,7 +78,7 @@ configure_file(${CORE_DIR}/src/version.h.in ${CMAKE_BINARY_DIR}/version.h @ONLY)
 add_library(tjs_core STATIC ${SOURCES})
 set_property(TARGET tjs_core PROPERTY CONFIG_BIGNUM VERSION ${TJS_VERSION} SOVERSION ${TJS_VERSION_MAJOR})
 
-target_link_libraries(tjs_core tjs_miniz tjs_mqtt_packet tjs_http_parser tjs_quickjs tjs_networking tjs_util tjs_uv)
+target_link_libraries(tjs_core tjs_miniz tjs_quickjs tjs_networking tjs_util tjs_uv)
 
 if (BUILD_STATIC_LIBS)
     target_link_libraries(tjs_core -static)
@@ -123,14 +123,14 @@ endif ()
 # sqlite3.js
 if (BUILD_SQLITE_JS)
     message(STATUS "Build sqlite module.")
-    target_link_libraries(tjs sqlite3js)
+    target_link_libraries(tjs tjs_sqlite3)
     target_compile_definitions(tjs_core PRIVATE BUILD_SQLITE_JS)
 endif ()
 
 # redis.js
 if (BUILD_REDIS_JS)
     message(STATUS "Build redis module.")
-    target_link_libraries(tjs redisjs)
+    target_link_libraries(tjs tjs_redis)
     target_compile_definitions(tjs_core PRIVATE BUILD_REDIS_JS)
 endif ()
 

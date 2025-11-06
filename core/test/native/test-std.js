@@ -95,14 +95,13 @@ test('native.evalScript', async () => {
     const script = '(function() { return 100; }) ()';
     assert.equal(native.runtime.evalScript(script), 100);
 
-    // loadScript
+    // evalFile
     const filename = __dirname + '/helpers/test-eval.js';
-    assert.equal(native.runtime.loadScript(filename), 200);
+    assert.equal(native.runtime.evalFile(filename), 200);
 
     native.runtime.gc();
 
-    console.log(native.runtime);
-
+    // console.log(native.runtime);
 });
 
 test('native.writeObject', async () => {
@@ -111,14 +110,13 @@ test('native.writeObject', async () => {
         text: 'abc', int: 100, float: 100.5, bool: true,
         array: [1, 2, 3], obj: { a: 100 }
     };
-    
+
     const flags = 1 + 8;
     const buffer = native.runtime.writeObject(object, flags);
-
-    console.log(buffer);
+    // console.log(buffer);
 
     const result = native.runtime.readObject(buffer, 0, buffer.byteLength, flags);
-    console.log('result:', result);
+    // console.log('result:', result);
 
     // const ret = await native.runtime.evalByteCode(bytecode);
     // console.log('ret:', ret);
@@ -131,14 +129,14 @@ test('native.compile', async () => {
 
     const filename = __dirname + '/helpers/test-eval.js';
     const filedata = await native.fs.readFile(filename);
-    console.log('filedata:', filedata);
+    // console.log('filedata:', filedata);
 
     const buffer = native.runtime.compile(filedata, filename);
-    console.log('bytecode:', buffer);
+    // console.log('bytecode:', buffer);
 
-    // const code = native.runtime.loadScript(filename2);
+    // const code = native.runtime.evalFile(filename2);
     const code = await native.runtime.evalByteCode(buffer, 0, buffer.byteLength);
-    console.log('code:', code);
+    // console.log('code:', code);
 });
 
 test('native.compile', async () => {
@@ -148,11 +146,11 @@ test('native.compile', async () => {
 
     const filename = __dirname + '/helpers/test-module.js';
     const filedata = await native.fs.readFile(filename);
-    console.log('filedata:', filedata);
+    // console.log('filedata:', filedata);
 
     const buffer = native.runtime.compile(filedata, filename);
-    console.log('bytecode:', buffer);
+    // console.log('bytecode:', buffer);
 
     const code = await native.runtime.evalByteCode(buffer, 0, buffer.byteLength);
-    console.log('code:', code);
+    // console.log('code:', code);
 });

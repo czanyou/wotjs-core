@@ -520,19 +520,24 @@ declare module '@tjs/native' {
         export function evalByteCode(data: ArrayBuffer, offset: number, length: number): any;
 
         /**
+         * 执行脚本文件
+         * @param fileanme 要加载的脚本文件名
+         * @param flags `true` 表示为 ES 模块环境执行，`false` 表示在全局环境执行
+         * @returns 脚本执行的结果
+         */
+        export function evalFile(fileanme: string, flags?: boolean): any;
+
+        /**
          * 执行脚本字符串
          * @param script 要执行的脚本字符串
          * @returns 脚本执行的结果
          */
-        export function evalScript(script: string): any;
+        export function evalScript(script: string, filename?: string): any;
 
         /**
-         * 执行脚本文件
-         * @param fileanme 要加载的脚本文件名
-         * @param flags `true` 表示为模块，`false` 表示为非模块
-         * @returns 脚本执行的结果
+         * 执行垃圾回收
          */
-        export function loadScript(fileanme: string, flags?: boolean): any;
+        export function gc(): void;
 
         /**
          * 字节码数据反序列化为对象
@@ -556,11 +561,6 @@ declare module '@tjs/native' {
          * @returns 字节码二进制数据
          */
         export function writeObject(object: any, flags?: number): ArrayBuffer;
-
-        /**
-         * 执行垃圾回收
-         */
-        export function gc(): void;
     }
 
     /** 操作系统信号定义表 */

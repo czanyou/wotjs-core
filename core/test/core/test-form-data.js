@@ -68,7 +68,8 @@ test('FormData', async () => {
     formData.append('test', 'value');
     formData.append('blob', blob);
     formData.append('file', file, 'test-file');
-    console.log('formData:', formData);
+
+    // console.log('formData:', formData);
 
     assert.equal(formData.get('test'), 'value');
 

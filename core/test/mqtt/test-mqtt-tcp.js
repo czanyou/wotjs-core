@@ -6,21 +6,37 @@ import * as assert from '@tjs/assert';
 import { test } from '@tjs/test';
 
 test('net.mqtt - tcp', async () => {
-    const options = {};
-    options.username = 'device';
-    options.password = 'wot2019';
-    options.protocolId = 'MQTT';
-    options.reconnectPeriod = 1000;
-    options.connectTimeout = 3 * 1000;
-    options.keepalive = 60;
-    options.reschedulePings = true;
-    options.clean = true;
+    const options = {
+        username: 'device',
+        password: 'wot2019',
+        protocolId: 'MQTT',
+        reconnectPeriod: 1000,
+        connectTimeout: 3 * 1000,
+        keepalive: 60,
+        reschedulePings: true,
+        clean: true,
+    };
 
-    const result = {};
+    const result = {
+        hasError: false,
+        connect: false,
+        close: false,
+        offline: false,
+        open: false,
+        payload: null,
+        topic: null,
+    };
 
-    const url = 'mqtt://localhost:1883';
+    // const url = 'mqtt://localhost:1883';
+    const url = 'mqtt://iot.wotcloud.cn:1883';
 
-    const $context = {};
+    const $context = {
+        /** @type {any} */
+        callback: null,
+
+        /** @type {any} */
+        timer: null,
+    };
 
     const promise = new Promise((resolve, reject) => {
         $context.callback = () => {
@@ -67,9 +83,9 @@ test('net.mqtt - tcp', async () => {
 
         setTimeout(async () => {
             const ret = await client.subscribe('testtopic');
-            assert.equal(ret.qos, 0);
+            console.log('mqtt:', 'suback:', ret);
 
-            // console.log('mqtt:', 'suback:', ret);
+            assert.equal(ret.qos, 0);
         }, 0);
 
         setTimeout(async () => {
@@ -81,12 +97,12 @@ test('net.mqtt - tcp', async () => {
 
     client.onmessage = async (event) => {
         // console.log('onmessage', event);
-        
+
         const message = event.data;
         if (!message) {
             return;
         }
-        
+
         // const payload = textDecoder.decode(message.payload);
         // console.log('onmessage', message.topic, payload);
 
@@ -106,7 +122,7 @@ test('net.mqtt - tcp', async () => {
 
     await promise;
 
-    console.log('result:', result);
+    // console.log('result:', result);
     assert.ok(result.open, 'open');
     assert.ok(result.payload, 'payload');
     assert.ok(result.topic, 'topic');

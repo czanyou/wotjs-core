@@ -31,7 +31,6 @@
 #include "../../deps/quickjs/src/list.h"
 
 #include "tjs.h"
-#include "wasm.h"
 
 #include <quickjs.h>
 #include <stdbool.h>
@@ -109,6 +108,8 @@ int tjs_load_file(JSContext *ctx, DynBuf *dbuf, const char *filename);
 int tjs_module_add_module(const char* name, const uint8_t* data, uint32_t data_len);
 
 int tjs_module_init(JSRuntime *rt, void* user_data);
+
+int tjs_module_preload();
 
 const uint8_t* tjs_module_get_data(const char* name, uint32_t* psize);
 

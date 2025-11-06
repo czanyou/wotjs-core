@@ -11,10 +11,13 @@ const crypto = native.crypto;
 
 test('native.crypto.digest', () => {
     assert.ok(crypto);
-    assert.equal(crypto.MD_MD5, 1);
-    assert.equal(crypto.MD_SHA1, 2);
-    assert.equal(crypto.MD_SHA256, 4);
-    assert.equal(crypto.MD_SHA512, 6);
+
+    // console.log('crypto:', crypto);
+
+    assert.equal(crypto.MD_MD5, 3);
+    assert.equal(crypto.MD_SHA1, 5);
+    assert.equal(crypto.MD_SHA256, 9);
+    assert.equal(crypto.MD_SHA512, 11);
 
     const result1 = crypto.digest(crypto.MD_MD5, 'test');
     const result2 = crypto.digest(crypto.MD_SHA1, 'test');

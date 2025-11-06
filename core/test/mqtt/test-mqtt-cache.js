@@ -6,15 +6,17 @@ import * as util from '@tjs/util';
 import * as assert from '@tjs/assert';
 import { test } from '@tjs/test';
 
-const mqttOptions = {};
-mqttOptions.username = 'device';
-mqttOptions.password = 'wot2019';
-mqttOptions.protocolId = 'MQTT';
-mqttOptions.reconnectPeriod = 1000;
-mqttOptions.connectTimeout = 3 * 1000;
-mqttOptions.keepalive = 60;
-mqttOptions.reschedulePings = true;
-mqttOptions.clean = true;
+const mqttOptions = {
+    clean: true,
+    connectTimeout: 3 * 1000,
+    host: '',
+    keepalive: 60,
+    password: 'wot2019',
+    protocolId: 'MQTT',
+    reconnectPeriod: 1000,
+    reschedulePings: true,
+    username: 'device',
+};
 
 /**
  * 测试断网续传功能
@@ -26,8 +28,6 @@ test('net.mqtt - cache', async () => {
 
     let client1 = null;
     mqttOptions.host = 'localhost';
-    
-    mqttOptions.host = 'localhost';
     mqttOptions.username = 'tbd';
     mqttOptions.password = 'tbd@wot.js';
 
@@ -36,7 +36,7 @@ test('net.mqtt - cache', async () => {
         const options = { ...mqttOptions };
         client1 = mqtt.connect(options);
         client1.onmessage = (event) => {
-            console.log('message:', event.data?.payload);
+            // console.log('message:', event.data?.payload);
             result.message++;
         };
 
@@ -53,7 +53,7 @@ test('net.mqtt - cache', async () => {
     assert.ok(client2);
 
     client2.addEventListener('statechange', (event) => {
-        console.log('statechange:', client2.readyState);
+        // console.log('statechange:', client2.readyState);
     });
 
     // 3. send message
@@ -67,7 +67,7 @@ test('net.mqtt - cache', async () => {
     await client2.ready;
 
     const ack = await client2.publish('test', 'test3', { qos: 1 });
-    console.log('ack:', ack);
+    // console.log('ack:', ack);
 
     // console.log(client2.store);
     assert.equal(client2.store?.size(), 0);
@@ -76,7 +76,7 @@ test('net.mqtt - cache', async () => {
     await util.sleep(1000);
 
     const ret = await client1.unsubscribe('test');
-    console.log('unsubscribe:', ret);
+    // console.log('unsubscribe:', ret);
 
     assert.equal(result.message, 3);
 

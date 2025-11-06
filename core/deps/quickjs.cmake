@@ -4,7 +4,7 @@ set(QUICKJS_DIR ${CMAKE_CURRENT_LIST_DIR}/quickjs)
 
 set(SOURCES
     ${QUICKJS_DIR}/src/cutils.c
-    ${QUICKJS_DIR}/src/libbf.c
+    ${QUICKJS_DIR}/src/dtoa.c
     ${QUICKJS_DIR}/src/libregexp.c
     ${QUICKJS_DIR}/src/libunicode.c
     ${QUICKJS_DIR}/src/quickjs.c

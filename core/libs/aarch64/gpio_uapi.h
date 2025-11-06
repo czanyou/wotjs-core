@@ -1,6 +1,10 @@
 #ifndef _TJS_GPIO_H_
 #define _TJS_GPIO_H_
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /**
  * 讯为 RK3568 核心板 GPIO 接口定义
  */
@@ -15,5 +19,9 @@ int gpio_get_value(int ctrl, int index);
 int simple_gpio_set_output(char *name, int value);
 int simple_gpio_get_value(char *name);
 int simple_gpio_set_input(char *name);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

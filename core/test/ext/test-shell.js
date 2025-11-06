@@ -11,7 +11,7 @@ const handler = os.signal(os.signals.SIGUSR1, (signal) => {
     console.log(signal);
 });
 
-console.log('handler:', handler, handler.signum);
+// console.log('handler:', handler, handler.signum);
 
 test('shell.access', async () => {
     const sh = shell.shell();
@@ -164,14 +164,14 @@ test('shell.cp.dir', async () => {
     assert.equal(sh.$0, 0);
 
     const dirs = await sh.readdir(path);
-    sh.echo('dirs:', dirs);
+    // sh.echo('dirs:', dirs);
 
     const readlink = await sh.readlink(path + '/link');
-    sh.echo('readlink:', readlink);
+    // sh.echo('readlink:', readlink);
     assert.equal(readlink, 'sub');
 
     const realpath = await sh.realpath(path + '/link');
-    sh.echo('realpath:', realpath);
+    // sh.echo('realpath:', realpath);
     // assert.equal(realpath, 'sub');
 
     // mv 文件

@@ -42,10 +42,6 @@
 const char* tjs_board(void);
 const char* tjs_build(void);
 const char* tjs_version(void);
-const char* tjs_core_board(void);
-const char* tjs_core_build(void);
-const char* tjs_core_version(void);
 const int tjs_code(void);
-const int tjs_core_code(void);
 
 #endif

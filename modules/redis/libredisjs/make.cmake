@@ -6,7 +6,7 @@ set(REDISJS_SOURCES
   ${LIBREDISJS_DIR}/redis-js.c
 )
 
-add_library(redisjs STATIC ${REDISJS_SOURCES})
-target_include_directories(redisjs PUBLIC ${LIBREDISJS_DIR}/)
+add_library(tjs_redis STATIC ${REDISJS_SOURCES})
+target_include_directories(tjs_redis PUBLIC ${LIBREDISJS_DIR}/)
 
-target_link_libraries(redisjs tjs_core tjs_quickjs hiredis tjs_uv m)
+target_link_libraries(tjs_redis tjs_core tjs_quickjs hiredis tjs_uv m)

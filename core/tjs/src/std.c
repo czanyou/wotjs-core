@@ -29,97 +29,6 @@
 #include <string.h>
 #include <uv.h>
 
-static JSValue tjs_std_read_object(JSContext* ctx, JSValueConst this_val, int argc, JSValueConst* argv)
-{
-    uint8_t* buffer = NULL;
-    uint64_t pos = 0, len = 0;
-    JSValue object;
-    size_t buffer_size = 0;
-
-    if (JS_ToIndex(ctx, &pos, argv[1])) {
-        return JS_EXCEPTION;
-
-    } else if (JS_ToIndex(ctx, &len, argv[2])) {
-        return JS_EXCEPTION;
-    }
-
-    buffer = JS_GetArrayBuffer(ctx, &buffer_size, argv[0]);
-    if (!buffer) {
-        return JS_EXCEPTION;
-    }
-
-    if (pos + len > buffer_size) {
-        return JS_ThrowRangeError(ctx, "array buffer overflow");
-    }
-
-    int flags = 0;
-    if (argc > 3) {
-        if (JS_ToInt32(ctx, &flags, argv[3])) {
-            // flags |= JS_READ_OBJ_REFERENCE;
-            return JS_EXCEPTION;
-        }
-    }
-
-    object = JS_ReadObject(ctx, buffer + pos, len, flags);
-    return object;
-}
-
-static JSValue tjs_std_write_object(JSContext* ctx, JSValueConst this_val, int argc, JSValueConst* argv)
-{
-    size_t len = 0;
-    uint8_t* data = NULL;
-    JSValue array_buffer;
-
-    int flags = 0;
-    if (argc > 1) {
-        if (JS_ToInt32(ctx, &flags, argv[1])) {
-            return JS_EXCEPTION;
-        }
-    }
-
-    // printf("flags: %x\n", flags);
-    // flags |= JS_WRITE_OBJ_REFERENCE;
-    // JS_WRITE_OBJ_BYTECODE
-
-    data = JS_WriteObject(ctx, &len, argv[0], flags);
-    if (!data) {
-        return JS_EXCEPTION;
-    }
-
-    array_buffer = JS_NewArrayBufferCopy(ctx, data, len);
-    js_free(ctx, data);
-    return array_buffer;
-}
-
-/* load and evaluate a file */
-static JSValue tjs_std_load_script(JSContext* ctx, JSValueConst this_val, int argc, JSValueConst* argv)
-{
-    const char* filename;
-    JSValue ret;
-
-    filename = JS_ToCString(ctx, argv[0]);
-    if (!filename) {
-        return JS_EXCEPTION;
-    }
-
-    int flags = JS_EVAL_TYPE_GLOBAL;
-    if (argc > 1) {
-        if (JS_ToBool(ctx, argv[1])) {
-            flags = JS_EVAL_TYPE_MODULE;
-        }
-    }
-
-    ret = TJS_EvalFile(ctx, filename, flags, false, NULL);
-    JS_FreeCString(ctx, filename);
-    return ret;
-}
-
-static JSValue tjs_std_gc(JSContext* ctx, JSValueConst this_val, int argc, JSValueConst* argv)
-{
-    JS_RunGC(JS_GetRuntime(ctx));
-    return JS_UNDEFINED;
-}
-
 static JSValue tjs_std_compile(JSContext* ctx, JSValue this_val, int argc, JSValue* argv)
 {
     size_t len = 0;
@@ -222,27 +131,163 @@ static JSValue tjs_std_eval_bytecode(JSContext* ctx, JSValue this_val, int argc,
     return JS_EvalFunction(ctx, object);
 }
 
+/* load and evaluate a file */
+static JSValue tjs_std_eval_file(JSContext* ctx, JSValueConst this_val, int argc, JSValueConst* argv)
+{
+    const char* filename = JS_ToCString(ctx, argv[0]);
+    if (!filename) {
+        return JS_EXCEPTION;
+    }
+
+    int flags = JS_EVAL_TYPE_GLOBAL; // 全局环境中执行
+    if (argc > 1) {
+        if (JS_ToBool(ctx, argv[1])) {
+            flags = JS_EVAL_TYPE_MODULE; // 在 ES 模块环境中执行
+        }
+    }
+
+    flags |= JS_EVAL_FLAG_COMPILE_ONLY;
+
+    JSValue object = TJS_EvalFile(ctx, filename, flags, false, NULL);
+    JS_FreeCString(ctx, filename);
+
+    if (JS_IsException(object)) {
+        return JS_EXCEPTION;
+    }
+
+    if (JS_VALUE_GET_TAG(object) == JS_TAG_MODULE) {
+        if (JS_ResolveModule(ctx, object) < 0) {
+            JS_FreeValue(ctx, object);
+            return JS_EXCEPTION;
+        }
+
+        tjs_module_set_import_meta(ctx, object, FALSE, FALSE);
+    }
+
+    return JS_EvalFunction(ctx, object);
+}
+
 static JSValue tjs_std_eval_script(JSContext* ctx, JSValueConst this_val, int argc, JSValueConst* argv)
 {
-    const char* script;
-    size_t len;
-    JSValue ret;
-    script = JS_ToCStringLen(ctx, &len, argv[0]);
+    size_t len = 0;
+    const char* script = JS_ToCStringLen(ctx, &len, argv[0]);
     if (!script) {
         return JS_EXCEPTION;
     }
 
-    ret = JS_Eval(ctx, script, len, "<evalScript>", JS_EVAL_TYPE_GLOBAL | JS_EVAL_FLAG_BACKTRACE_BARRIER);
+    const char* module_name = NULL;
+
+    int flags = JS_EVAL_TYPE_MODULE; // 在 ES 模块环境中执行
+    if (argc > 1) {
+        module_name = JS_ToCString(ctx, argv[1]); // 文件名
+    }
+
+    const char* filename = module_name;
+    if (filename == NULL || filename[0] == '\0') {
+        filename = "<evalScript>";
+        flags = JS_EVAL_TYPE_GLOBAL; // 全局环境中执行
+    }
+
+    flags |= JS_EVAL_FLAG_BACKTRACE_BARRIER;
+    flags |= JS_EVAL_FLAG_COMPILE_ONLY;
+
+    JSValue object = JS_Eval(ctx, script, len, filename, flags);
     JS_FreeCString(ctx, script);
-    return ret;
+
+    if (module_name) {
+        JS_FreeCString(ctx, module_name);
+    }
+
+    if (JS_IsException(object)) {
+        return JS_EXCEPTION;
+    }
+
+    if (JS_VALUE_GET_TAG(object) == JS_TAG_MODULE) {
+        if (JS_ResolveModule(ctx, object) < 0) {
+            JS_FreeValue(ctx, object);
+            return JS_EXCEPTION;
+        }
+
+        tjs_module_set_import_meta(ctx, object, FALSE, FALSE);
+    }
+
+    return JS_EvalFunction(ctx, object);
+}
+
+static JSValue tjs_std_gc(JSContext* ctx, JSValueConst this_val, int argc, JSValueConst* argv)
+{
+    JS_RunGC(JS_GetRuntime(ctx));
+    return JS_UNDEFINED;
+}
+
+static JSValue tjs_std_read_object(JSContext* ctx, JSValueConst this_val, int argc, JSValueConst* argv)
+{
+    uint8_t* buffer = NULL;
+    uint64_t pos = 0, len = 0;
+    JSValue object;
+    size_t buffer_size = 0;
+
+    if (JS_ToIndex(ctx, &pos, argv[1])) {
+        return JS_EXCEPTION;
+
+    } else if (JS_ToIndex(ctx, &len, argv[2])) {
+        return JS_EXCEPTION;
+    }
+
+    buffer = JS_GetArrayBuffer(ctx, &buffer_size, argv[0]);
+    if (!buffer) {
+        return JS_EXCEPTION;
+    }
+
+    if (pos + len > buffer_size) {
+        return JS_ThrowRangeError(ctx, "array buffer overflow");
+    }
+
+    int flags = 0;
+    if (argc > 3) {
+        if (JS_ToInt32(ctx, &flags, argv[3])) {
+            // flags |= JS_READ_OBJ_REFERENCE;
+            return JS_EXCEPTION;
+        }
+    }
+
+    object = JS_ReadObject(ctx, buffer + pos, len, flags);
+    return object;
+}
+
+static JSValue tjs_std_write_object(JSContext* ctx, JSValueConst this_val, int argc, JSValueConst* argv)
+{
+    size_t len = 0;
+    uint8_t* data = NULL;
+    JSValue array_buffer;
+
+    int flags = 0;
+    if (argc > 1) {
+        if (JS_ToInt32(ctx, &flags, argv[1])) {
+            return JS_EXCEPTION;
+        }
+    }
+
+    // printf("flags: %x\n", flags);
+    // flags |= JS_WRITE_OBJ_REFERENCE;
+    // JS_WRITE_OBJ_BYTECODE
+
+    data = JS_WriteObject(ctx, &len, argv[0], flags);
+    if (!data) {
+        return JS_EXCEPTION;
+    }
+
+    array_buffer = JS_NewArrayBufferCopy(ctx, data, len);
+    js_free(ctx, data);
+    return array_buffer;
 }
 
 static const JSCFunctionListEntry js_std_funcs[] = {
-    TJS_CFUNC_DEF("evalScript", 1, tjs_std_eval_script),
-    TJS_CFUNC_DEF("gc", 0, tjs_std_gc),
     TJS_CFUNC_DEF("compile", 2, tjs_std_compile),
     TJS_CFUNC_DEF("evalByteCode", 1, tjs_std_eval_bytecode),
-    TJS_CFUNC_DEF("loadScript", 1, tjs_std_load_script),
+    TJS_CFUNC_DEF("evalFile", 1, tjs_std_eval_file),
+    TJS_CFUNC_DEF("evalScript", 1, tjs_std_eval_script),
+    TJS_CFUNC_DEF("gc", 0, tjs_std_gc),
     TJS_CFUNC_DEF("readObject", 4, tjs_std_read_object),
     TJS_CFUNC_DEF("writeObject", 2, tjs_std_write_object),
 };

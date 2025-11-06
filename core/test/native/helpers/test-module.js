@@ -1,3 +1,3 @@
 export const value = 100;
 
-console.print('test');
+console.print('print from test-module.js');

@@ -121,7 +121,7 @@ static void tjs_cli_print_help(void)
 
 static void tjs_cli_print_version()
 {
-    printf("WoT.js v%s (git: %s) build: %s\n", tjs_version(), GIT_VERSION, tjs_core_build());
+    printf("WoT.js v%s (git: %s) build: %s\n", tjs_version(), GIT_VERSION, tjs_build());
 }
 
 /**
@@ -523,7 +523,7 @@ static int tjs_cli_eval(JSContext* ctx, const char* filename, int load_as_module
         return tjs_cli_eval_file(ctx, script_name, load_as_module);
     }
 
-    printf("Cannot find module: '%s'\r\n\r\n", filename);
+    printf("Cannot find file: '%s'\r\n\r\n", filename);
     return 0;
 }
 
@@ -703,6 +703,8 @@ static int tjs_cli_parse_args(int argc, char** argv)
 int tjs_cli(int argc, char** argv)
 {
     tjs_cli_init_signal();
+    tjs_module_preload();
+
     tjs_cli_parse_args(argc, argv);
 
     uv_disable_stdio_inheritance();
@@ -715,12 +717,12 @@ int tjs_cli(int argc, char** argv)
 
     // create runtime
     TJSRuntime* tjs_runtime = TJS_NewRuntime(&tjs_runtime_options);
-    JSContext* js_context = TJS_GetContext(tjs_runtime);
+    JSContext* tjs_context = TJS_GetContext(tjs_runtime);
 
     if (tjs_cli_flags.empty_run) {
         goto exit;
 
-    } else if (tjs_cli_preload_modules(js_context, tjs_runtime) < 0) {
+    } else if (tjs_cli_preload_modules(tjs_context, tjs_runtime) < 0) {
         goto exit;
     }
 
@@ -728,19 +730,19 @@ int tjs_cli(int argc, char** argv)
     if (tjs_cli_flags.eval_expression) {
         // eval expression - 执行命令行提供的表达式
         tjs_cli_flags.interactive = false;
-        ret = tjs_cli_eval_string(js_context, tjs_cli_flags.eval_expression, "<expression>");
+        ret = tjs_cli_eval_string(tjs_context, tjs_cli_flags.eval_expression, "<expression>");
 
     } else if (tjs_cli_flags.eval_command) {
         // eval app.js script - 执行内置的 APP 子程序
         tjs_cli_flags.interactive = false;
         const char* filename = tjs_cli_flags.eval_command;
-        ret = tjs_cli_eval_command(js_context, filename);
+        ret = tjs_cli_eval_command(tjs_context, filename);
 
     } else if (tjs_cli_flags.option_index < argc) {
         // tjs script.js
         // eval script.js - 执行指定的脚本文件
         const char* filename = argv[tjs_cli_flags.option_index];
-        ret = tjs_cli_eval(js_context, filename, tjs_cli_flags.load_as_module);
+        ret = tjs_cli_eval(tjs_context, filename, tjs_cli_flags.load_as_module);
 
     } else {
         /* eval interactive mode */
@@ -754,7 +756,7 @@ int tjs_cli(int argc, char** argv)
 
     if (tjs_cli_flags.interactive) {
         if (tjs_cli_has_command("help")) {
-            ret = tjs_cli_eval(js_context, "help", 1);
+            ret = tjs_cli_eval(tjs_context, "help", 1);
 
         } else {
             tjs_cli_print_help();
@@ -763,7 +765,7 @@ int tjs_cli(int argc, char** argv)
 
     TJS_Run(tjs_runtime);
 
-    tjs_cli_eval_string(js_context, "process?.onExit();", "<exit>");
+    tjs_cli_eval_string(tjs_context, "process?.onExit();", "<exit>");
 
     // dump memory
     if (tjs_runtime->options.dump_memory) {

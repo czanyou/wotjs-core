@@ -22,7 +22,7 @@ test('mqtt', async () => {
 
     const result = {};
 
-    const url = 'mqtts://localhost:8883';
+    const url = 'mqtts://www.wotcloud.cn:8883';
     const client = mqtt.connect(url, options);
     assert.ok(client);
 

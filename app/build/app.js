@@ -8,7 +8,7 @@ import shell from '@tjs/shell';
 import * as cmdline from '../modules/utils/cmdline';
 import * as getopts from '../modules/utils/getopts';
 import * as link from './src/link';
-import * as bundle from './src/bundle';
+import * as bundle from '@tjs/bundle';
 
 async function checkProjectRoot() {
     const basePath = shell.pwd();
@@ -31,40 +31,46 @@ const $commands = {
         /**
          * 打包
          * @param  {...string} args 
-         * @returns 
+         * @returns {Promise<void>}
          */
         async bundle(...args) {
-            const options = getopts.parse(args, {
+            const params = getopts.parse(args, {
                 alias: {
-                    'basepath': 'b',
-                    'exepath': 'e',
-                    'output': 'o',
-                    'libname': 'l'
+                    exepath: 'e',
+                    libname: 'l',
+                    outfile: 'o',
+                    root: 'r',
+                    target: 't'
                 },
                 default: {
-                    'output': './build/tjs'
+                    outfile: './build/tjs'
                 }
             });
 
-            const bundler = new bundle.Bundler();
-            if (options.basepath) {
-                bundler.basepath = String(options.basepath);
+            const options = {};
+            options.exepath = getopts.parseString(params.exepath);
+            options.libname = getopts.parseString(params.libname);
+            options.outfile = getopts.parseString(params.outfile);
+            options.root = getopts.parseString(params.root);
+            options.target = getopts.parseString(params.target);
+
+            const files = [];
+            if (Array.isArray(params._)) {
+                for (const file of params._) {
+                    const filename = getopts.parseString(file);
+                    if (filename) {
+                        files.push(filename);
+                    }
+                }
             }
 
-            if (options.exepath) {
-                bundler.exepath = String(options.exepath);
-            }
+            // console.log(options, files);
 
-            if (options.libname) {
-                bundler.libname = String(options.libname);
-            }
+            const bundler = new bundle.Bundler(options);
+            await bundler.bundle(files);
 
-            if (options.output) {
-                bundler.outpath = String(options.output);
-            }
-
-            // @ts-ignore
-            return await bundler.bundle(options._);
+            console.print('Result:');
+            console.table(bundler.result);
         },
 
         /** 
@@ -93,11 +99,16 @@ const $commands = {
 
         /**
          * 更新 CMake 项目版本号配置文件
-         * - CMakeVersion.cmake
+         * - version.cmake
          * @param {string} filename 配置文件名
          */
         async version(filename) {
-            if (!await checkProjectRoot()) {
+            if (!filename) {
+                console.print('Update CMake project version file\n');
+                console.print('Usage: tjs build version <filename>\n');
+                return;
+
+            } else if (!await checkProjectRoot()) {
                 return;
             }
 

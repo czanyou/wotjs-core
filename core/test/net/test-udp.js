@@ -8,14 +8,21 @@ import * as net from '@tjs/net';
 import * as util from '@tjs/util';
 
 test('net.udp - server:client', async () => {
-    const $result = {};
+    const $result = {
+        serverData: 0,
+        clientData: 0,
+    };
 
+    /**
+     * 
+     * @param {*} server 
+     */
     async function doEchoServer(server) {
-        server.onerror = function (error) {
+        server.onerror = function (/** @type {*} */ error) {
             console.log('onerror:', error);
         };
 
-        server.onmessage = function (event) {
+        server.onmessage = function (/** @type {*} */ event) {
             // const textDecoder = new TextDecoder();
             // const message = JSON.parse(textDecoder.decode(event.data));
             // console.log('server.onmessage:', message, event.address);
@@ -25,12 +32,16 @@ test('net.udp - server:client', async () => {
         };
     }
 
+    /**
+     * 
+     * @param {*} client 
+     */
     async function doEchoClient(client) {
-        client.onerror = function (error) {
+        client.onerror = function (/** @type {*} */ error) {
             console.log('onerror:', error);
         };
 
-        client.onmessage = function (event) {
+        client.onmessage = function () {
             // const textDecoder = new TextDecoder();
             // const message = JSON.parse(textDeocder.decode(event.data));
             // console.log('client.onmessage:', message);
@@ -48,7 +59,7 @@ test('net.udp - server:client', async () => {
         server.bind(address);
 
     } catch (err) {
-        console.log(err);
+        console.log('error:', err);
     }
 
     await doEchoServer(server);

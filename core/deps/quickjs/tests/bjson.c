@@ -76,7 +76,7 @@ static const JSCFunctionListEntry js_bjson_funcs[] = {
 static int js_bjson_init(JSContext *ctx, JSModuleDef *m)
 {
     return JS_SetModuleExportList(ctx, m, js_bjson_funcs,
-                                  countof(js_bjson_funcs));
+                                  countof(js_bjson_funcs));  
 }
 
 #ifdef JS_SHARED_LIBRARY

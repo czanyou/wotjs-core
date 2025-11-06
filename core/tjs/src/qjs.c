@@ -44,11 +44,6 @@
 
 extern const uint8_t qjsc_repl[];
 extern const uint32_t qjsc_repl_size;
-#ifdef CONFIG_BIGNUM
-extern const uint8_t qjsc_qjscalc[];
-extern const uint32_t qjsc_qjscalc_size;
-static int bignum_ext;
-#endif
 
 static int eval_buf(JSContext *ctx, const void *buf, int buf_len,
                     const char *filename, int eval_flags)
@@ -110,14 +105,7 @@ static JSContext *JS_NewCustomContext(JSRuntime *rt)
     ctx = JS_NewContext(rt);
     if (!ctx)
         return NULL;
-#ifdef CONFIG_BIGNUM
-    if (bignum_ext) {
-        JS_AddIntrinsicBigFloat(ctx);
-        JS_AddIntrinsicBigDecimal(ctx);
-        JS_AddIntrinsicOperators(ctx);
-        JS_EnableBignumExt(ctx, TRUE);
-    }
-#endif
+
     /* system modules */
     js_init_module_std(ctx, "std");
     js_init_module_os(ctx, "os");
@@ -292,10 +280,6 @@ void help(void)
            "    --script       load as ES6 script (default=autodetect)\n"
            "-I  --include file include an additional file\n"
            "    --std          make 'std' and 'os' available to the loaded script\n"
-#ifdef CONFIG_BIGNUM
-           "    --bignum       enable the bignum extensions (BigFloat, BigDecimal)\n"
-           "    --qjscalc      load the QJSCalc runtime (default if invoked as qjscalc)\n"
-#endif
            "-T  --trace        trace memory allocation\n"
            "-d  --dump         dump the memory usage stats\n"
            "    --memory-limit n       limit the memory usage to 'n' bytes\n"

@@ -85,6 +85,59 @@ declare module '@tjs/assert' {
     export function throws(fn: Function, expected: any, message?: string): void;
 }
 
+declare module '@tjs/bundle' {
+    export interface BundleOptions {
+        exepath?: string;
+        libname?: string;
+        outfile?: string;
+        root?: string;
+        target?: string;
+
+    }
+
+    export interface BundleResult {
+        modulesCount: number,
+        modulesSize: number,
+        offset: number,
+        total: number
+    }
+
+    export class Bundler {
+        exepath?: string;
+        libname?: string;
+        outfile?: string;
+        root?: string;
+        target?: string;
+        result?: BundleResult;
+
+        constructor(options?: BundleOptions);
+
+        /**
+         * 编译
+         * @param pathname 
+         */
+        compile(pathname:string): Promise<void>;
+
+        /**
+         * 打包
+         * @param files 
+         */
+        bundle(files: string[]): Promise<void>;
+
+        /**
+         * 列出文件
+         * @param basepath 基本路径
+         * @param name 文件名称
+         */
+        listFiles(basepath: string, name: string): Promise<void>;
+
+        /**
+         * 打包
+         */
+        pack(): Promise<void>;
+    }
+}
+
 /**
  * 配置参数读取和保存
  */

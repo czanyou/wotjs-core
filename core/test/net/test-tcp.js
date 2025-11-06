@@ -8,6 +8,7 @@ import * as assert from '@tjs/assert';
 import { test } from '@tjs/test';
 
 test('net.tcp - http:get - baidu', async () => {
+    /** @type {any} */
     let onResolve = null;
     const promise = new Promise((resolve, reject) => { onResolve = resolve; });
 
@@ -15,20 +16,34 @@ test('net.tcp - http:get - baidu', async () => {
 
     const host = 'www.baidu.com';
     const port = 80;
-    const result = {};
+    const result = {
+        connected: false,
+
+        /** @type {net.SocketAddress=} */
+        address: undefined,
+
+        /** @type {net.SocketAddress=} */
+        remoteAddress: undefined,
+
+        /** @type {net.SocketAddress=} */
+        lookup: undefined,
+        endOfFile: false,
+        closed: false,
+        hasError: false,
+    };
 
     function onClose() {
         client.close();
 
         onResolve(undefined);
     }
-    
+
     client.onopen = async function () {
 
         result.connected = true;
         result.address = client.localAddress();
         result.remoteAddress = client.remoteAddress();
-        
+
         // console.log('address', client.address());
         await client.write(`GET / HTTP/1.0\r\nHost: ${host}\r\n\r\n`);
     };
@@ -75,32 +90,20 @@ test('net.tcp - http:get - baidu', async () => {
 
     // lookup
     const lookup = result.lookup;
-    assert.ok(lookup.address);
-    assert.equal(lookup.family, 4);
+    assert.ok(lookup?.address);
+    assert.equal(lookup?.family, 4);
 
     // address
     const address = result.address;
     assert.ok(address);
-    assert.ok(address.address);
-    assert.equal(address.family, 4);
-    assert.ok(address.port);
+    assert.ok(address?.address);
+    assert.equal(address?.family, 4);
+    assert.ok(address?.port);
 
     // remoteAddress
     const remoteAddress = result.remoteAddress;
     assert.ok(remoteAddress);
-    assert.ok(remoteAddress.address);
-    assert.equal(remoteAddress.family, 4);
-    assert.equal(remoteAddress.port, port);
+    assert.ok(remoteAddress?.address);
+    assert.equal(remoteAddress?.family, 4);
+    assert.equal(remoteAddress?.port, port);
 });
-
-function test2() {
-    function printType(data) {
-        console.log(data, data instanceof ArrayBuffer);
-
-    }
-
-    printType(new ArrayBuffer(8));
-    printType('test');
-}
-
-test2();

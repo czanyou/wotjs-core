@@ -47,26 +47,11 @@ static void tjs__parse_build_date()
         year, month, day, hour, min, sec);
 }
 
-const char* tjs_core_build(void)
+const char* tjs_build(void)
 {
     if (!tjs__build_string[0]) {
         tjs__parse_build_date();
     }
 
     return tjs__build_string;
-}
-
-const char* tjs_core_version(void)
-{
-    return TJS_VERSION_STRING;
-}
-
-const int tjs_core_code(void)
-{
-    return TJS_VERSION_TWEAK;
-}
-
-const char* tjs_core_board(void)
-{
-    return TJS_BOARD;
 }
